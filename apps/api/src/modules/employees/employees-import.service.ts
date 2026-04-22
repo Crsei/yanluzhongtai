@@ -124,7 +124,14 @@ export class EmployeesImportService {
       groupedByYear.set(row.hireYear, list);
     }
 
-    // Allocate sequence numbers, then build CreateMany payload preserving sheet order
+    // Allocate sequence numbers, then build CreateMany payload preserving sheet order.
+    //
+    // NOTE: allocation runs OUTSIDE the createMany transaction by design. If the
+    // transaction rolls back, the allocated jobNos are "burned" — IdSequence.lastSeq
+    // already advanced. This is the intended trade-off for spec §4.2: 工号删除不回收.
+    // The alternative (allocate-inside-transaction) would either require Prisma raw
+    // SQL inside $transaction's interactive callback (no perf gain) or risk concurrent
+    // imports racing for the same lastSeq if we held a row lock without it.
     const idMap = new Map<ValidatedRow, string>();
     for (const [year, group] of groupedByYear) {
       const seqs = await this.idSequence.allocateBatch("employee", year, group.length);
@@ -153,11 +160,7 @@ export class EmployeesImportService {
             targetId: emp.id,
             fieldName: null,
             beforeValue: null,
-            afterValue: JSON.stringify({
-              ...emp,
-              source: emp.source,
-              servingFor: emp.servingFor,
-            }),
+            afterValue: JSON.stringify(emp),
           },
         });
       }
@@ -282,6 +285,8 @@ export class EmployeesImportService {
         continue;
       }
 
+      // hireDate is optional per CreateEmployeeDto; matches EmployeesService.create
+      // fallback — when absent, the server year is used for jobNo allocation.
       const hireYear = hireDate ? hireDate.getFullYear() : new Date().getFullYear();
       validated.push({
         rowNumber,
