@@ -15,7 +15,9 @@ coverage/
 .turbo/
 .omx/
 .idea/
-.vscode/
+.vscode/*
+!.vscode/launch.json
+!.vscode/tasks.json
 *.log
 npm-debug.log*
 yarn-debug.log*

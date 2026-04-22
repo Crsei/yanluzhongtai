@@ -1,5 +1,6 @@
 import { MenuFoldOutlined } from "@ant-design/icons";
 import { Avatar, Button, Drawer, Grid, Layout, Menu, Space, Tag, Typography } from "antd";
+import { useState } from "react";
 import { Outlet, useLocation, useNavigate } from "react-router-dom";
 import { navigationItems } from "../config/navigation";
 
@@ -53,7 +54,7 @@ function NavigationContent() {
 export function AppShell() {
   const screens = Grid.useBreakpoint();
   const isMobile = !screens.lg;
-  const [drawerOpen, setDrawerOpen] = React.useState(false);
+  const [drawerOpen, setDrawerOpen] = useState(false);
 
   return (
     <Layout className="app-layout">
@@ -104,4 +105,3 @@ export function AppShell() {
     </Layout>
   );
 }
-

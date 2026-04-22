@@ -1,3 +1,4 @@
+import type { ReactNode } from "react";
 import {
   BookOutlined,
   DatabaseOutlined,
@@ -12,7 +13,7 @@ export type NavigationItem = {
   key: string;
   label: string;
   path: string;
-  icon: React.ReactNode;
+  icon: ReactNode;
 };
 
 export const navigationItems: NavigationItem[] = [
@@ -24,4 +25,3 @@ export const navigationItems: NavigationItem[] = [
   { key: "sop", label: "SOP", path: "/sop", icon: <BookOutlined /> },
   { key: "about", label: "关于", path: "/about", icon: <InfoCircleOutlined /> },
 ];
-

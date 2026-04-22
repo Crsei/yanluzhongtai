@@ -5,6 +5,7 @@
   "scripts": {
     "start": "node dist/main.js",
     "start:dev": "nest start --watch",
+    "start:debug": "nest start --debug 0.0.0.0:9229 --watch",
     "build": "nest build",
     "prisma:generate": "prisma generate --schema prisma/schema.prisma",
     "prisma:push": "prisma db push --schema prisma/schema.prisma"
@@ -27,4 +28,3 @@
     "typescript": "^5.6.2"
   }
 }
-

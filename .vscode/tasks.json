@@ -1,0 +1,54 @@
+{
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "docker:infra",
+      "type": "shell",
+      "command": "docker",
+      "args": ["compose", "up", "-d", "db", "minio"],
+      "options": {
+        "cwd": "${workspaceFolder}"
+      },
+      "problemMatcher": []
+    },
+    {
+      "label": "prisma:push",
+      "type": "shell",
+      "command": "pnpm",
+      "args": ["prisma:push"],
+      "options": {
+        "cwd": "${workspaceFolder}"
+      },
+      "problemMatcher": []
+    },
+    {
+      "label": "prepare:local",
+      "dependsOn": ["docker:infra", "prisma:push"],
+      "dependsOrder": "sequence",
+      "problemMatcher": []
+    },
+    {
+      "label": "dev:web",
+      "type": "shell",
+      "command": "pnpm",
+      "args": ["dev:web"],
+      "options": {
+        "cwd": "${workspaceFolder}"
+      },
+      "isBackground": true,
+      "problemMatcher": {
+        "owner": "vite",
+        "pattern": [
+          {
+            "regexp": "."
+          }
+        ],
+        "background": {
+          "activeOnStart": true,
+          "beginsPattern": ".",
+          "endsPattern": "Local:.*http://localhost:5173"
+        }
+      }
+    }
+  ]
+}

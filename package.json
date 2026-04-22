@@ -6,6 +6,7 @@
   "scripts": {
     "dev:web": "pnpm --filter @yanlu/web dev",
     "dev:api": "pnpm --filter @yanlu/api start:dev",
+    "debug:api": "pnpm --filter @yanlu/api start:debug",
     "build": "pnpm -r build",
     "prisma:generate": "pnpm --filter @yanlu/api prisma:generate",
     "prisma:push": "pnpm --filter @yanlu/api prisma:push",
@@ -13,4 +14,3 @@
     "compose:down": "docker compose down"
   }
 }
-
