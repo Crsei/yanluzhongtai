@@ -2,8 +2,7 @@
   "extends": "../../tsconfig.base.json",
   "compilerOptions": {
     "composite": true,
-    "module": "ESNext",
-    "noEmit": true
+    "module": "ESNext"
   },
   "include": ["vite.config.ts"]
 }
