@@ -2,6 +2,7 @@ import { createBrowserRouter } from "react-router-dom";
 import { RequireAuth } from "./features/auth/RequireAuth";
 import { RequireRole } from "./features/auth/RequireRole";
 import { RootEntryRedirect } from "./features/auth/RootEntryRedirect";
+import { EmployeeListPage } from "./features/employees/EmployeeListPage";
 import { AppShell } from "./layouts/AppShell";
 import { LoginPage } from "./pages/LoginPage";
 import { ModulePage } from "./pages/ModulePage";
@@ -20,12 +21,7 @@ export const router = createBrowserRouter([
         path: "employees",
         element: (
           <RequireAuth>
-            <ModulePage
-              title="员工信息"
-              summary="对应员工信息列表、查看/编辑、新增、Excel 导入和用户关联选择器。"
-              milestones={["侧边栏与页面路由已落盘", "中台视觉骨架已落盘", "员工模块入口已预留"]}
-              specs={["docs/spec/02-Phase1-员工与用户管理.md"]}
-            />
+            <EmployeeListPage />
           </RequireAuth>
         ),
       },

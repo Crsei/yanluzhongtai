@@ -258,3 +258,18 @@ body {
   margin-bottom: 28px !important;
 }
 
+.employees-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 16px;
+  flex-wrap: wrap;
+}
+
+.related-courses-placeholder {
+  padding: 8px 12px;
+  background: #f5f7fa;
+  border-radius: 8px;
+  color: #6b7280;
+}
+
