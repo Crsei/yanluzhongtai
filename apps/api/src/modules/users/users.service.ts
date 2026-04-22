@@ -74,6 +74,13 @@ export class UsersService {
    * about to remove / demote / deactivate the *last* active SUPER_ADMIN.
    * Callers must already know that the target currently IS a SUPER_ADMIN
    * whose state is about to change.
+   *
+   * TODO(phase-1c): make this atomic. Currently a count() + update() race:
+   * two simultaneous demote/deactivate calls targeting different SAs can
+   * both pass the guard against pre-update state, then both apply, leaving
+   * zero active SAs. Fix is to wrap the count + update in a Serializable
+   * transaction (and surface 40001 as a 409 with retry guidance) or use a
+   * raw UPDATE ... WHERE (count > 1) returning rowcount. See design doc §15.
    */
   async guardLastActiveSuperAdmin(
     targetId: string,

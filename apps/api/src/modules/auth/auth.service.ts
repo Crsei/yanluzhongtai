@@ -67,7 +67,9 @@ export class AuthService {
     };
   }
 
-  issueAccessToken(user: AuthUser): RefreshResult {
+  async issueAccessToken(user: AuthUser): Promise<RefreshResult> {
+    // Refresh also counts as recent activity for the "最近访问时间" column.
+    await this.usersService.updateLastLogin(user.id);
     return {
       accessToken: this.signAccess(user),
       expiresIn: ACCESS_TOKEN_TTL_SECONDS,

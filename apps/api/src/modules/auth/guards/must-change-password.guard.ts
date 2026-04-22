@@ -36,9 +36,13 @@ export class MustChangePasswordGuard implements CanActivate {
     if (!user.mustChangePassword) return true;
 
     const method = req.method.toUpperCase();
-    const path = (req.originalUrl ?? req.url ?? "").split("?")[0];
+    const rawPath = (req.originalUrl ?? req.url ?? "").split("?")[0];
+    // Strip the global /api prefix so whitelist entries match exactly,
+    // not by suffix (which would be a footgun if a future route ends in
+    // a whitelisted path under a different prefix).
+    const path = rawPath.replace(/^\/api(?=\/|$)/, "");
     const allowed = ALWAYS_ALLOWED.some(
-      (rule) => rule.method === method && path.endsWith(rule.path),
+      (rule) => rule.method === method && rule.path === path,
     );
     if (allowed) return true;
 

@@ -535,6 +535,8 @@ if (error.response?.status === 403 && error.response?.data?.code === "MUST_CHANG
 
 5. **角色降级无二次确认**：spec §10 只点名重置密码 + 注销账号要二次确认。角色降级只有 `Modal.confirm` 一层。若运营反馈误操作多，可补加第二步。
 
+7. **最后一个 SUPER_ADMIN 护栏存在 TOCTOU 窗口**：`guardLastActiveSuperAdmin` 当前是 `count()` + `update()` 两步，非原子。两个并发请求同时尝试降级/注销不同 SA 时，都可能读到"还有 ≥2 个"然后双双 apply，最终留下 0 个 SA。复盘窗口很窄（毫秒级，且需两个 SA 同时执行高危操作），但确实存在。Phase 1C 计划：把 (count + update) 包进 `prisma.$transaction({ isolationLevel: "Serializable" })` 并把 PostgreSQL 40001 序列化失败包装成 409 + 重试提示；或改用 `UPDATE ... WHERE (SELECT count > 1)` 原生 SQL 并依据 returning rowcount 决定是否抛 409。当前已在 `users.service.ts::guardLastActiveSuperAdmin` 上留 `TODO(phase-1c)` 注释。
+
 6. **mustChangePassword 强制跳转依赖前端检测**：若用户开多 tab 且一 tab 改密完成、另一 tab 的 authStore 不感知，可能仍在"强制页"卡着。Phase 1B 接受——用户刷新即可，因为 `/auth/me` 会返回最新 `mustChangePassword=false`。
 
 ---
