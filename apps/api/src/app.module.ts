@@ -8,6 +8,7 @@ import { IdSequenceModule } from "./common/id-sequence/id-sequence.module";
 import { AuthModule } from "./modules/auth/auth.module";
 import { JwtAuthGuard } from "./modules/auth/guards/jwt-auth.guard";
 import { UsersModule } from "./modules/users/users.module";
+import { StorageModule } from "./modules/storage/storage.module";
 
 @Module({
   imports: [
@@ -18,6 +19,7 @@ import { UsersModule } from "./modules/users/users.module";
     }),
     PrismaModule,
     IdSequenceModule,
+    StorageModule,
     UsersModule,
     AuthModule,
     HealthModule,
