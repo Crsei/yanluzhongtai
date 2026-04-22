@@ -383,4 +383,66 @@ export class UsersService {
       after: { role: input.newRole },
     });
   }
+
+  async deactivateSelf(input: {
+    userId: string;
+    phoneConfirmation: string;
+  }): Promise<void> {
+    const user = await this.prisma.user.findUnique({
+      where: { id: input.userId },
+    });
+    if (!user) throw new NotFoundException("用户不存在");
+    if (user.deactivatedAt) throw new BadRequestException("账号已注销");
+    if (user.phone !== input.phoneConfirmation) {
+      throw new BadRequestException("手机号校对失败");
+    }
+    await this.guardLastActiveSuperAdmin(input.userId, user.role);
+
+    const deactivatedAt = new Date();
+    await this.prisma.user.update({
+      where: { id: input.userId },
+      data: { deactivatedAt },
+    });
+    await this.auditLogs.record({
+      operatorId: input.userId,
+      action: "user.deactivate",
+      targetType: "User",
+      targetId: input.userId,
+      before: null,
+      after: { deactivatedAt: deactivatedAt.toISOString() },
+    });
+  }
+
+  async deactivateByAdmin(input: {
+    operatorId: string;
+    targetId: string;
+    phoneConfirmation: string;
+  }): Promise<void> {
+    if (input.operatorId === input.targetId) {
+      throw new ForbiddenException("自注销请使用 /users/me/deactivate");
+    }
+    const target = await this.prisma.user.findUnique({
+      where: { id: input.targetId },
+    });
+    if (!target) throw new NotFoundException("用户不存在");
+    if (target.deactivatedAt) throw new BadRequestException("账号已注销");
+    if (target.phone !== input.phoneConfirmation) {
+      throw new BadRequestException("手机号校对失败");
+    }
+    await this.guardLastActiveSuperAdmin(input.targetId, target.role);
+
+    const deactivatedAt = new Date();
+    await this.prisma.user.update({
+      where: { id: input.targetId },
+      data: { deactivatedAt },
+    });
+    await this.auditLogs.record({
+      operatorId: input.operatorId,
+      action: "user.deactivate",
+      targetType: "User",
+      targetId: input.targetId,
+      before: null,
+      after: { deactivatedAt: deactivatedAt.toISOString() },
+    });
+  }
 }
