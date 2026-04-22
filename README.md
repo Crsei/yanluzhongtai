@@ -30,6 +30,7 @@ pnpm dev:web
 ```
 
 - 员工 / Excel 导入功能依赖 MinIO；保证 `docker compose up -d minio` 已运行，并在 `.env` 配置 `MINIO_*`（默认值已在 `.env.example`）。首次访问员工模块时 API 会自动创建 bucket。
+- Phase 1B 用户管理：用户设置页（`/user-settings`，新标签页）、全部用户管理页（`/users`，仅 SUPER_ADMIN/ADMIN）、注册账号 / 重置密码 / 注销账号 / 角色升降已上线；新账号与重置后的账号首次登录强制走改密流程。
 
 ### Docker Compose
 
