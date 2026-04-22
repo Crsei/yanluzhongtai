@@ -13,6 +13,7 @@ coverage/
 .vite/
 .cache/
 .turbo/
+.omx/
 .idea/
 .vscode/
 *.log
