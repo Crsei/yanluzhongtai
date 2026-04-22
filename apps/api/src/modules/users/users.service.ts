@@ -132,4 +132,83 @@ export class UsersService {
 
     return { items, total };
   }
+
+  async register(input: {
+    operatorId: string;
+    phone: string;
+    username: string;
+    role: UserRole;
+  }): Promise<{
+    id: string;
+    phone: string;
+    username: string;
+    role: UserRole;
+    initialPassword: string;
+  }> {
+    const initialPassword = input.phone.slice(-6);
+    const passwordHash = await bcrypt.hash(initialPassword, BCRYPT_COST);
+    try {
+      const user = await this.prisma.user.create({
+        data: {
+          phone: input.phone,
+          username: input.username,
+          role: input.role,
+          passwordHash,
+          mustChangePassword: true,
+        },
+      });
+      await this.auditLogs.record({
+        operatorId: input.operatorId,
+        action: "user.register",
+        targetType: "User",
+        targetId: user.id,
+        before: null,
+        after: {
+          phone: user.phone,
+          username: user.username,
+          role: user.role,
+        },
+      });
+      return {
+        id: user.id,
+        phone: user.phone,
+        username: user.username,
+        role: user.role,
+        initialPassword,
+      };
+    } catch (err) {
+      if (
+        err instanceof Prisma.PrismaClientKnownRequestError &&
+        err.code === "P2002"
+      ) {
+        throw new ConflictException("手机号已被使用");
+      }
+      throw err;
+    }
+  }
+
+  async resetPassword(input: {
+    operatorId: string;
+    targetId: string;
+  }): Promise<{ tempPassword: string }> {
+    const target = await this.prisma.user.findUnique({
+      where: { id: input.targetId },
+    });
+    if (!target) throw new NotFoundException("用户不存在");
+    const tempPassword = target.phone.slice(-6);
+    const newHash = await bcrypt.hash(tempPassword, BCRYPT_COST);
+    await this.prisma.user.update({
+      where: { id: input.targetId },
+      data: { passwordHash: newHash, mustChangePassword: true },
+    });
+    await this.auditLogs.record({
+      operatorId: input.operatorId,
+      action: "user.reset_password",
+      targetType: "User",
+      targetId: input.targetId,
+      before: null,
+      after: null,
+    });
+    return { tempPassword };
+  }
 }
