@@ -334,4 +334,53 @@ export class UsersService {
       after: null,
     });
   }
+
+  async updateRole(input: {
+    operatorId: string;
+    operatorRole: UserRole;
+    targetId: string;
+    newRole: UserRole;
+  }): Promise<void> {
+    if (input.operatorId === input.targetId) {
+      throw new ForbiddenException("不能修改自己的角色");
+    }
+    const target = await this.prisma.user.findUnique({
+      where: { id: input.targetId },
+    });
+    if (!target) throw new NotFoundException("用户不存在");
+    if (target.deactivatedAt) {
+      throw new BadRequestException("已注销账号不可修改角色");
+    }
+    if (target.role === input.newRole) return;
+
+    // ADMIN operator: only allowed to promote MEMBER → ADMIN
+    if (input.operatorRole === UserRole.ADMIN) {
+      const allowed =
+        target.role === UserRole.MEMBER && input.newRole === UserRole.ADMIN;
+      if (!allowed) {
+        throw new ForbiddenException("无权执行此角色变更");
+      }
+    }
+
+    // Prevent draining the last active SUPER_ADMIN
+    if (
+      target.role === UserRole.SUPER_ADMIN &&
+      input.newRole !== UserRole.SUPER_ADMIN
+    ) {
+      await this.guardLastActiveSuperAdmin(input.targetId, target.role);
+    }
+
+    await this.prisma.user.update({
+      where: { id: input.targetId },
+      data: { role: input.newRole },
+    });
+    await this.auditLogs.record({
+      operatorId: input.operatorId,
+      action: "user.update_role",
+      targetType: "User",
+      targetId: input.targetId,
+      before: { role: target.role },
+      after: { role: input.newRole },
+    });
+  }
 }
