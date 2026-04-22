@@ -6,6 +6,9 @@ import { useAuthStore } from "../../stores/authStore";
 import { type UserRole } from "../auth/types";
 import { RoleDropdown } from "./RoleDropdown";
 import { useUsers } from "./hooks/useUsers";
+import { RegisterUserModal } from "./RegisterUserModal";
+import { ResetPasswordDialog } from "./ResetPasswordDialog";
+import { DeactivateUserModal } from "./DeactivateUserModal";
 import type { UserListItem } from "./types";
 
 const PAGE_SIZE = 50;
@@ -161,10 +164,17 @@ export function UsersListPage() {
         }}
       />
 
-      {/* Admin modals wired in Task 20 */}
-      {registerOpen && <div data-testid="register-placeholder" />}
-      {resetTargetId && <div data-testid="reset-placeholder" />}
-      {deactivateTarget && <div data-testid="deactivate-placeholder" />}
+      <RegisterUserModal open={registerOpen} onClose={() => setRegisterOpen(false)} />
+      <ResetPasswordDialog
+        open={resetTargetId !== null}
+        target={(data?.items ?? []).find((r) => r.id === resetTargetId) ?? null}
+        onClose={() => setResetTargetId(null)}
+      />
+      <DeactivateUserModal
+        open={deactivateTarget !== null}
+        target={deactivateTarget}
+        onClose={() => setDeactivateTarget(null)}
+      />
     </div>
   );
 }
