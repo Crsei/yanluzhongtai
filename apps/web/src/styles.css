@@ -296,6 +296,13 @@ body {
   color: #0f172a;
 }
 
+.users-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
 .employees-toolbar {
   display: flex;
   align-items: center;
