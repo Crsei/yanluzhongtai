@@ -49,6 +49,7 @@ export class AuthService {
       phone: user.phone,
       username: user.username,
       role: user.role,
+      mustChangePassword: user.mustChangePassword,
     };
 
     const accessToken = this.signAccess(authUser);
