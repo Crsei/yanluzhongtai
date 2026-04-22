@@ -13,6 +13,12 @@ enum UserRole {
   MEMBER
 }
 
+enum EmploymentStatus {
+  FULL_TIME
+  PART_TIME
+  RESIGNED
+}
+
 model User {
   id          String    @id @default(cuid())
   phone       String    @unique
@@ -25,11 +31,11 @@ model User {
 }
 
 model Employee {
-  id               String   @id @default(cuid())
-  jobNo            String   @unique
+  id               String           @id @default(cuid())
+  jobNo            String           @unique
   name             String
   gender           String
-  employmentStatus String
+  employmentStatus EmploymentStatus @default(FULL_TIME)
   jobTitle         String
   hireDate         DateTime?
   phone            String?
@@ -41,6 +47,8 @@ model Employee {
   attachmentKeys   String[]
   createdAt        DateTime @default(now())
   updatedAt        DateTime @updatedAt
+
+  @@index([name])
 }
 
 model Student {
@@ -164,5 +172,14 @@ model AuditLog {
   beforeValue String?
   afterValue  String?
   createdAt   DateTime @default(now())
+}
+
+model IdSequence {
+  kind      String
+  year      Int
+  lastSeq   Int      @default(0)
+  updatedAt DateTime @updatedAt
+
+  @@id([kind, year])
 }
 
