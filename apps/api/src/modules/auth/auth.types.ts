@@ -5,6 +5,7 @@ export type AuthUser = {
   phone: string;
   username: string;
   role: UserRole;
+  mustChangePassword: boolean;
 };
 
 export type JwtPayload = {
