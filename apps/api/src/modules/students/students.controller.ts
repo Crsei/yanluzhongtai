@@ -10,19 +10,26 @@ import {
   Post,
   Put,
   Query,
+  Res,
 } from "@nestjs/common";
+import type { Response } from "express";
 import { UserRole } from "@prisma/client";
 import { CurrentUser } from "../auth/decorators/current-user.decorator";
 import { Roles } from "../auth/decorators/roles.decorator";
 import type { AuthUser } from "../auth/auth.types";
 import { CreateStudentDto } from "./dto/create-student.dto";
+import { ImportFileKeyDto } from "./dto/import.dto";
 import { QueryStudentsDto } from "./dto/query-students.dto";
 import { UpdateStudentDto } from "./dto/update-student.dto";
 import { StudentsService } from "./students.service";
+import { StudentsImportService } from "./students-import.service";
 
 @Controller("students")
 export class StudentsController {
-  constructor(private readonly students: StudentsService) {}
+  constructor(
+    private readonly students: StudentsService,
+    private readonly imports: StudentsImportService,
+  ) {}
 
   @Get()
   list(@Query() query: QueryStudentsDto) {
@@ -55,5 +62,39 @@ export class StudentsController {
   @HttpCode(HttpStatus.NO_CONTENT)
   async remove(@Param("id") id: string, @CurrentUser() operator: AuthUser) {
     await this.students.remove(id, operator.id);
+  }
+
+  @Roles(UserRole.SUPER_ADMIN, UserRole.ADMIN)
+  @Get("import/template")
+  async downloadTemplate(@Res() res: Response) {
+    try {
+      const buf = await this.imports.generateTemplate();
+      res.setHeader(
+        "Content-Type",
+        "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+      );
+      res.setHeader(
+        "Content-Disposition",
+        'attachment; filename="student-import-template.xlsx"',
+      );
+      res.send(buf);
+    } catch (err) {
+      res.status(500).json({ message: "模板生成失败" });
+    }
+  }
+
+  @Roles(UserRole.SUPER_ADMIN, UserRole.ADMIN)
+  @Post("import/dry-run")
+  importDryRun(@Body() dto: ImportFileKeyDto) {
+    return this.imports.dryRun(dto.fileKey);
+  }
+
+  @Roles(UserRole.SUPER_ADMIN, UserRole.ADMIN)
+  @Post("import/commit")
+  importCommit(
+    @Body() dto: ImportFileKeyDto,
+    @CurrentUser() operator: AuthUser,
+  ) {
+    return this.imports.commit(dto.fileKey, operator.id);
   }
 }
