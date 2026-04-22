@@ -32,3 +32,4 @@ apps/api/node_modules/
 apps/web/node_modules/
 postgres-data/
 minio-data/
+tmp/
