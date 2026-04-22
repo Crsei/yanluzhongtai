@@ -11,6 +11,7 @@ import { RolesGuard } from "./modules/auth/guards/roles.guard";
 import { UsersModule } from "./modules/users/users.module";
 import { StorageModule } from "./modules/storage/storage.module";
 import { AuditLogsModule } from "./modules/audit-logs/audit-logs.module";
+import { EmployeesModule } from "./modules/employees/employees.module";
 
 @Module({
   imports: [
@@ -23,6 +24,7 @@ import { AuditLogsModule } from "./modules/audit-logs/audit-logs.module";
     IdSequenceModule,
     StorageModule,
     AuditLogsModule,
+    EmployeesModule,
     UsersModule,
     AuthModule,
     HealthModule,
