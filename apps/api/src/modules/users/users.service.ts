@@ -1,7 +1,10 @@
 import {
+  BadRequestException,
   ConflictException,
+  ForbiddenException,
   Injectable,
   NotFoundException,
+  UnauthorizedException,
 } from "@nestjs/common";
 import { Prisma, User, UserRole } from "@prisma/client";
 import * as bcrypt from "bcrypt";
@@ -210,5 +213,125 @@ export class UsersService {
       after: null,
     });
     return { tempPassword };
+  }
+
+  async updatePhoneSelf(input: {
+    userId: string;
+    newPhone: string;
+    currentPassword: string;
+  }): Promise<void> {
+    const user = await this.prisma.user.findUnique({
+      where: { id: input.userId },
+    });
+    if (!user) throw new NotFoundException("用户不存在");
+    const ok = await bcrypt.compare(input.currentPassword, user.passwordHash);
+    if (!ok) throw new UnauthorizedException("当前密码不正确");
+    if (user.phone === input.newPhone) return;
+
+    try {
+      await this.prisma.user.update({
+        where: { id: input.userId },
+        data: { phone: input.newPhone },
+      });
+    } catch (err) {
+      if (
+        err instanceof Prisma.PrismaClientKnownRequestError &&
+        err.code === "P2002"
+      ) {
+        throw new ConflictException("手机号已被使用");
+      }
+      throw err;
+    }
+
+    await this.auditLogs.record({
+      operatorId: input.userId,
+      action: "user.update_phone",
+      targetType: "User",
+      targetId: input.userId,
+      before: { phone: user.phone },
+      after: { phone: input.newPhone },
+    });
+  }
+
+  async updateUsernameSelf(input: {
+    userId: string;
+    newUsername: string;
+  }): Promise<void> {
+    const user = await this.prisma.user.findUnique({
+      where: { id: input.userId },
+    });
+    if (!user) throw new NotFoundException("用户不存在");
+    if (user.username === input.newUsername) return;
+    await this.prisma.user.update({
+      where: { id: input.userId },
+      data: { username: input.newUsername },
+    });
+    await this.auditLogs.record({
+      operatorId: input.userId,
+      action: "user.update_username",
+      targetType: "User",
+      targetId: input.userId,
+      before: { username: user.username },
+      after: { username: input.newUsername },
+    });
+  }
+
+  async changePassword(input: {
+    userId: string;
+    oldPassword: string;
+    newPassword: string;
+  }): Promise<void> {
+    const user = await this.prisma.user.findUnique({
+      where: { id: input.userId },
+    });
+    if (!user) throw new NotFoundException("用户不存在");
+    const ok = await bcrypt.compare(input.oldPassword, user.passwordHash);
+    if (!ok) throw new UnauthorizedException("旧密码不正确");
+    if (input.newPassword === input.oldPassword) {
+      throw new BadRequestException("新密码不能与旧密码相同");
+    }
+    const newHash = await bcrypt.hash(input.newPassword, BCRYPT_COST);
+    await this.prisma.user.update({
+      where: { id: input.userId },
+      data: { passwordHash: newHash },
+    });
+    await this.auditLogs.record({
+      operatorId: input.userId,
+      action: "user.change_password",
+      targetType: "User",
+      targetId: input.userId,
+      before: null,
+      after: null,
+    });
+  }
+
+  async initialChangePassword(input: {
+    userId: string;
+    newPassword: string;
+  }): Promise<void> {
+    const user = await this.prisma.user.findUnique({
+      where: { id: input.userId },
+    });
+    if (!user) throw new NotFoundException("用户不存在");
+    if (!user.mustChangePassword) {
+      throw new ForbiddenException("当前账号无需初始化密码");
+    }
+    const initialPassword = user.phone.slice(-6);
+    if (input.newPassword === initialPassword) {
+      throw new BadRequestException("新密码不能与初始密码相同");
+    }
+    const newHash = await bcrypt.hash(input.newPassword, BCRYPT_COST);
+    await this.prisma.user.update({
+      where: { id: input.userId },
+      data: { passwordHash: newHash, mustChangePassword: false },
+    });
+    await this.auditLogs.record({
+      operatorId: input.userId,
+      action: "user.change_password",
+      targetType: "User",
+      targetId: input.userId,
+      before: null,
+      after: null,
+    });
   }
 }
