@@ -234,3 +234,35 @@ Admin（SUPER_ADMIN，部分允许 ADMIN）：
 - `JwtStrategy` / `RefreshStrategy` 在 `validate()` 时若 `User.deactivatedAt != null` → `UnauthorizedException("账号已注销")`。
 - `AuthService.login()` 同样在 `findByPhone` 后检查（避免登录绕过 Guard）。
 - 已签发的 access token 在过期前（最长 15 分钟）仍可用——这是已知 trade-off（spec §15）。Phase 1B 不引入 token blocklist。
+
+## Phase 2 — 学生模块
+
+### Schema 变更
+
+- 新增 Prisma enum `ServiceStatus`；`Student.serviceStatus` 从 `String` 升级为 enum，默认 `NOT_STARTED`。
+- 新增字段：`Student.transcriptKeys`（成绩单附件）、`overallPlanText`（总规划文本）、`policyText`（加分政策文本）、`attachmentKeys`（通用附件/图片）。
+- 新增索引 `@@index([enrollmentYear])`（年级计算 + 高级搜索按学号年份前缀）。
+- 首次部署：`pnpm prisma:generate && pnpm prisma:push`（沿用 Phase 1A 工作流）。
+
+### MinIO 前缀白名单新增
+
+后端 `common/dictionaries.ts::STORAGE_FOLDERS` 白名单追加两项：
+
+- `students/attachments/` — 学生详情附件（成绩单、课表、加分政策 PDF、通用文件 / 图片）
+- `students/import-batches/` — 学生 Excel 导入批次文件；保留做审计追溯。生产环境建议对 `students/import-batches/*` 设置 7-30 天的 bucket lifecycle 规则自动清理。
+
+### 删除学生的关联保护
+
+`DELETE /api/students/:id` 若学生已有任意 `Enrollment` 记录 → 返回 `409`：
+
+> 该学生已有选课记录，不可删除。请将服务状态改为服务完成或取消/终止后保留档案。
+
+### 学号分配
+
+`IdSequenceService` 复用 Phase 1A 的表，新增 `kind = 'student'`；格式 `YYNNNN`（YY = 入学年份后两位，NNNN 四位左补零）。删除不回收。单 `enrollmentYear` 支持 9999 条，超出后 `NNNN` 自然扩展为 5 位。
+
+### 学生审计日志
+
+新增 action：`student.create` / `student.update` / `student.delete`；`targetType = "student"`。
+`AuditLogsService.record` 泛化为：`action === "update" || action.endsWith(".update")` 时走字段级拆条，对已上线的 `employee.update`（Phase 1A）零影响。
+Excel 导入每行独立写一条 `student.create`，`after` 中附 `__importBatchKey` 便于按批次回溯。

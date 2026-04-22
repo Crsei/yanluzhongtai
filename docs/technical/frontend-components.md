@@ -92,3 +92,27 @@
 - `App.tsx::MustChangePasswordGate` — store 标记就绪时同步 redirect，覆盖刚 hydrate 的场景。
 - AppShell 右上 Popover "用户设置" 改为 `window.open('/user-settings', '_blank', 'noopener')`，与 `/user-settings` 内的"中台全部用户管理"按钮一致：所有账号管理页都在独立标签页打开。
 
+
+## 学生模块（Phase 2）
+
+- 入口：`features/students/StudentListPage.tsx`，路由 `/students`（在 `AppShell` 内，`RequireAuth`）。
+- 列表：
+  - 工具按钮顺序固定为 查看 / 编辑 / 添加学生 / 删除学生 / 从 Excel 导入；搜索框右侧，最右是 高级搜索 按钮。
+  - 选中 0 行：所有编辑按钮禁用；选中 1 行：全部启用；选中 ≥2 行：查看 / 编辑 禁用，删除仍启用。
+  - 写按钮仅 `SUPER_ADMIN` / `ADMIN` 可见（`useAuthStore` 角色判断）。
+  - 默认排序按 spec §4.3：服务状态优先级 → 年级（大五→大一）→ 姓名升序。
+- 表单：`StudentFormModal.tsx`，1040 宽的双列 Modal；`view` / `edit` / `create` 三模式共用 form；底部按钮按模式切换（`view` 显示取消 / 编辑）。
+  - `enrollmentYear` 创建后锁死（`edit` 态 `disabled` + tooltip）。
+  - `当前年级` 永远由后端计算 `detail.grade`，Input disabled 显示。
+  - `学管老师` / `规划师` 走共享组件 `components/EmployeePicker.tsx`：远程搜索（`showSearch` + 300ms 防抖 + 20 条分页）+ 回填（`employeesApi.findByJobNo`）+ 默认排除 `RESIGNED`（可关）。
+  - 服务字段分组显示：基础档案 / 服务归属 / 课时 / 服务字段（含 `DetailNotesEditor` 多段式、`StudentAttachmentUpload` 六处挂载）/ 二级课程类别占位。
+- 高级搜索：`AdvancedSearchDrawer.tsx`，条件写回 URL (`?studentNo=&name=&grade=&major=&source=&servicePlatform=`)；`ActiveFilterTags.tsx` 在列表上方显示可删除的 Tag 行；URL 可分享。
+- Excel 导入：`StudentImportDrawer.tsx` 同 Phase 1A 三段式（下载模板 → 上传 → dry-run 报告 → commit）。模板以中文表头（包含 `服务状态` 的中文显示值，如"正常服务中"），后端 `students-import.service.ts::validateRow` 反向映射为 enum code。
+- 删除：`StudentDeleteConfirm.tsx` 封装 `Modal.confirm`；后端 409 (有 `Enrollment`) 时 `useStudentMutations.removeMutation.onError` 直接展示后端文案。
+- 附件：`StudentAttachmentUpload.tsx` 同 Phase 1A 模式，`folder="students/attachments"` presign 直传 MinIO；支持多附件、拖拽、点击下载。
+- 字典：`constants/dictionaries.ts` 新增 `SERVICE_STATUS*`、`SERVICE_PLATFORM*`、`STUDENT_SOURCE*`、`GRADE_VALUES`/`GRADE_OPTIONS` 与后端 `common/dictionaries.ts` 一一镜像。
+- 审计：`student.create` / `student.update`（字段级）/ `student.delete`；`AuditLogsService` 已泛化为 `*.update` 触发字段级拆条（对 Phase 1A `employee.update` 仍兼容）。
+
+## 共享组件：EmployeePicker
+
+`components/EmployeePicker.tsx`：远程搜索员工 jobNo 的 Select，用于学生模块的老师挑选；Phase 3 课程模块将直接复用于"计划 / 实际授课老师"字段。Props：`value` / `onChange` / `placeholder` / `disabled` / `excludeResigned`（默认 true）/ `allowClear` / `style`。依赖 `services/employees.ts::findByJobNo`（精确回填）与扩展后的 `employees` 列表接口（支持 `employmentStatus=FULL_TIME,PART_TIME` 多值 + `jobNo=xxx` 精确过滤）。
