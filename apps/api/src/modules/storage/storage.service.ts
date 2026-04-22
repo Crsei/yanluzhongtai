@@ -26,7 +26,10 @@ export class StorageService implements OnModuleInit {
     });
     this.bucket = this.config.getOrThrow<string>("MINIO_BUCKET");
 
-    const exists = await this.client.bucketExists(this.bucket).catch(() => false);
+    const exists = await this.client.bucketExists(this.bucket).catch((err: unknown) => {
+      this.logger.warn(`bucketExists check failed, will attempt makeBucket: ${err}`);
+      return false;
+    });
     if (!exists) {
       await this.client.makeBucket(this.bucket);
       this.logger.log(`Created MinIO bucket "${this.bucket}"`);
