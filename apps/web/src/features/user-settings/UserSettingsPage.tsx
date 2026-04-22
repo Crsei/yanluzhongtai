@@ -1,6 +1,8 @@
 import { Button, Card, Space, Typography } from "antd";
 import { useState } from "react";
 import { useAuthStore } from "../../stores/authStore";
+import { ChangePhoneModal } from "./ChangePhoneModal";
+import { ChangeUsernameModal } from "./ChangeUsernameModal";
 
 export function UserSettingsPage() {
   const user = useAuthStore((s) => s.user);
@@ -76,9 +78,14 @@ export function UserSettingsPage() {
         </Card>
       )}
 
-      {/* Modals wired in Tasks 17-18 */}
-      {changePhoneOpen && <div data-testid="change-phone-placeholder" />}
-      {changeUsernameOpen && <div data-testid="change-username-placeholder" />}
+      <ChangePhoneModal
+        open={changePhoneOpen}
+        onClose={() => setChangePhoneOpen(false)}
+      />
+      <ChangeUsernameModal
+        open={changeUsernameOpen}
+        onClose={() => setChangeUsernameOpen(false)}
+      />
       {changePasswordOpen && <div data-testid="change-password-placeholder" />}
       {deactivateOpen && <div data-testid="deactivate-self-placeholder" />}
     </div>
