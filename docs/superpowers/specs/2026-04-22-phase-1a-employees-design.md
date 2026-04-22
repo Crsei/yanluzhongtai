@@ -20,7 +20,7 @@ Phase 1 整体被拆为两个子阶段：
 | Q3 | 文件上传 | MinIO 直传 + 公共 `storage` 模块 | 后端发 presign URL，前端直传 MinIO |
 | Q4 | 枚举 / 字典 | TS 常量 + Prisma `EmploymentStatus` enum | DB 字典模块留给后续运营迭代 |
 | Q5 | 工号生成 | 新建 `IdSequence(kind, year, lastSeq)` 表 | Postgres `INSERT ... ON CONFLICT` 原子分配；删除不回收 |
-| Q6 | 删除语义 | 硬删 + 后端关联保护 | 引用 `PayrollSettlement` / `Course` 时拒绝并提示改状态 |
+| Q6 | 删除语义 | 硬删 + 后端关联保护 | 引用 `PayrollSettlement` / `Course` / `Student(counselorJobNo, plannerJobNo)` 时拒绝并提示改状态 |
 | Q7 | AuditLog 粒度 | 行为级 + 字段级混合 | 公共 `AuditLogService.record({ action, target, before, after })` |
 | Q8 | "负责的课程" | DTO 占位返空 + 前端"待课程模块上线后自动同步" | Phase 3 切真实查询，前端零改动 |
 
@@ -95,8 +95,8 @@ Phase 1 整体被拆为两个子阶段：
   web  确认 → api.delete('/employees/:id')
   api  service.delete:
        1. 取快照
-       2. 检查 PayrollSettlement.employeeJobNo / Course.actualTeacherJobNo
-       3. 有引用 → 409 Conflict + message "该员工有关联薪酬/课程，不可删除..."
+       2. 检查 PayrollSettlement.employeeJobNo / Course.actualTeacherJobNo / Student.counselorJobNo / Student.plannerJobNo
+       3. 有引用 → 409 Conflict + message "该员工有关联学生/薪酬/课程，不可删除..."
        4. 无引用 → prisma.employee.delete + auditLogsService.record({ action: 'delete', target, before })
 
 Excel 导入:
@@ -139,13 +139,13 @@ model Employee {
   bankCardNo       String?
   bankName         String?
   source           String?
-  servingFor       String[]         // 多选；后端用 dictionaries.SERVICE_PLATFORM 校验
+  servingFor       String[]         // 多选；后端用 dictionaries.EMPLOYEE_SERVING_FOR 校验
   resumeText       String?
   attachmentKeys   String[]         // MinIO object key 列表
   createdAt        DateTime @default(now())
   updatedAt        DateTime @updatedAt
 
-  @@index([employmentStatus, name])  // 排序用：先按状态，再按姓名
+  @@index([name])  // 姓名升序可直接复用；在职/离职优先级由查询时 CASE 映射
 }
 
 model IdSequence {
@@ -162,7 +162,7 @@ model IdSequence {
 
 - `Employee.employmentStatus` 由 `String` 升 enum；现有数据 0 行（首次实装），不需要 backfill。`prisma db push --accept-data-loss` 可处理。
 - `Employee.jobTitle` 之前已是 `String`，spec 里"具体工作职责"沿用此字段，不改名。
-- `Employee` 新增联合索引服务排序（`employmentStatus ASC` + `name ASC`，应用层把 `FULL_TIME` / `PART_TIME` / `RESIGNED` 排序权重映射成自定义顺序）。
+- 员工列表排序语义保持与 spec 一致：`FULL_TIME` 与 `PART_TIME` 同优先级，统一视为“在职”，随后按姓名升序；`RESIGNED` 最后。实现时使用 `CASE WHEN employmentStatus = 'RESIGNED' THEN 1 ELSE 0 END ASC, name ASC`，而不是直接按 `employmentStatus ASC, name ASC`。
 - `IdSequence` 复合主键 `(kind, year)`，每次分配走 raw SQL `INSERT ... ON CONFLICT (kind, year) DO UPDATE SET lastSeq = IdSequence.lastSeq + $delta RETURNING lastSeq`。删除员工不动这张表 → 删除不回收。
 
 **迁移路径**：当前项目仍用 `prisma db push`（非 migrate）。开发者需跑 `pnpm prisma:generate && pnpm prisma:push`。`docs/technical/deployment.md` 已警示生产前要切 `prisma migrate`，本阶段不动这条决策。
@@ -202,16 +202,16 @@ export const EMPLOYMENT_STATUS_SORT: Record<EmploymentStatus, number> = {
 export const GENDER = ['男', '女'] as const
 export type Gender = typeof GENDER[number]
 
-export const EMPLOYEE_SOURCE = ['内推', '招聘网站', '社招', '校招', '其他'] as const
+export const EMPLOYEE_SOURCE = ['研录', '招聘/临时', '渠道合作', '其他'] as const
 export type EmployeeSource = typeof EMPLOYEE_SOURCE[number]
 
-export const SERVICE_PLATFORM = ['考研', '考公', '留学', '出国语言', '其他'] as const
-export type ServicePlatform = typeof SERVICE_PLATFORM[number]
+export const EMPLOYEE_SERVING_FOR = ['研录保研', '研录考研', '高途', '内部管理', '其他'] as const
+export type EmployeeServingFor = typeof EMPLOYEE_SERVING_FOR[number]
 ```
 
-校验：DTO 用 `@IsIn(EMPLOYMENT_STATUS)` / `@IsIn(GENDER)` / `@IsIn(EMPLOYEE_SOURCE)` / `@IsArray + each: @IsIn(SERVICE_PLATFORM)`。
+校验：DTO 用 `@IsIn(EMPLOYMENT_STATUS)` / `@IsIn(GENDER)` / `@IsIn(EMPLOYEE_SOURCE)` / `@IsArray + each: @IsIn(EMPLOYEE_SERVING_FOR)`。
 
-前端 `apps/web/src/constants/dictionaries.ts` 维护一份**等价但独立**的拷贝（不通过 `packages/` 共享，沿用项目现状），下拉选项直接读。两份保持同步靠 code review；spec 增加新值时同时改两处。
+前端 `apps/web/src/constants/dictionaries.ts` 维护一份**等价但独立**的拷贝（不通过 `packages/` 共享，沿用项目现状），下拉选项直接读。两份保持同步靠 code review；spec 增加新值时同时改两处。注意这里是**员工来源**与**正服务于**字典，不要复用学生侧“服务群所在平台”的字典。
 
 ### 4.3 `common/id-sequence/`
 
@@ -512,11 +512,11 @@ export const employeesApi = {
   remove: (id: string) => api.delete<void>(`/employees/${id}`),
   importDryRun: (fileKey: string) => api.post<ImportReport>('/employees/import/dry-run', { fileKey }),
   importCommit: (fileKey: string) => api.post<ImportReport>('/employees/import/commit', { fileKey }),
-  templateUrl: () => `${baseUrl}/employees/import/template`,  // 直链下载
+  downloadTemplate: () => downloadAuthed('/employees/import/template', '员工导入模板.xlsx'),
 }
 ```
 
-`http.ts` 不动；如果模板下载需要 token，做一个 `downloadAuthed(path, filename)` 工具：在前端发请求拿 blob 后触发 `<a download>`。
+`http.ts` 需要补一个 `downloadAuthed(path, filename)` 工具：前端用当前 access token 发请求拿 blob，再触发 `<a download>`。不要把受保护模板下载做成浏览器直链跳转，否则管理员/超级管理员接口会直接 401。
 
 ### 5.4 `services/storage.ts`
 
@@ -567,6 +567,7 @@ export async function uploadToStorage(folder, file: File): Promise<string> {
 - 工号字段固定占位"自动计算/保存后生成"，`<Input disabled value={data?.jobNo ?? '保存后生成'} />`
 - 入职日期 `<DatePicker />`
 - 正服务于 `<Select mode="multiple" options={SERVICE_PLATFORM_OPTIONS} />`
+- 正服务于 `<Select mode="multiple" options={EMPLOYEE_SERVING_FOR_OPTIONS} />`
 - 简历文字 `<Input.TextArea rows={5} />`
 - 附件简历 `<EmployeeAttachmentUpload />`
 - 关联课程 `<div className="related-courses-placeholder">（待课程模块上线后自动同步）</div>`
@@ -601,7 +602,7 @@ AntD `Modal.confirm`：
 
 AntD `<Drawer width={720}>`，三步走：
 
-1. **下载模板**：链接按钮 → 浏览器下载 `/api/employees/import/template`
+1. **下载模板**：按钮点击 `employeesApi.downloadTemplate()`，走带鉴权的 blob 下载
 2. **上传文件**：`<Upload customRequest>` → `uploadToStorage('employees/import-batches', file)` → 拿到 `fileKey` → 自动调 `importDryRun(fileKey)`
 3. **预校验报告**：`<Table>` 展示 errors（行号、字段、消息）；`<Statistic>` 显示总行数 / 有效行数 / 错误行数
 4. **确认导入**：errors 为空时启用按钮 → `importCommit(fileKey)` → 弹 `message.success('成功导入 N 名员工')` + invalidate `['employees']` + 关闭 Drawer
@@ -750,7 +751,7 @@ export function useEmployeeMutations() {
 - [ ] 删除一名工号 `26002` 的员工 → 再添加新员工得到 `26003`，**不**回收 `26002`
 - [ ] 查看态底部 "取消 / 编辑"；编辑态 "取消 / 确定"；切换正确
 - [ ] 删除点击后弹强提醒，文案与 spec §7 描述一致
-- [ ] 试图删除 `actualTeacherJobNo` 引用的员工 → 后端 409，前端弹"该员工有关联薪酬/课程，不可删除..."（Phase 1 内 Course 表是空的，靠手工 SQL 插一条 Course 验证）
+- [ ] 试图删除被 `actualTeacherJobNo` / `counselorJobNo` / `plannerJobNo` / `employeeJobNo` 引用的员工 → 后端 409，前端弹"该员工有关联学生/薪酬/课程，不可删除..."
 - [ ] 上传简历附件 → MinIO bucket 出现对象；查看时点击文件名能下载
 - [ ] Excel 导入：下载模板 → 填 3 行 → 上传得到预校验报告 → 确认导入 → 列表新增 3 条且工号连续
 - [ ] Excel 模板缺列 / 枚举值非法 → 预校验报告标出行号 + 字段 + 消息，"确认导入"按钮禁用
@@ -764,7 +765,7 @@ export function useEmployeeMutations() {
 
 - 用户设置页 / 全部用户管理页 / 重置密码 / 注销账号 / 角色提升（→ Phase 1B）
 - 员工高级搜索（多条件组合）；只做 keyword 普通搜索
-- 全文检索 / 拼音首字母搜索（spec §4.4 的"相对顺序匹配"在 1A 退化为 ILIKE，留作优化）
+- 拼音首字母搜索（留作优化）；但普通搜索仍需满足 spec 的“字符相对顺序匹配”语义，不能退化为简单 `ILIKE`
 - 真正"负责的课程"数据（→ Phase 3，DTO 已留 `relatedCourses: []` 占位）
 - DB 字典模块（→ 后续运营迭代）
 - AuditLog 列表 / 检索页面（→ Phase 6 的"关于 → 日志"）
