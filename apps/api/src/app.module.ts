@@ -7,6 +7,7 @@ import { PrismaModule } from "./prisma/prisma.module";
 import { IdSequenceModule } from "./common/id-sequence/id-sequence.module";
 import { AuthModule } from "./modules/auth/auth.module";
 import { JwtAuthGuard } from "./modules/auth/guards/jwt-auth.guard";
+import { RolesGuard } from "./modules/auth/guards/roles.guard";
 import { UsersModule } from "./modules/users/users.module";
 import { StorageModule } from "./modules/storage/storage.module";
 import { AuditLogsModule } from "./modules/audit-logs/audit-logs.module";
@@ -30,6 +31,10 @@ import { AuditLogsModule } from "./modules/audit-logs/audit-logs.module";
     {
       provide: APP_GUARD,
       useClass: JwtAuthGuard,
+    },
+    {
+      provide: APP_GUARD,
+      useClass: RolesGuard,
     },
   ],
 })
