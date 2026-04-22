@@ -4,6 +4,7 @@ import { APP_GUARD } from "@nestjs/core";
 import { validateEnvironment } from "./config/env.validation";
 import { HealthModule } from "./health/health.module";
 import { PrismaModule } from "./prisma/prisma.module";
+import { IdSequenceModule } from "./common/id-sequence/id-sequence.module";
 import { AuthModule } from "./modules/auth/auth.module";
 import { JwtAuthGuard } from "./modules/auth/guards/jwt-auth.guard";
 import { UsersModule } from "./modules/users/users.module";
@@ -16,6 +17,7 @@ import { UsersModule } from "./modules/users/users.module";
       validate: validateEnvironment,
     }),
     PrismaModule,
+    IdSequenceModule,
     UsersModule,
     AuthModule,
     HealthModule,
