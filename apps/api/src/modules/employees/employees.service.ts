@@ -48,10 +48,21 @@ export class EmployeesService {
     const skip = (page - 1) * pageSize;
 
     const where: Prisma.EmployeeWhereInput = {};
-    if (query.employmentStatus) {
-      where.employmentStatus = query.employmentStatus as EmploymentStatus;
+
+    if (query.employmentStatus && query.employmentStatus.length > 0) {
+      where.employmentStatus =
+        query.employmentStatus.length === 1
+          ? (query.employmentStatus[0] as EmploymentStatus)
+          : { in: query.employmentStatus as EmploymentStatus[] };
     }
-    if (query.keyword && query.keyword.trim().length > 0) {
+
+    if (query.jobNo && query.jobNo.trim().length > 0) {
+      const jobNos = query.jobNo
+        .split(",")
+        .map((s) => s.trim())
+        .filter(Boolean);
+      where.jobNo = jobNos.length === 1 ? jobNos[0] : { in: jobNos };
+    } else if (query.keyword && query.keyword.trim().length > 0) {
       const keyword = query.keyword.trim();
       where.OR = [
         { name: { contains: keyword, mode: "insensitive" } },
@@ -83,7 +94,24 @@ export class EmployeesService {
   ): Prisma.Sql {
     const conditions: Prisma.Sql[] = [];
     if (where.employmentStatus) {
-      conditions.push(Prisma.sql`"employmentStatus"::text = ${where.employmentStatus as string}`);
+      const es = where.employmentStatus;
+      if (typeof es === "string") {
+        conditions.push(Prisma.sql`"employmentStatus"::text = ${es}`);
+      } else if (typeof es === "object" && "in" in es && Array.isArray(es.in)) {
+        conditions.push(
+          Prisma.sql`"employmentStatus"::text IN (${Prisma.join(es.in as string[])})`,
+        );
+      }
+    }
+    if (where.jobNo) {
+      const jn = where.jobNo;
+      if (typeof jn === "string") {
+        conditions.push(Prisma.sql`"jobNo" = ${jn}`);
+      } else if (typeof jn === "object" && "in" in jn && Array.isArray(jn.in)) {
+        conditions.push(
+          Prisma.sql`"jobNo" IN (${Prisma.join(jn.in as string[])})`,
+        );
+      }
     }
     if (where.OR) {
       const ors = (where.OR as Prisma.EmployeeWhereInput[])
