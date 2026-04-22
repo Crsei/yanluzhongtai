@@ -192,3 +192,45 @@ docker compose down
 ### 工号 / 学号 / 课程编号生成
 
 由 `IdSequenceService` 统一管理；`IdSequence` 表按 `(kind, year)` 复合主键累加，删除不回收序号。Phase 1A 只使用 `kind = 'employee'`。
+
+## Phase 1B — 用户与账号管理
+
+### Schema 变更
+
+`User` 表新增两列：
+
+- `deactivatedAt timestamp(3) NULL` — 软删除标记。Guard 在每次请求验证；登录与 refresh 同样拒绝。
+- `mustChangePassword boolean DEFAULT false` — 首次登录强制改密标记。Admin 重置或注册新账号时置 `true`，用户走 `/users/me/initial-password-change` 后置 `false`。
+
+### 端点全景
+
+Self-service（任意已登录用户）：
+
+- `PATCH /api/users/me/phone`：要求 `currentPassword`，受 `User.phone` unique 约束（重复 → 409）。
+- `PATCH /api/users/me/username`：纯改名。
+- `PATCH /api/users/me/password`：旧密 + 新密；新密 ≥8 字符且含字母与数字，且不等于旧密。`MustChangePasswordGuard` 在 `mustChangePassword=true` 时拒绝，强制走 `initial-password-change`。
+- `POST /api/users/me/initial-password-change`：仅在 `mustChangePassword=true` 时可用。新密同强度规则，且不等于"phone 后 6 位"。成功时同时清 `mustChangePassword`。
+- `POST /api/users/me/deactivate`：要求 `phoneConfirmation` 与当前账号手机号完全相同。
+
+Admin（SUPER_ADMIN，部分允许 ADMIN）：
+
+- `GET /api/users`：分页 + `keyword` (phone/username ILIKE) + `includeDeactivated`，排序 `lastLoginAt DESC NULLS LAST, createdAt DESC`。
+- `POST /api/users`（仅 SUPER_ADMIN）：注册账号。初始密码 = 手机号后 6 位，`mustChangePassword=true`，响应体带 `initialPassword`。
+- `PATCH /api/users/:id/role`（SUPER_ADMIN 全权；ADMIN 仅可 `MEMBER → ADMIN`）：不能修改自己的角色；最后一个 SUPER_ADMIN 不可降级（→ 409）。
+- `POST /api/users/:id/reset-password`（仅 SUPER_ADMIN）：重置为手机号后 6 位 + `mustChangePassword=true`，响应体带 `tempPassword`（一次性展示）。
+- `POST /api/users/:id/deactivate`（仅 SUPER_ADMIN）：要求 `phoneConfirmation`；不能注销自己（要求走 `/me/deactivate`）；最后一个 SUPER_ADMIN 不可注销。
+
+### 全局 `MustChangePasswordGuard`
+
+第三个 `APP_GUARD`，紧随 `JwtAuthGuard`、`RolesGuard`。当 `req.user.mustChangePassword === true` 时，仅放行白名单：
+
+- `GET /auth/me`
+- `POST /users/me/initial-password-change`
+
+其他路径返回 `403 { code: "MUST_CHANGE_PASSWORD" }`，前端 `services/http.ts` 拦截器收到后跳转 `/force-password-change`。
+
+### 注销生效语义
+
+- `JwtStrategy` / `RefreshStrategy` 在 `validate()` 时若 `User.deactivatedAt != null` → `UnauthorizedException("账号已注销")`。
+- `AuthService.login()` 同样在 `findByPhone` 后检查（避免登录绕过 Guard）。
+- 已签发的 access token 在过期前（最长 15 分钟）仍可用——这是已知 trade-off（spec §15）。Phase 1B 不引入 token blocklist。
