@@ -9,7 +9,9 @@ import {
   Post,
   Put,
   Query,
+  Res,
 } from "@nestjs/common";
+import type { Response } from "express";
 import { CurrentUser } from "../auth/decorators/current-user.decorator";
 import { Roles } from "../auth/decorators/roles.decorator";
 import type { AuthUser } from "../auth/auth.types";
@@ -18,10 +20,15 @@ import { CreateEmployeeDto } from "./dto/create-employee.dto";
 import { QueryEmployeesDto } from "./dto/query-employees.dto";
 import { UpdateEmployeeDto } from "./dto/update-employee.dto";
 import { EmployeesService } from "./employees.service";
+import { EmployeesImportService } from "./employees-import.service";
+import { ImportFileKeyDto } from "./dto/import.dto";
 
 @Controller("employees")
 export class EmployeesController {
-  constructor(private readonly employees: EmployeesService) {}
+  constructor(
+    private readonly employees: EmployeesService,
+    private readonly imports: EmployeesImportService,
+  ) {}
 
   @Get()
   list(@Query() query: QueryEmployeesDto) {
@@ -57,5 +64,35 @@ export class EmployeesController {
     @CurrentUser() operator: AuthUser,
   ) {
     await this.employees.remove(id, operator.id);
+  }
+
+  @Roles(UserRole.SUPER_ADMIN, UserRole.ADMIN)
+  @Get("import/template")
+  async downloadTemplate(@Res() res: Response) {
+    const buf = await this.imports.generateTemplate();
+    res.setHeader(
+      "Content-Type",
+      "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+    );
+    res.setHeader(
+      "Content-Disposition",
+      'attachment; filename="employee-import-template.xlsx"',
+    );
+    res.send(buf);
+  }
+
+  @Roles(UserRole.SUPER_ADMIN, UserRole.ADMIN)
+  @Post("import/dry-run")
+  importDryRun(@Body() dto: ImportFileKeyDto) {
+    return this.imports.dryRun(dto.fileKey);
+  }
+
+  @Roles(UserRole.SUPER_ADMIN, UserRole.ADMIN)
+  @Post("import/commit")
+  importCommit(
+    @Body() dto: ImportFileKeyDto,
+    @CurrentUser() operator: AuthUser,
+  ) {
+    return this.imports.commit(dto.fileKey, operator.id);
   }
 }
