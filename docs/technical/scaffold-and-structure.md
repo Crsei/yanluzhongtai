@@ -11,6 +11,7 @@
 │  │  ├─ src
 │  │  │  ├─ config
 │  │  │  ├─ health
+│  │  │  ├─ modules
 │  │  │  ├─ prisma
 │  │  │  └─ main.ts
 │  │  ├─ .env.example
@@ -21,8 +22,11 @@
 │  └─ web
 │     ├─ src
 │     │  ├─ config
+│     │  ├─ features
 │     │  ├─ layouts
 │     │  ├─ pages
+│     │  ├─ services
+│     │  ├─ stores
 │     │  ├─ App.tsx
 │     │  ├─ main.tsx
 │     │  └─ router.tsx
@@ -55,6 +59,11 @@
 - 路由和模块导航
 - 表格、表单、弹窗、筛选器等前端交互
 - PC 与移动端响应式适配
+- Phase 0 还会承接：
+  - 登录页
+  - 会话恢复
+  - 未授权页
+  - 路由级权限包装
 
 ### 2.2 `apps/api`
 
@@ -65,6 +74,13 @@
 - 员工/学生/课程/薪酬/链接/日志接口
 - 文件上传元数据管理
 - 数据导入与计算逻辑
+- Phase 0 的认证基线包括：
+  - `/auth/login`
+  - `/auth/refresh`
+  - `/auth/logout`
+  - `/auth/me`
+  - `JwtAuthGuard`
+  - `RolesGuard`
 
 ### 2.3 `infra/nginx`
 
@@ -107,9 +123,15 @@
 当前尚未完成的内容：
 
 - 真实登录接口
+- refresh cookie 机制
 - RBAC 守卫
 - 业务模块 controller/service/repository
 - 文件上传接口
 - Excel 导入逻辑
 - 数据迁移文件
+
+说明：
+
+- 当前目录结构已经为 Phase 0 认证基础设施预留了 `features`、`services`、`stores`、`modules`
+- 但技术文档中的认证设计仍属于“目标实现方案”，尚未全部在代码中落地
 

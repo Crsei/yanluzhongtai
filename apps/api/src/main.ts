@@ -1,6 +1,8 @@
 import "reflect-metadata";
+import { ValidationPipe } from "@nestjs/common";
 import { NestFactory } from "@nestjs/core";
 import { ConfigService } from "@nestjs/config";
+import cookieParser from "cookie-parser";
 import { AppModule } from "./app.module";
 
 async function bootstrap() {
@@ -10,6 +12,14 @@ async function bootstrap() {
   const origin = configService.get<string>("APP_ORIGIN", "*");
 
   app.setGlobalPrefix("api");
+  app.use(cookieParser());
+  app.useGlobalPipes(
+    new ValidationPipe({
+      whitelist: true,
+      transform: true,
+      transformOptions: { enableImplicitConversion: true },
+    }),
+  );
   app.enableCors({
     origin,
     credentials: true,
@@ -19,4 +29,3 @@ async function bootstrap() {
 }
 
 bootstrap();
-

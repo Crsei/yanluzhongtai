@@ -10,6 +10,7 @@
     "build": "pnpm -r build",
     "prisma:generate": "pnpm --filter @yanlu/api prisma:generate",
     "prisma:push": "pnpm --filter @yanlu/api prisma:push",
+    "prisma:seed": "pnpm --filter @yanlu/api prisma:seed",
     "compose:up": "docker compose up --build -d",
     "compose:down": "docker compose down"
   }

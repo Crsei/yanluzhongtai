@@ -3,7 +3,8 @@ type EnvRecord = Record<string, string | undefined>;
 const requiredKeys = [
   "PORT",
   "DATABASE_URL",
-  "JWT_SECRET",
+  "JWT_ACCESS_SECRET",
+  "JWT_REFRESH_SECRET",
   "APP_ORIGIN",
   "MINIO_ENDPOINT",
   "MINIO_PORT",
@@ -25,4 +26,3 @@ export function validateEnvironment(config: EnvRecord) {
     PORT: Number(config.PORT),
   };
 }
-

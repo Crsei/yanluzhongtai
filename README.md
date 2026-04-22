@@ -22,6 +22,9 @@ cp .env.example .env
 cp apps/api/.env.example apps/api/.env
 cp apps/web/.env.example apps/web/.env
 pnpm install
+docker compose up -d db minio
+pnpm prisma:push
+pnpm prisma:seed   # 首次创建超级管理员
 pnpm dev:api
 pnpm dev:web
 ```

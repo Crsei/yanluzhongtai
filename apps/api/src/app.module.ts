@@ -1,8 +1,12 @@
 import { Module } from "@nestjs/common";
 import { ConfigModule } from "@nestjs/config";
+import { APP_GUARD } from "@nestjs/core";
 import { validateEnvironment } from "./config/env.validation";
 import { HealthModule } from "./health/health.module";
 import { PrismaModule } from "./prisma/prisma.module";
+import { AuthModule } from "./modules/auth/auth.module";
+import { JwtAuthGuard } from "./modules/auth/guards/jwt-auth.guard";
+import { UsersModule } from "./modules/users/users.module";
 
 @Module({
   imports: [
@@ -12,8 +16,15 @@ import { PrismaModule } from "./prisma/prisma.module";
       validate: validateEnvironment,
     }),
     PrismaModule,
+    UsersModule,
+    AuthModule,
     HealthModule,
+  ],
+  providers: [
+    {
+      provide: APP_GUARD,
+      useClass: JwtAuthGuard,
+    },
   ],
 })
 export class AppModule {}
-

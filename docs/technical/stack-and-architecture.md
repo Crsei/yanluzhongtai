@@ -27,6 +27,7 @@
 - `Prisma`
 - `PostgreSQL`
 - `JWT`
+- `HttpOnly Refresh Cookie`
 
 选择原因：
 
@@ -34,6 +35,7 @@
 - `NestJS` 的模块化和依赖注入更适合长期维护
 - `Prisma` 适合快速建立结构化数据模型，并支撑后续迁移管理
 - `PostgreSQL` 适合事务型后台系统，结构化字段、关联关系、多条件检索都更稳
+- 认证采用“短期 Access Token + Refresh Token”分层方案，更适合内部中台这类高权限后台场景
 
 ### 1.3 文件与对象存储
 
@@ -56,11 +58,37 @@
 
 ## 2. 架构分层
 
+### 2.0 认证与权限基线
+
+Phase 0 的认证方案以“体验统一”和“最小可接受安全边界”为目标，约定如下：
+
+- Access Token：
+  - 作为 `Bearer` token 使用
+  - 有效期短，设计基线为 `15 分钟`
+  - 前端只放内存和 `sessionStorage`
+- Refresh Token：
+  - 放 `HttpOnly Cookie`
+  - 勾选“保留登录状态”时可保留较长时间
+  - 未勾选时采用浏览器会话期
+- 前端恢复会话时优先尝试现有 access token，再退回 `/auth/refresh`
+- 不采用“30 天 Bearer token + localStorage”方案
+
+Phase 0 已知权限边界也应当天生效，而不是整体后置：
+
+- 访客：只允许访问 `SOP`、`关于`
+- 一般成员：不可访问 `薪酬管理`
+- 管理员、超级管理员：可访问已定义的受限模块
+
+更细的按钮级权限与复杂业务角色矩阵可在后续阶段继续细化。
+
 ### 2.1 前端分层
 
 - `layouts`：中台基础布局
 - `pages`：页面级路由组件
 - `config`：导航、路由、模块元数据
+- `features/auth`：登录、会话恢复、未授权页、路由级权限包装
+- `stores`：使用 Zustand 管理会话、用户、hydration 状态
+- `services/http`：统一处理 base URL、Authorization、401 和 refresh 流程
 - 后续可扩展：
   - `components`
   - `features`
@@ -74,6 +102,7 @@
 - `src/config`：环境变量与配置校验
 - `src/prisma`：数据库客户端模块
 - `src/health`：健康检查
+- `src/modules/auth`：登录、刷新、登出、JWT 校验、Public/Roles 装饰器与 Guard
 - 后续业务模块建议：
   - `auth`
   - `users`
@@ -99,6 +128,14 @@
 3. `api` 读写 `PostgreSQL`
 4. `api` 上传/读取 `MinIO`
 
+认证流补充：
+
+1. 用户在 `web` 登录，调用 `POST /api/auth/login`
+2. `api` 返回短期 `accessToken`，并设置 `HttpOnly refresh cookie`
+3. `web` 仅保存 `accessToken` 和用户信息
+4. `accessToken` 过期后，`web` 通过 `POST /api/auth/refresh` 续签
+5. 登出时调用 `POST /api/auth/logout`，由后端清除 refresh cookie
+
 ## 4. 为什么适合当前 spec
 
 这个项目的核心不是高并发，而是：
@@ -117,4 +154,5 @@
 - 中后台交互效率
 - 数据模型稳定性
 - 部署成本可控
-
+- 权限边界从第一阶段就可被明确执行
+- 避免长期高权限 Bearer token 在前端持久化存储

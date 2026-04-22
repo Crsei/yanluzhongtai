@@ -1,20 +1,89 @@
 import { MenuFoldOutlined } from "@ant-design/icons";
-import { Avatar, Button, Drawer, Grid, Layout, Menu, Space, Tag, Typography } from "antd";
+import {
+  Avatar,
+  Button,
+  Drawer,
+  Grid,
+  Layout,
+  Menu,
+  Popover,
+  Space,
+  Tag,
+  Typography,
+  message,
+} from "antd";
 import { useState } from "react";
 import { Outlet, useLocation, useNavigate } from "react-router-dom";
 import { navigationItems } from "../config/navigation";
+import { ROLE_LABELS } from "../features/auth/types";
+import { useAuthStore } from "../stores/authStore";
 
 const { Header, Content, Sider } = Layout;
 
-const currentUser = {
-  name: "刘老师",
-  role: "超级管理员",
-  online: true,
-};
+function UserPanelAuthenticated() {
+  const navigate = useNavigate();
+  const user = useAuthStore((state) => state.user)!;
+  const logout = useAuthStore((state) => state.logout);
+  const roleLabel = ROLE_LABELS[user.role];
+
+  const handleLogout = async () => {
+    await logout();
+    navigate("/login", { replace: true });
+  };
+
+  const popoverContent = (
+    <div className="user-popover">
+      <div className="user-popover-identity">身份：{roleLabel}</div>
+      <div className="user-popover-actions">
+        <Button
+          type="text"
+          block
+          onClick={() => message.info("用户设置将在后续阶段实现")}
+        >
+          用户设置
+        </Button>
+        <Button type="text" danger block onClick={handleLogout}>
+          退出登录
+        </Button>
+      </div>
+    </div>
+  );
+
+  return (
+    <div className="user-panel">
+      <Tag color="success" className="user-status-tag">
+        在线
+      </Tag>
+      <Popover content={popoverContent} placement="topRight" trigger={["hover", "click"]}>
+        <Space align="center" size={12} className="user-panel-trigger">
+          <Avatar style={{ backgroundColor: "#1d8cff" }}>{user.username.slice(0, 1)}</Avatar>
+          <div>
+            <div className="user-name">
+              <span className="user-status-dot user-status-dot-online" />
+              {user.username}
+            </div>
+            <div className="user-role">{roleLabel}</div>
+          </div>
+        </Space>
+      </Popover>
+    </div>
+  );
+}
+
+function UserPanelGuest() {
+  const navigate = useNavigate();
+  return (
+    <button type="button" className="user-panel user-panel-guest" onClick={() => navigate("/login")}>
+      <span className="user-status-dot user-status-dot-offline" />
+      <span className="user-panel-guest-text">访客（点击登录）</span>
+    </button>
+  );
+}
 
 function NavigationContent() {
   const location = useLocation();
   const navigate = useNavigate();
+  const user = useAuthStore((state) => state.user);
 
   return (
     <>
@@ -35,18 +104,7 @@ function NavigationContent() {
           onClick: () => navigate(item.path),
         }))}
       />
-      <div className="user-panel">
-        <Tag color={currentUser.online ? "success" : "error"} className="user-status-tag">
-          {currentUser.online ? "在线" : "离线"}
-        </Tag>
-        <Space align="center" size={12}>
-          <Avatar style={{ backgroundColor: "#1d8cff" }}>{currentUser.name.slice(0, 1)}</Avatar>
-          <div>
-            <div className="user-name">{currentUser.name}</div>
-            <div className="user-role">{currentUser.role}</div>
-          </div>
-        </Space>
-      </div>
+      {user ? <UserPanelAuthenticated /> : <UserPanelGuest />}
     </>
   );
 }
