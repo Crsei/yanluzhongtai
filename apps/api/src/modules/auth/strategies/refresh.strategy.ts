@@ -34,11 +34,15 @@ export class RefreshStrategy extends PassportStrategy(Strategy, "refresh-jwt") {
     if (!user) {
       throw new UnauthorizedException();
     }
+    if (user.deactivatedAt) {
+      throw new UnauthorizedException("账号已注销");
+    }
     return {
       id: user.id,
       phone: user.phone,
       username: user.username,
       role: user.role,
+      mustChangePassword: user.mustChangePassword,
     };
   }
 }
