@@ -1,4 +1,10 @@
-// apps/api/src/common/dictionaries.ts
+// Backend dictionaries for DTO validation and storage whitelisting.
+//
+// NOTE: `EmploymentStatus` exported from this file is a string-literal union
+// for use with class-validator's `@IsIn(EMPLOYMENT_STATUS)`. The Prisma
+// generated `EmploymentStatus` enum (from "@prisma/client") shares the same
+// values but is a separate type — import it from "@prisma/client" when typing
+// Prisma queries, and from this file when validating DTOs.
 
 export const EMPLOYMENT_STATUS = ["FULL_TIME", "PART_TIME", "RESIGNED"] as const;
 export type EmploymentStatus = (typeof EMPLOYMENT_STATUS)[number];
