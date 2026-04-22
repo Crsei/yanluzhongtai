@@ -69,16 +69,20 @@ export class EmployeesController {
   @Roles(UserRole.SUPER_ADMIN, UserRole.ADMIN)
   @Get("import/template")
   async downloadTemplate(@Res() res: Response) {
-    const buf = await this.imports.generateTemplate();
-    res.setHeader(
-      "Content-Type",
-      "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-    );
-    res.setHeader(
-      "Content-Disposition",
-      'attachment; filename="employee-import-template.xlsx"',
-    );
-    res.send(buf);
+    try {
+      const buf = await this.imports.generateTemplate();
+      res.setHeader(
+        "Content-Type",
+        "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+      );
+      res.setHeader(
+        "Content-Disposition",
+        'attachment; filename="employee-import-template.xlsx"',
+      );
+      res.send(buf);
+    } catch (err) {
+      res.status(500).json({ message: "模板生成失败" });
+    }
   }
 
   @Roles(UserRole.SUPER_ADMIN, UserRole.ADMIN)
