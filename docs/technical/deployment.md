@@ -169,3 +169,26 @@ docker compose down
 - PostgreSQL：按天备份
 - MinIO：按对象目录周期备份
 - `.env`：单独加密保存
+
+## Phase 1A — 员工与对象存储
+
+### 首次启动后
+
+1. 确认环境变量包含 `MINIO_ENDPOINT` / `MINIO_PORT` / `MINIO_USE_SSL` / `MINIO_ACCESS_KEY` / `MINIO_SECRET_KEY` / `MINIO_BUCKET`（默认在 `.env.example`）。
+2. API 启动时会自动创建 `MINIO_BUCKET`（默认 `yanlu-assets`）。如果 MinIO 不可达，员工模块、附件简历、Excel 导入都会 fallback 到 500。
+3. Excel 导入流程：浏览器先 `POST /api/storage/uploads/sign` 拿 presign URL → 直接 `PUT` 到 MinIO → 调 `/api/employees/import/dry-run` 校验 → `/api/employees/import/commit` 入库。
+
+### 删除员工的关联保护
+
+`DELETE /api/employees/:id` 在以下任一字段引用该员工的 `jobNo` 时返回 `409`：
+
+- `PayrollSettlement.employeeJobNo`
+- `Course.actualTeacherJobNo`
+- `Student.counselorJobNo`
+- `Student.plannerJobNo`
+
+错误文案："该员工有关联学生/薪酬/课程，不可删除，请将状态改为已离职"。
+
+### 工号 / 学号 / 课程编号生成
+
+由 `IdSequenceService` 统一管理；`IdSequence` 表按 `(kind, year)` 复合主键累加，删除不回收序号。Phase 1A 只使用 `kind = 'employee'`。

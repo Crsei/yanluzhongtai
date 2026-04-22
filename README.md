@@ -29,6 +29,8 @@ pnpm dev:api
 pnpm dev:web
 ```
 
+- 员工 / Excel 导入功能依赖 MinIO；保证 `docker compose up -d minio` 已运行，并在 `.env` 配置 `MINIO_*`（默认值已在 `.env.example`）。首次访问员工模块时 API 会自动创建 bucket。
+
 ### Docker Compose
 
 ```bash

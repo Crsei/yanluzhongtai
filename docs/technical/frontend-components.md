@@ -65,6 +65,14 @@
   - 悬停显示身份、用户设置、退出登录
 - 未登录访客：
   - 左下角显示红点
-  - 显示“访客（点击登录）”
+  - 显示”访客（点击登录）”
   - 不显示 Popover
+
+## 员工模块（Phase 1A）
+
+- 列表页：`features/employees/EmployeeListPage.tsx`，工具按钮顺序固定为 查看 / 编辑 / 添加员工 / 删除员工 / 从 Excel 导入；搜索框右侧分离。
+- 弹窗：`EmployeeFormModal.tsx` 双列布局，view / edit / create 三模式共用一个 form；底部按钮按 spec §5.2 切换。
+- 删除：`confirmDeleteEmployee()` 弹强提醒；后端 409 时 `useEmployeeMutations` 的 `removeMutation.onError` 直接 `message.error` 后端文案。
+- 上传：`EmployeeAttachmentUpload.tsx` 与 `EmployeeImportDrawer.tsx` 共用 `services/storage.ts` 的 `uploadToStorage()`，全部 presign 直传 MinIO，不走后端中转。
+- 字典：`constants/dictionaries.ts` 是后端 `common/dictionaries.ts` 的镜像；任何枚举改动两边都要改。
 
