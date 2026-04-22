@@ -160,7 +160,9 @@ export class EmployeesImportService {
             targetId: emp.id,
             fieldName: null,
             beforeValue: null,
-            afterValue: JSON.stringify(emp),
+            afterValue: JSON.stringify(
+              (({ id: _id, createdAt: _createdAt, updatedAt: _updatedAt, ...rest }) => rest)(emp),
+            ),
           },
         });
       }

@@ -53,7 +53,7 @@ export function EmployeeListPage() {
 
   const selectedCount = selectedRowKeys.length;
   const canViewOrEdit = selectedCount === 1;
-  const canDelete = selectedCount >= 1;
+  const canDelete = selectedCount === 1;
 
   const openModalForRow = async (mode: EmployeeFormMode) => {
     if (selectedRowKeys.length !== 1) return;
