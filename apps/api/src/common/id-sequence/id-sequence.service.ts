@@ -30,6 +30,8 @@ export class IdSequenceService {
         RETURNING "lastSeq"
       `,
     );
+    // Prisma `$queryRaw` can hand back BigInt for integer columns depending on
+    // the driver; coerce to a plain number so downstream arithmetic stays safe.
     const lastSeq = Number(rows[0].lastSeq);
     const start = lastSeq - count + 1;
     return Array.from({ length: count }, (_, i) => start + i);
@@ -37,6 +39,9 @@ export class IdSequenceService {
 
   /** 工号格式化：YY (2位) + NNN (3位) */
   static formatEmployeeJobNo(year: number, seq: number): string {
+    if (seq < 1 || seq > 999) {
+      throw new Error(`员工工号序号 ${seq} 超出 1-999 范围`);
+    }
     const yy = String(year).slice(-2).padStart(2, "0");
     return `${yy}${String(seq).padStart(3, "0")}`;
   }
