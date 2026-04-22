@@ -3,6 +3,8 @@ import { useState } from "react";
 import { useAuthStore } from "../../stores/authStore";
 import { ChangePhoneModal } from "./ChangePhoneModal";
 import { ChangeUsernameModal } from "./ChangeUsernameModal";
+import { ChangePasswordModal } from "./ChangePasswordModal";
+import { DeactivateSelfModal } from "./DeactivateSelfModal";
 
 export function UserSettingsPage() {
   const user = useAuthStore((s) => s.user);
@@ -86,8 +88,14 @@ export function UserSettingsPage() {
         open={changeUsernameOpen}
         onClose={() => setChangeUsernameOpen(false)}
       />
-      {changePasswordOpen && <div data-testid="change-password-placeholder" />}
-      {deactivateOpen && <div data-testid="deactivate-self-placeholder" />}
+      <ChangePasswordModal
+        open={changePasswordOpen}
+        onClose={() => setChangePasswordOpen(false)}
+      />
+      <DeactivateSelfModal
+        open={deactivateOpen}
+        onClose={() => setDeactivateOpen(false)}
+      />
     </div>
   );
 }
