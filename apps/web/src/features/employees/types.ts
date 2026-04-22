@@ -39,7 +39,10 @@ export type EmployeeQueryParams = {
   keyword?: string;
   page?: number;
   pageSize?: number;
-  employmentStatus?: EmploymentStatus;
+  /** Single code or comma-separated list (e.g. "FULL_TIME,PART_TIME") */
+  employmentStatus?: EmploymentStatus | string;
+  /** Single jobNo or comma-separated list for exact lookup */
+  jobNo?: string;
 };
 
 export type CreateEmployeeBody = {

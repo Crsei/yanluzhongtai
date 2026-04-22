@@ -15,6 +15,7 @@ function toQuery(params: EmployeeQueryParams): string {
   if (params.page) search.set("page", String(params.page));
   if (params.pageSize) search.set("pageSize", String(params.pageSize));
   if (params.employmentStatus) search.set("employmentStatus", params.employmentStatus);
+  if (params.jobNo) search.set("jobNo", params.jobNo);
   const qs = search.toString();
   return qs ? `?${qs}` : "";
 }
@@ -33,4 +34,18 @@ export const employeesApi = {
     api.post<ImportCommitResult>("/employees/import/commit", { fileKey }),
   downloadTemplate: () =>
     downloadAuthed("/employees/import/template", "员工导入模板.xlsx"),
+
+  findByJobNo: async (jobNo: string) => {
+    const resp = await employeesApi.list({ jobNo, pageSize: 1 });
+    return resp.items[0] ?? null;
+  },
+
+  listByJobNos: async (jobNos: string[]) => {
+    if (jobNos.length === 0) return [];
+    const resp = await employeesApi.list({
+      jobNo: jobNos.join(","),
+      pageSize: jobNos.length,
+    });
+    return resp.items;
+  },
 };
