@@ -1,5 +1,5 @@
 // apps/api/src/modules/students/students.service.ts
-import { Injectable, NotFoundException } from "@nestjs/common";
+import { ConflictException, Injectable, NotFoundException } from "@nestjs/common";
 import { Prisma, type Student } from "@prisma/client";
 import { IdSequenceService } from "../../common/id-sequence/id-sequence.service";
 import {
@@ -182,5 +182,29 @@ export class StudentsService {
       after: after as unknown as Record<string, unknown>,
     });
     return after;
+  }
+
+  async remove(id: string, operatorId: string): Promise<void> {
+    const before = await this.prisma.student.findUnique({ where: { id } });
+    if (!before) throw new NotFoundException("学生不存在");
+
+    const enrolled = await this.prisma.enrollment.count({
+      where: { studentId: id },
+    });
+    if (enrolled > 0) {
+      throw new ConflictException(
+        "该学生已有选课记录，不可删除。请将服务状态改为服务完成或取消/终止后保留档案。",
+      );
+    }
+
+    await this.prisma.student.delete({ where: { id } });
+    await this.auditLogs.record({
+      operatorId,
+      action: "student.delete",
+      targetType: "student",
+      targetId: id,
+      before: before as unknown as Record<string, unknown>,
+      after: null,
+    });
   }
 }
