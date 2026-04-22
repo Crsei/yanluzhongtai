@@ -7,7 +7,7 @@ export function openStudentDeleteConfirm(opts: {
   studentNo: string;
   onConfirm: () => Promise<void> | void;
 }) {
-  const { token } = theme.getDesignToken();
+  const token = theme.getDesignToken();
   Modal.confirm({
     title: "确认删除该学生？",
     icon: <ExclamationCircleFilled style={{ color: token.colorError }} />,
