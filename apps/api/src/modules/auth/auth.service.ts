@@ -37,6 +37,9 @@ export class AuthService {
     if (!user) {
       throw new UnauthorizedException("手机号或密码错误");
     }
+    if (user.deactivatedAt) {
+      throw new UnauthorizedException("账号已注销");
+    }
     const ok = await this.usersService.verifyPassword(input.password, user.passwordHash);
     if (!ok) {
       throw new UnauthorizedException("手机号或密码错误");
