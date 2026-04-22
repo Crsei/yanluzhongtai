@@ -14,6 +14,13 @@ import type {
 
 const DEFAULT_PAGE_SIZE = 50;
 
+/**
+ * Single source of truth for the columns returned by `list()`. Mirrors
+ * `EmployeeListItem` (Pick<...>) in `employees.types.ts`. Used both as the
+ * Prisma `select` shape (if we ever add a non-raw query path) and as the
+ * column list interpolated into the raw SQL `SELECT` in
+ * `buildSortedListQuery`. Keep this list in sync with `EmployeeListItem`.
+ */
 const LIST_SELECT = {
   id: true,
   jobNo: true,
@@ -64,6 +71,10 @@ export class EmployeesService {
   /**
    * spec §4.3 排序：'已离职' 排在最后，其它按姓名升序。
    * 用 raw SQL 因为 Prisma 不支持 CASE WHEN ORDER BY。
+   *
+   * INVARIANT: `where.OR` (if present) must contain only `name | jobNo | phone`
+   * `contains` clauses, exactly as built by `list()` above. Other shapes will
+   * silently degrade to `TRUE`, dropping the filter. Keep this and `list()` in lockstep.
    */
   private buildSortedListQuery(
     where: Prisma.EmployeeWhereInput,
@@ -98,10 +109,14 @@ export class EmployeesService {
         ? Prisma.sql`TRUE`
         : Prisma.join(conditions, " AND ");
 
+    const columns = Prisma.join(
+      (Object.keys(LIST_SELECT) as Array<keyof typeof LIST_SELECT>).map(
+        (name) => Prisma.raw(`"${name}"`),
+      ),
+      ", ",
+    );
     return Prisma.sql`
-      SELECT
-        "id", "jobNo", "name", "gender", "employmentStatus", "jobTitle",
-        "phone", "source", "servingFor", "hireDate"
+      SELECT ${columns}
       FROM "Employee"
       WHERE ${whereSql}
       ORDER BY
@@ -175,6 +190,12 @@ export class EmployeesService {
     if (dto.servingFor !== undefined) data.servingFor = dto.servingFor;
     if (dto.resumeText !== undefined) data.resumeText = dto.resumeText || null;
     if (dto.attachmentKeys !== undefined) data.attachmentKeys = dto.attachmentKeys;
+
+    // No recognized fields in the PATCH body — return the existing row
+    // unchanged so we don't silently bump `updatedAt` without an audit row.
+    if (Object.keys(data).length === 0) {
+      return before;
+    }
 
     const after = await this.prisma.employee.update({ where: { id }, data });
 
