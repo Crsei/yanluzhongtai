@@ -1,0 +1,168 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum UserRole {
+  SUPER_ADMIN
+  ADMIN
+  MEMBER
+}
+
+model User {
+  id          String    @id @default(cuid())
+  phone       String    @unique
+  passwordHash String
+  username    String
+  role        UserRole  @default(MEMBER)
+  createdAt   DateTime  @default(now())
+  lastLoginAt DateTime?
+  auditLogs   AuditLog[]
+}
+
+model Employee {
+  id               String   @id @default(cuid())
+  jobNo            String   @unique
+  name             String
+  gender           String
+  employmentStatus String
+  jobTitle         String
+  hireDate         DateTime?
+  phone            String?
+  bankCardNo       String?
+  bankName         String?
+  source           String?
+  servingFor       String[]
+  resumeText       String?
+  attachmentKeys   String[]
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+}
+
+model Student {
+  id                     String       @id @default(cuid())
+  studentNo              String       @unique
+  name                   String
+  gender                 String
+  enrollmentYear         Int
+  graduationYear         Int
+  school                 String?
+  major                  String?
+  counselorJobNo         String?
+  plannerJobNo           String?
+  phone                  String?
+  email                  String?
+  servicePlatform        String
+  source                 String
+  serviceStatus          String
+  totalPublicCredits     Decimal?     @db.Decimal(8, 2)
+  totalPrivateCredits    Decimal?     @db.Decimal(8, 2)
+  remainingPublicCredits Decimal?     @db.Decimal(8, 2)
+  remainingPrivateCredits Decimal?    @db.Decimal(8, 2)
+  serviceChecklistUrl    String?
+  serviceChecklistKeys   String[]
+  overallPlanUrl         String?
+  policyKeys             String[]
+  detailNotes            Json?
+  scheduleKeys           String[]
+  note                   String?
+  enrollments            Enrollment[]
+  createdAt              DateTime     @default(now())
+  updatedAt              DateTime     @updatedAt
+}
+
+model CourseOutlineVersion {
+  id          String              @id @default(cuid())
+  versionName String              @unique
+  isActive    Boolean             @default(false)
+  createdAt   DateTime            @default(now())
+  updatedAt   DateTime            @updatedAt
+  items       CourseOutlineItem[]
+  courses     Course[]
+}
+
+model CourseOutlineItem {
+  id                    String               @id @default(cuid())
+  outlineVersionId      String
+  sectionCode           String
+  sequenceNo            String
+  secondaryCategoryName String
+  suggestedTeachingType String
+  plannedTeacherJobNo   String?
+  lessonPlanUrl         String?
+  outlineVersion        CourseOutlineVersion @relation(fields: [outlineVersionId], references: [id], onDelete: Cascade)
+}
+
+model Course {
+  id                 String               @id @default(cuid())
+  courseNo           String               @unique
+  name               String
+  outlineVersionId   String?
+  sectionCode        String
+  categorySequenceNo String
+  plannedAt          DateTime?
+  actualTeacherJobNo String?
+  actualTeachingType String?
+  durationMinutes    Int?
+  creditHours        Decimal?             @db.Decimal(8, 2)
+  replayUrl          String?
+  videoUrl           String?
+  resourceUrl        String?
+  note               String?
+  status             String?
+  createdAt          DateTime             @default(now())
+  updatedAt          DateTime             @updatedAt
+  outlineVersion     CourseOutlineVersion? @relation(fields: [outlineVersionId], references: [id], onDelete: SetNull)
+  enrollments        Enrollment[]
+}
+
+model Enrollment {
+  studentId String
+  courseId  String
+  student   Student @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  course    Course  @relation(fields: [courseId], references: [id], onDelete: Cascade)
+
+  @@id([studentId, courseId])
+}
+
+model PayrollSettlement {
+  id                  String   @id @default(cuid())
+  operatorPhone       String
+  settledAt           DateTime @default(now())
+  employeeJobNo       String
+  settlementPeriod    String
+  hourlyRate          Decimal  @db.Decimal(10, 2)
+  deliveredHours      Decimal  @db.Decimal(10, 2)
+  extraLabor          Decimal  @db.Decimal(10, 2)
+  extraDeduction      Decimal  @db.Decimal(10, 2)
+  subtotalPayable     Decimal  @db.Decimal(10, 2)
+  subtotalPaid        Decimal  @db.Decimal(10, 2)
+}
+
+model QuickLink {
+  id         String   @id @default(cuid())
+  category   String
+  title      String
+  url        String
+  sortOrder  Int      @default(0)
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+}
+
+model AuditLog {
+  id          String   @id @default(cuid())
+  operatorId  String?
+  operator    User?    @relation(fields: [operatorId], references: [id], onDelete: SetNull)
+  action      String
+  targetType  String
+  targetId    String
+  fieldName   String?
+  beforeValue String?
+  afterValue  String?
+  createdAt   DateTime @default(now())
+}
+

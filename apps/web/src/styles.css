@@ -1,0 +1,143 @@
+:root {
+  font-family: "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
+  color: #0f172a;
+  background: #eef3f9;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  min-width: 320px;
+  min-height: 100vh;
+  background:
+    radial-gradient(circle at top left, rgba(29, 140, 255, 0.12), transparent 28%),
+    linear-gradient(180deg, #f7fafe 0%, #edf3fa 100%);
+}
+
+.app-layout {
+  min-height: 100vh;
+}
+
+.app-sider,
+.sidebar-inner {
+  background: #08192f;
+}
+
+.sidebar-inner {
+  display: flex;
+  min-height: 100vh;
+  flex-direction: column;
+}
+
+.brand-block {
+  padding: 28px 24px 20px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.brand-logo,
+.login-logo {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 64px;
+  height: 64px;
+  border-radius: 16px;
+  background: linear-gradient(135deg, #6f2dbd, #4f46e5);
+  color: #fff;
+  font-size: 24px;
+  font-weight: 700;
+}
+
+.brand-title {
+  margin: 18px 0 0 !important;
+  color: #fff !important;
+}
+
+.user-panel {
+  margin-top: auto;
+  padding: 16px 20px 24px;
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+  color: #fff;
+}
+
+.user-status-tag {
+  margin-bottom: 12px;
+}
+
+.user-name {
+  color: #fff;
+  font-weight: 600;
+}
+
+.user-role {
+  color: rgba(255, 255, 255, 0.6);
+  font-size: 12px;
+}
+
+.app-header {
+  display: flex;
+  align-items: center;
+  padding: 20px 24px;
+  height: auto;
+  background: transparent;
+}
+
+.app-content {
+  padding: 0 24px 24px;
+}
+
+.content-card {
+  border-radius: 18px;
+}
+
+.mobile-menu-trigger {
+  position: fixed;
+  left: 20px;
+  bottom: 24px;
+  z-index: 1000;
+  width: 52px;
+  height: 52px;
+  box-shadow: 0 12px 30px rgba(29, 140, 255, 0.3);
+}
+
+.login-page {
+  display: flex;
+  min-height: 100vh;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+}
+
+.login-card {
+  width: min(100%, 560px);
+  border-radius: 28px;
+  padding: 16px;
+  box-shadow: 0 20px 60px rgba(15, 23, 42, 0.1);
+}
+
+.login-title {
+  margin: 24px 0 !important;
+  font-size: clamp(28px, 4vw, 44px) !important;
+  line-height: 1.2 !important;
+}
+
+.login-meta-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin: -4px 0 20px;
+}
+
+@media (max-width: 992px) {
+  .app-content {
+    padding: 0 16px 24px;
+  }
+
+  .app-header {
+    padding: 16px;
+  }
+}
+

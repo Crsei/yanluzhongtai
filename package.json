@@ -1,0 +1,16 @@
+{
+  "name": "yanluzhongtai",
+  "private": true,
+  "version": "0.1.0",
+  "packageManager": "pnpm@9.0.0",
+  "scripts": {
+    "dev:web": "pnpm --filter @yanlu/web dev",
+    "dev:api": "pnpm --filter @yanlu/api start:dev",
+    "build": "pnpm -r build",
+    "prisma:generate": "pnpm --filter @yanlu/api prisma:generate",
+    "prisma:push": "pnpm --filter @yanlu/api prisma:push",
+    "compose:up": "docker compose up --build -d",
+    "compose:down": "docker compose down"
+  }
+}
+
