@@ -10,7 +10,6 @@ import {
   Space,
   Tag,
   Typography,
-  message,
 } from "antd";
 import { useState } from "react";
 import { Outlet, useLocation, useNavigate } from "react-router-dom";
@@ -38,7 +37,7 @@ function UserPanelAuthenticated() {
         <Button
           type="text"
           block
-          onClick={() => message.info("用户设置将在后续阶段实现")}
+          onClick={() => window.open("/user-settings", "_blank", "noopener")}
         >
           用户设置
         </Button>

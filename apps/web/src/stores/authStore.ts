@@ -37,7 +37,12 @@ function readPersisted(): PersistedSession | null {
   try {
     const raw = window.sessionStorage.getItem(STORAGE_KEY);
     if (!raw) return null;
-    return JSON.parse(raw) as PersistedSession;
+    const parsed = JSON.parse(raw) as PersistedSession;
+    // Migration shim: older sessions didn't have mustChangePassword on user.
+    if (parsed?.user && typeof parsed.user.mustChangePassword !== "boolean") {
+      parsed.user = { ...parsed.user, mustChangePassword: false };
+    }
+    return parsed;
   } catch {
     return null;
   }
