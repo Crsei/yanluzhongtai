@@ -4,7 +4,6 @@ import type { AuditRecordInput } from "./audit-logs.types";
 
 function safeStringify(value: unknown): string | null {
   if (value === undefined || value === null) return null;
-  if (typeof value === "string") return value;
   try {
     return JSON.stringify(value);
   } catch {
@@ -49,6 +48,7 @@ export class AuditLogsService {
 
     // Field-level rows for updates — one row per changed field
     const changed = diffKeys(before, after);
+    // No fields actually changed — skip writing an empty audit row.
     if (changed.length === 0) return;
     await this.prisma.auditLog.createMany({
       data: changed.map((field) => ({
