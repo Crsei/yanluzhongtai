@@ -9,6 +9,7 @@ import { AuthModule } from "./modules/auth/auth.module";
 import { JwtAuthGuard } from "./modules/auth/guards/jwt-auth.guard";
 import { UsersModule } from "./modules/users/users.module";
 import { StorageModule } from "./modules/storage/storage.module";
+import { AuditLogsModule } from "./modules/audit-logs/audit-logs.module";
 
 @Module({
   imports: [
@@ -20,6 +21,7 @@ import { StorageModule } from "./modules/storage/storage.module";
     PrismaModule,
     IdSequenceModule,
     StorageModule,
+    AuditLogsModule,
     UsersModule,
     AuthModule,
     HealthModule,
