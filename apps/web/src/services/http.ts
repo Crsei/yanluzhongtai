@@ -120,6 +120,39 @@ async function http<T>(path: string, init: HttpInit = {}): Promise<T> {
   return (text ? JSON.parse(text) : undefined) as T;
 }
 
+/**
+ * Fetch a binary response with the access token attached, then trigger a
+ * browser download. Useful for endpoints that require auth but should land
+ * as a file (e.g. Excel templates).
+ */
+export async function downloadAuthed(path: string, filename: string): Promise<void> {
+  const send = (token: string | null) =>
+    fetch(`${baseUrl}${path}`, {
+      credentials: "include",
+      headers: token ? { Authorization: `Bearer ${token}` } : {},
+    });
+
+  let res = await send(useAuthStore.getState().accessToken);
+  if (res.status === 401) {
+    const refreshed = await tryRefreshAccessToken();
+    if (!refreshed) throw new HttpError(401, "未登录或登录已过期");
+    res = await send(useAuthStore.getState().accessToken);
+  }
+  if (!res.ok) {
+    throw new HttpError(res.status, res.statusText);
+  }
+
+  const blob = await res.blob();
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = filename;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+}
+
 export const api = {
   get: <T>(path: string, init?: HttpInit) => http<T>(path, { ...init, method: "GET" }),
   post: <T>(path: string, body?: unknown, init?: HttpInit) =>
