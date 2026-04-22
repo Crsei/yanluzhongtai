@@ -7,6 +7,7 @@ import { PrismaModule } from "./prisma/prisma.module";
 import { IdSequenceModule } from "./common/id-sequence/id-sequence.module";
 import { AuthModule } from "./modules/auth/auth.module";
 import { JwtAuthGuard } from "./modules/auth/guards/jwt-auth.guard";
+import { MustChangePasswordGuard } from "./modules/auth/guards/must-change-password.guard";
 import { RolesGuard } from "./modules/auth/guards/roles.guard";
 import { UsersModule } from "./modules/users/users.module";
 import { StorageModule } from "./modules/storage/storage.module";
@@ -37,6 +38,10 @@ import { EmployeesModule } from "./modules/employees/employees.module";
     {
       provide: APP_GUARD,
       useClass: RolesGuard,
+    },
+    {
+      provide: APP_GUARD,
+      useClass: MustChangePasswordGuard,
     },
   ],
 })
