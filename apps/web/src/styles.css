@@ -258,6 +258,26 @@ body {
   margin-bottom: 28px !important;
 }
 
+.user-settings-shell {
+  min-height: 100vh;
+  background: #f3f6fb;
+}
+
+.user-settings-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: #ffffff;
+  padding: 0 32px;
+  box-shadow: 0 2px 8px rgba(15, 23, 42, 0.06);
+}
+
+.user-settings-content {
+  padding: 32px;
+  max-width: 960px;
+  margin: 0 auto;
+}
+
 .employees-toolbar {
   display: flex;
   align-items: center;

@@ -4,13 +4,43 @@ import { RequireRole } from "./features/auth/RequireRole";
 import { RootEntryRedirect } from "./features/auth/RootEntryRedirect";
 import { EmployeeListPage } from "./features/employees/EmployeeListPage";
 import { AppShell } from "./layouts/AppShell";
+import { UserSettingsLayout } from "./layouts/UserSettingsLayout";
 import { LoginPage } from "./pages/LoginPage";
 import { ModulePage } from "./pages/ModulePage";
+import { UserSettingsPage } from "./features/user-settings/UserSettingsPage";
+import { UsersListPage } from "./features/users/UsersListPage";
+import { ForcePasswordChangePage } from "./features/auth/ForcePasswordChangePage";
 
 export const router = createBrowserRouter([
   {
     path: "/login",
     element: <LoginPage />,
+  },
+  {
+    path: "/force-password-change",
+    element: (
+      <RequireAuth>
+        <ForcePasswordChangePage />
+      </RequireAuth>
+    ),
+  },
+  {
+    element: (
+      <RequireAuth>
+        <UserSettingsLayout />
+      </RequireAuth>
+    ),
+    children: [
+      { path: "/user-settings", element: <UserSettingsPage /> },
+      {
+        path: "/users",
+        element: (
+          <RequireRole roles={["SUPER_ADMIN", "ADMIN"]}>
+            <UsersListPage />
+          </RequireRole>
+        ),
+      },
+    ],
   },
   {
     path: "/",
