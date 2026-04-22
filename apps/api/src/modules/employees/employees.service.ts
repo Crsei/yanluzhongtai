@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException } from "@nestjs/common";
+import { ConflictException, Injectable, NotFoundException } from "@nestjs/common";
 import { Employee, EmploymentStatus, Prisma } from "@prisma/client";
 import { IdSequenceService } from "../../common/id-sequence/id-sequence.service";
 import { AuditLogsService } from "../audit-logs/audit-logs.service";
@@ -209,6 +209,34 @@ export class EmployeesService {
     });
 
     return after;
+  }
+
+  async remove(id: string, operatorId: string): Promise<void> {
+    const before = await this.prisma.employee.findUnique({ where: { id } });
+    if (!before) throw new NotFoundException("员工不存在");
+
+    const [payrollCount, courseCount, counselorCount, plannerCount] =
+      await this.prisma.$transaction([
+        this.prisma.payrollSettlement.count({ where: { employeeJobNo: before.jobNo } }),
+        this.prisma.course.count({ where: { actualTeacherJobNo: before.jobNo } }),
+        this.prisma.student.count({ where: { counselorJobNo: before.jobNo } }),
+        this.prisma.student.count({ where: { plannerJobNo: before.jobNo } }),
+      ]);
+
+    if (payrollCount + courseCount + counselorCount + plannerCount > 0) {
+      throw new ConflictException(
+        "该员工有关联学生/薪酬/课程，不可删除，请将状态改为已离职",
+      );
+    }
+
+    await this.prisma.employee.delete({ where: { id } });
+    await this.auditLogs.record({
+      operatorId,
+      action: "delete",
+      targetType: "employee",
+      targetId: id,
+      before: this.snapshot(before),
+    });
   }
 
   /** Strip volatile / internal columns before audit-log diff. */
