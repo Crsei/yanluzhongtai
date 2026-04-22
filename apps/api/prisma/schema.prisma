@@ -20,14 +20,16 @@ enum EmploymentStatus {
 }
 
 model User {
-  id          String    @id @default(cuid())
-  phone       String    @unique
-  passwordHash String
-  username    String
-  role        UserRole  @default(MEMBER)
-  createdAt   DateTime  @default(now())
-  lastLoginAt DateTime?
-  auditLogs   AuditLog[]
+  id                  String     @id @default(cuid())
+  phone               String     @unique
+  passwordHash        String
+  username            String
+  role                UserRole   @default(MEMBER)
+  createdAt           DateTime   @default(now())
+  lastLoginAt         DateTime?
+  deactivatedAt       DateTime?
+  mustChangePassword  Boolean    @default(false)
+  auditLogs           AuditLog[]
 }
 
 model Employee {
