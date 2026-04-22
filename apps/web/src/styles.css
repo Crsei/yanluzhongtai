@@ -303,6 +303,15 @@ body {
   margin-bottom: 16px;
 }
 
+.force-password-page {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(180deg, #eef3f9 0%, #dfe7f3 100%);
+  padding: 24px;
+}
+
 .employees-toolbar {
   display: flex;
   align-items: center;

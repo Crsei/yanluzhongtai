@@ -26,6 +26,21 @@ function AuthHydrationGate({ children }: { children: React.ReactNode }) {
   return <>{children}</>;
 }
 
+function MustChangePasswordGate({ children }: { children: React.ReactNode }) {
+  const user = useAuthStore((state) => state.user);
+
+  useEffect(() => {
+    if (!user) return;
+    if (!user.mustChangePassword) return;
+    if (typeof window === "undefined") return;
+    if (window.location.pathname === "/force-password-change") return;
+    if (window.location.pathname === "/login") return;
+    window.location.assign("/force-password-change");
+  }, [user]);
+
+  return <>{children}</>;
+}
+
 export function App() {
   return (
     <QueryClientProvider client={queryClient}>
@@ -42,7 +57,9 @@ export function App() {
         }}
       >
         <AuthHydrationGate>
-          <RouterProvider router={router} />
+          <MustChangePasswordGate>
+            <RouterProvider router={router} />
+          </MustChangePasswordGate>
         </AuthHydrationGate>
       </ConfigProvider>
     </QueryClientProvider>

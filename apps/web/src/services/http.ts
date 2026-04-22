@@ -102,6 +102,26 @@ async function http<T>(path: string, init: HttpInit = {}): Promise<T> {
     }
   }
 
+  if (res.status === 403) {
+    const maybe = await res
+      .clone()
+      .json()
+      .catch(() => null);
+    const code =
+      maybe && typeof maybe === "object" && "code" in maybe
+        ? (maybe as { code?: string }).code
+        : undefined;
+    if (code === "MUST_CHANGE_PASSWORD") {
+      if (
+        typeof window !== "undefined" &&
+        window.location.pathname !== "/force-password-change"
+      ) {
+        window.location.assign("/force-password-change");
+      }
+      throw new HttpError(403, "请先修改密码");
+    }
+  }
+
   if (!res.ok) {
     const errorBody = await res.json().catch(() => null);
     const message =
