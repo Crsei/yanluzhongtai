@@ -3,6 +3,7 @@ import { RequireAuth } from "./features/auth/RequireAuth";
 import { RequireRole } from "./features/auth/RequireRole";
 import { RootEntryRedirect } from "./features/auth/RootEntryRedirect";
 import { EmployeeListPage } from "./features/employees/EmployeeListPage";
+import { StudentListPage } from "./features/students/StudentListPage";
 import { AppShell } from "./layouts/AppShell";
 import { UserSettingsLayout } from "./layouts/UserSettingsLayout";
 import { LoginPage } from "./pages/LoginPage";
@@ -59,12 +60,7 @@ export const router = createBrowserRouter([
         path: "students",
         element: (
           <RequireAuth>
-            <ModulePage
-              title="学生管理"
-              summary="对应学生列表、高级搜索、服务字段、学管老师/规划师选择器。"
-              milestones={["学生模块路由已预留", "可挂载高级搜索页", "可扩展课时剩余看板字段"]}
-              specs={["docs/spec/03-Phase2-学生管理.md"]}
-            />
+            <StudentListPage />
           </RequireAuth>
         ),
       },
