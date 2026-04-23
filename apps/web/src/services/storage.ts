@@ -5,7 +5,8 @@ export type StorageFolder =
   | "employees/import-batches"
   | "students/attachments"
   | "students/import-batches"
-  | "course-outlines/import-batches";
+  | "course-outlines/import-batches"
+  | "courses/import-batches";
 
 export const storageApi = {
   signUpload: (folder: StorageFolder, filename: string, contentType: string) =>

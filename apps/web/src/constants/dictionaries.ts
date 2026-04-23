@@ -111,3 +111,34 @@ export const TEACHING_TYPE_OPTIONS = TEACHING_TYPE.map((value) => ({
   value,
   label: value,
 }));
+
+// ---------------------------------------------------------------------------
+// Phase 4: Course status dictionary (mirror of api-side COURSE_STATUS)
+// ---------------------------------------------------------------------------
+
+export const COURSE_STATUS = [
+  "NOT_SCHEDULED",
+  "SCHEDULED",
+  "IN_PROGRESS",
+  "COMPLETED",
+] as const;
+export type CourseStatus = (typeof COURSE_STATUS)[number];
+
+export const COURSE_STATUS_LABELS: Record<CourseStatus, string> = {
+  NOT_SCHEDULED: "未排期",
+  SCHEDULED: "已排期",
+  IN_PROGRESS: "进行中",
+  COMPLETED: "已完成",
+};
+
+export const COURSE_STATUS_COLORS: Record<CourseStatus, string> = {
+  NOT_SCHEDULED: "default",
+  SCHEDULED: "blue",
+  IN_PROGRESS: "gold",
+  COMPLETED: "green",
+};
+
+export const COURSE_STATUS_OPTIONS = COURSE_STATUS.map((value) => ({
+  value,
+  label: COURSE_STATUS_LABELS[value],
+}));
