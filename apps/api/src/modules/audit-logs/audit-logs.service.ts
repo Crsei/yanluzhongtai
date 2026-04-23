@@ -33,7 +33,8 @@ export class AuditLogsService {
     const { action, before, after, ...rest } = input;
 
     // Behaviour-level row for create / delete / updates without a diff payload
-    if (action !== "update" || !before || !after) {
+    const isUpdateAction = action === "update" || action.endsWith(".update");
+    if (!isUpdateAction || !before || !after) {
       await this.prisma.auditLog.create({
         data: {
           ...rest,

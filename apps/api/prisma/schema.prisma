@@ -19,6 +19,14 @@ enum EmploymentStatus {
   RESIGNED
 }
 
+enum ServiceStatus {
+  NOT_STARTED
+  IN_SERVICE
+  PAUSED
+  TERMINATED
+  COMPLETED
+}
+
 model User {
   id                  String     @id @default(cuid())
   phone               String     @unique
@@ -54,35 +62,42 @@ model Employee {
 }
 
 model Student {
-  id                     String       @id @default(cuid())
-  studentNo              String       @unique
-  name                   String
-  gender                 String
-  enrollmentYear         Int
-  graduationYear         Int
-  school                 String?
-  major                  String?
-  counselorJobNo         String?
-  plannerJobNo           String?
-  phone                  String?
-  email                  String?
-  servicePlatform        String
-  source                 String
-  serviceStatus          String
-  totalPublicCredits     Decimal?     @db.Decimal(8, 2)
-  totalPrivateCredits    Decimal?     @db.Decimal(8, 2)
-  remainingPublicCredits Decimal?     @db.Decimal(8, 2)
-  remainingPrivateCredits Decimal?    @db.Decimal(8, 2)
-  serviceChecklistUrl    String?
-  serviceChecklistKeys   String[]
-  overallPlanUrl         String?
-  policyKeys             String[]
-  detailNotes            Json?
-  scheduleKeys           String[]
-  note                   String?
-  enrollments            Enrollment[]
-  createdAt              DateTime     @default(now())
-  updatedAt              DateTime     @updatedAt
+  id                       String        @id @default(cuid())
+  studentNo                String        @unique
+  name                     String
+  gender                   String
+  enrollmentYear           Int
+  graduationYear           Int
+  school                   String?
+  major                    String?
+  counselorJobNo           String?
+  plannerJobNo             String?
+  phone                    String?
+  email                    String?
+  servicePlatform          String
+  source                   String
+  serviceStatus            ServiceStatus @default(NOT_STARTED)
+  totalPublicCredits       Decimal?      @db.Decimal(8, 2)
+  totalPrivateCredits      Decimal?      @db.Decimal(8, 2)
+  remainingPublicCredits   Decimal?      @db.Decimal(8, 2)
+  remainingPrivateCredits  Decimal?      @db.Decimal(8, 2)
+  serviceChecklistUrl      String?
+  serviceChecklistKeys     String[]
+  overallPlanUrl           String?
+  overallPlanText          String?
+  policyKeys               String[]
+  policyText               String?
+  detailNotes              Json?
+  scheduleKeys             String[]
+  transcriptKeys           String[]
+  attachmentKeys           String[]
+  note                     String?
+  enrollments              Enrollment[]
+  createdAt                DateTime      @default(now())
+  updatedAt                DateTime      @updatedAt
+
+  @@index([name])
+  @@index([enrollmentYear])
 }
 
 model CourseOutlineVersion {

@@ -41,3 +41,62 @@ export const EMPLOYMENT_STATUS_TAG_COLOR: Record<EmploymentStatus, string> = {
   PART_TIME: "geekblue",
   RESIGNED: "default",
 };
+
+// ---------------------------------------------------------------------------
+// Phase 2: Student dictionaries (mirror of apps/api/src/common/dictionaries.ts)
+// ---------------------------------------------------------------------------
+
+export const SERVICE_STATUS = [
+  "NOT_STARTED",
+  "IN_SERVICE",
+  "PAUSED",
+  "TERMINATED",
+  "COMPLETED",
+] as const;
+export type ServiceStatus = (typeof SERVICE_STATUS)[number];
+
+export const SERVICE_STATUS_LABELS: Record<ServiceStatus, string> = {
+  NOT_STARTED: "未开始",
+  IN_SERVICE: "正常服务中",
+  PAUSED: "服务暂缓",
+  TERMINATED: "取消或终止",
+  COMPLETED: "服务完成",
+};
+
+export const SERVICE_STATUS_COLORS: Record<ServiceStatus, string> = {
+  NOT_STARTED: "default",
+  IN_SERVICE: "success",
+  PAUSED: "warning",
+  TERMINATED: "error",
+  COMPLETED: "blue",
+};
+
+export const SERVICE_STATUS_OPTIONS = SERVICE_STATUS.map((code) => ({
+  value: code,
+  label: SERVICE_STATUS_LABELS[code],
+}));
+
+export const SERVICE_PLATFORM = ["研录保研", "研录考研", "高途", "其他"] as const;
+export type ServicePlatform = (typeof SERVICE_PLATFORM)[number];
+export const SERVICE_PLATFORM_OPTIONS = SERVICE_PLATFORM.map((v) => ({ value: v, label: v }));
+
+export const STUDENT_SOURCE = [
+  "自有流量",
+  "研录考研",
+  "高途",
+  "转介绍",
+  "其他",
+] as const;
+export type StudentSource = (typeof STUDENT_SOURCE)[number];
+export const STUDENT_SOURCE_OPTIONS = STUDENT_SOURCE.map((v) => ({ value: v, label: v }));
+
+export const GRADE_VALUES = [
+  "大一",
+  "大二",
+  "大三",
+  "大四",
+  "大五",
+  "已毕业",
+] as const;
+export type GradeValue = (typeof GRADE_VALUES)[number];
+export const GRADE_OPTIONS = GRADE_VALUES.map((v) => ({ value: v, label: v }));

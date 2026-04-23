@@ -1,6 +1,10 @@
 import { api } from "./http";
 
-export type StorageFolder = "employees/attachments" | "employees/import-batches";
+export type StorageFolder =
+  | "employees/attachments"
+  | "employees/import-batches"
+  | "students/attachments"
+  | "students/import-batches";
 
 export const storageApi = {
   signUpload: (folder: StorageFolder, filename: string, contentType: string) =>

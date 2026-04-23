@@ -12,9 +12,12 @@ export type AuditAction =
   | "user.change_password"
   | "user.reset_password"
   | "user.update_role"
-  | "user.deactivate";
+  | "user.deactivate"
+  | "student.create"
+  | "student.update"
+  | "student.delete";
 
-export type AuditTargetType = "employee" | "user" | "course" | "payroll" | "User";
+export type AuditTargetType = "employee" | "user" | "course" | "payroll" | "User" | "student";
 
 export type AuditRecordInput = {
   operatorId: string | null;
