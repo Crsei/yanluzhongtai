@@ -191,6 +191,21 @@ model PayrollSettlement {
   extraDeduction      Decimal  @db.Decimal(10, 2)
   subtotalPayable     Decimal  @db.Decimal(10, 2)
   subtotalPaid        Decimal  @db.Decimal(10, 2)
+
+  @@index([employeeJobNo, settlementPeriod])
+}
+
+model PayrollManualRecord {
+  id                String   @id @default(cuid())
+  employeeJobNo     String
+  settlementPeriod  String
+  extraLabor        Decimal  @db.Decimal(10, 2)
+  extraDeduction    Decimal  @db.Decimal(10, 2)
+  operatorPhone     String
+  createdAt         DateTime @default(now())
+
+  @@index([employeeJobNo, settlementPeriod])
+  @@index([settlementPeriod])
 }
 
 model QuickLink {
