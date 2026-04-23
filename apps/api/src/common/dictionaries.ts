@@ -104,6 +104,7 @@ export const STORAGE_FOLDERS = [
   "students/attachments",
   "students/import-batches",
   "course-outlines/import-batches",
+  "courses/import-batches",
 ] as const;
 export type StorageFolder = (typeof STORAGE_FOLDERS)[number];
 
@@ -114,3 +115,27 @@ export type StorageFolder = (typeof STORAGE_FOLDERS)[number];
 /** 建议 / 实际授课方式 — shared between Phase 3 大纲 and Phase 4 课程详情。 */
 export const TEACHING_TYPE = ["公共课", "1v1", "小班课", "录播", "其他"] as const;
 export type TeachingType = (typeof TEACHING_TYPE)[number];
+
+// ---------------------------------------------------------------------------
+// Phase 4: Course status (derived on read; kept here for DTO validation)
+// ---------------------------------------------------------------------------
+
+export const COURSE_STATUS = [
+  "NOT_SCHEDULED",
+  "SCHEDULED",
+  "IN_PROGRESS",
+  "COMPLETED",
+] as const;
+export type CourseStatus = (typeof COURSE_STATUS)[number];
+
+export const COURSE_STATUS_LABELS: Record<CourseStatus, string> = {
+  NOT_SCHEDULED: "未排期",
+  SCHEDULED: "已排期",
+  IN_PROGRESS: "进行中",
+  COMPLETED: "已完成",
+};
+
+export const COURSE_STATUS_BY_LABEL: Record<string, CourseStatus> =
+  Object.fromEntries(
+    Object.entries(COURSE_STATUS_LABELS).map(([code, label]) => [label, code as CourseStatus]),
+  );
