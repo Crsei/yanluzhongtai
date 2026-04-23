@@ -100,3 +100,14 @@ export const GRADE_VALUES = [
 ] as const;
 export type GradeValue = (typeof GRADE_VALUES)[number];
 export const GRADE_OPTIONS = GRADE_VALUES.map((v) => ({ value: v, label: v }));
+
+// ---------------------------------------------------------------------------
+// Phase 3: Course outline dictionaries
+// ---------------------------------------------------------------------------
+
+export const TEACHING_TYPE = ["公共课", "1v1", "小班课", "录播", "其他"] as const;
+export type TeachingType = (typeof TEACHING_TYPE)[number];
+export const TEACHING_TYPE_OPTIONS = TEACHING_TYPE.map((value) => ({
+  value,
+  label: value,
+}));
