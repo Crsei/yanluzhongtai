@@ -140,26 +140,34 @@ model CourseOutlineItem {
 }
 
 model Course {
-  id                 String               @id @default(cuid())
-  courseNo           String               @unique
-  name               String
-  outlineVersionId   String?
-  sectionCode        String
-  categorySequenceNo String
-  plannedAt          DateTime?
-  actualTeacherJobNo String?
-  actualTeachingType String?
-  durationMinutes    Int?
-  creditHours        Decimal?             @db.Decimal(8, 2)
-  replayUrl          String?
-  videoUrl           String?
-  resourceUrl        String?
-  note               String?
-  status             String?
-  createdAt          DateTime             @default(now())
-  updatedAt          DateTime             @updatedAt
-  outlineVersion     CourseOutlineVersion? @relation(fields: [outlineVersionId], references: [id], onDelete: SetNull)
-  enrollments        Enrollment[]
+  id                    String               @id @default(cuid())
+  courseNo              String               @unique
+  name                  String
+  outlineVersionId      String?
+  outlineItemId         String?
+  sectionCode           String
+  sectionName           String
+  categorySequenceNo    String
+  secondaryCategoryName String
+  suggestedTeachingType String?
+  plannedAt             DateTime?
+  courseYear            Int
+  actualTeacherJobNo    String?
+  actualTeachingType    String?
+  durationMinutes       Int?
+  creditHours           Decimal?             @db.Decimal(8, 2)
+  replayUrl             String?
+  videoUrl              String?
+  resourceUrl           String?
+  note                  String?
+  createdAt             DateTime             @default(now())
+  updatedAt             DateTime             @updatedAt
+  outlineVersion        CourseOutlineVersion? @relation(fields: [outlineVersionId], references: [id], onDelete: SetNull)
+  enrollments           Enrollment[]
+
+  @@index([plannedAt])
+  @@index([sectionCode, categorySequenceNo])
+  @@index([actualTeacherJobNo])
 }
 
 model Enrollment {
