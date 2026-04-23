@@ -27,6 +27,17 @@ enum ServiceStatus {
   COMPLETED
 }
 
+enum QuickLinkPageType {
+  DATA_TABLE
+  SOP
+}
+
+enum QuickLinkKind {
+  NAVIGATE
+  COPY
+  DOWNLOAD
+}
+
 model User {
   id                  String     @id @default(cuid())
   phone               String     @unique
@@ -209,13 +220,17 @@ model PayrollManualRecord {
 }
 
 model QuickLink {
-  id         String   @id @default(cuid())
+  id         String            @id @default(cuid())
+  pageType   QuickLinkPageType
   category   String
+  kind       QuickLinkKind     @default(NAVIGATE)
   title      String
   url        String
-  sortOrder  Int      @default(0)
-  createdAt  DateTime @default(now())
-  updatedAt  DateTime @updatedAt
+  sortOrder  Int               @default(0)
+  createdAt  DateTime          @default(now())
+  updatedAt  DateTime          @updatedAt
+
+  @@index([pageType, category, sortOrder])
 }
 
 model AuditLog {
@@ -229,6 +244,10 @@ model AuditLog {
   beforeValue String?
   afterValue  String?
   createdAt   DateTime @default(now())
+
+  @@index([createdAt])
+  @@index([operatorId])
+  @@index([targetType, targetId])
 }
 
 model IdSequence {
