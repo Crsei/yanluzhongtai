@@ -103,5 +103,14 @@ export const STORAGE_FOLDERS = [
   "employees/import-batches",
   "students/attachments",
   "students/import-batches",
+  "course-outlines/import-batches",
 ] as const;
 export type StorageFolder = (typeof STORAGE_FOLDERS)[number];
+
+// ---------------------------------------------------------------------------
+// Phase 3: Course outline dictionaries
+// ---------------------------------------------------------------------------
+
+/** 建议 / 实际授课方式 — shared between Phase 3 大纲 and Phase 4 课程详情。 */
+export const TEACHING_TYPE = ["公共课", "1v1", "小班课", "录播", "其他"] as const;
+export type TeachingType = (typeof TEACHING_TYPE)[number];
