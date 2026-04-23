@@ -8,6 +8,8 @@ import { CourseOutlinePage } from "./features/course-outlines/CourseOutlinePage"
 import { CourseListPage } from "./features/courses/CourseListPage";
 import { AdvancedSearchPage } from "./features/courses/AdvancedSearchPage";
 import { PayrollListPage } from "./features/payroll/PayrollListPage";
+import { DataCenterPage } from "./features/quick-links/DataCenterPage";
+import { SopCenterPage } from "./features/quick-links/SopCenterPage";
 import { AppShell } from "./layouts/AppShell";
 import { UserSettingsLayout } from "./layouts/UserSettingsLayout";
 import { LoginPage } from "./pages/LoginPage";
@@ -114,25 +116,13 @@ export const router = createBrowserRouter([
         path: "links",
         element: (
           <RequireAuth>
-            <ModulePage
-              title="数据表"
-              summary="对应内部数据表和快捷跳转卡片中心。"
-              milestones={["入口页路由已预留", "后续可直接挂卡片网格组件", "适合对接 QuickLink 接口"]}
-              specs={["docs/spec/07-Phase6-数据表-SOP-关于.md"]}
-            />
+            <DataCenterPage />
           </RequireAuth>
         ),
       },
       {
         path: "sop",
-        element: (
-          <ModulePage
-            title="SOP"
-            summary="对应 SOP 跳转中心与 hover 视觉差异化设计。"
-            milestones={["SOP 路由已预留", "后续可复用数据表卡片组件", "访客开放能力可在此页优先接入"]}
-            specs={["docs/spec/07-Phase6-数据表-SOP-关于.md"]}
-          />
-        ),
+        element: <SopCenterPage />,
       },
       {
         path: "about",
