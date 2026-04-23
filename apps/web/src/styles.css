@@ -443,3 +443,212 @@ body {
   color: #d4380d;
   font-weight: 600;
 }
+
+/* ---------- Phase 6: QuickLink / About / Audit log ---------- */
+
+:root {
+  --quick-link-accent-blue: #1d8cff;
+  --quick-link-accent-green: #52c41a;
+}
+
+.quick-link-center {
+  padding: 24px 32px;
+}
+
+.quick-link-center-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 24px;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+.quick-link-center-title {
+  margin: 0 !important;
+}
+
+.quick-link-group {
+  margin-bottom: 32px;
+}
+
+.quick-link-group-title {
+  font-size: 16px;
+  font-weight: 600;
+  margin: 0 0 12px;
+  color: #1f2937;
+}
+
+.quick-link-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 16px;
+}
+
+@media (max-width: 992px) {
+  .quick-link-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 640px) {
+  .quick-link-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.quick-link-card {
+  position: relative;
+  background: #fff;
+  border: 1px solid transparent;
+  border-radius: 12px;
+  padding: 20px 20px 16px;
+  box-shadow: 0 2px 8px rgba(15, 23, 42, 0.06);
+  cursor: pointer;
+  transition:
+    transform 120ms ease,
+    box-shadow 120ms ease,
+    border-color 120ms ease;
+  min-height: 104px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+}
+
+.quick-link-card-blue:hover {
+  border-color: var(--quick-link-accent-blue);
+  transform: translateY(-2px);
+  box-shadow: 0 8px 20px rgba(29, 140, 255, 0.16);
+}
+
+.quick-link-card-green:hover {
+  border-color: var(--quick-link-accent-green);
+  transform: translateY(-2px);
+  box-shadow: 0 8px 20px rgba(82, 196, 26, 0.18);
+}
+
+.quick-link-card-title {
+  font-size: 15px;
+  font-weight: 600;
+  color: #111827;
+  line-height: 1.5;
+  padding-right: 28px;
+}
+
+.quick-link-card-meta {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  color: #6b7280;
+  margin-top: 16px;
+}
+
+.quick-link-card-meta-label {
+  letter-spacing: 0.2px;
+}
+
+.quick-link-card-checkbox {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+}
+
+/* Sort modal */
+
+.quick-link-sort-group {
+  margin-bottom: 16px;
+}
+
+.quick-link-sort-group-title {
+  font-weight: 600;
+  font-size: 13px;
+  color: #374151;
+  margin-bottom: 6px;
+}
+
+.quick-link-sort-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 10px;
+  background: #f9fafb;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  margin-bottom: 6px;
+}
+
+.quick-link-sort-handle {
+  cursor: grab;
+  color: #9ca3af;
+}
+
+.quick-link-sort-title {
+  flex: 1;
+  font-size: 13px;
+  color: #111827;
+}
+
+/* About page */
+
+.about-page {
+  padding: 48px 32px;
+  max-width: 640px;
+  margin: 0 auto;
+  text-align: center;
+}
+
+.about-logo {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 72px;
+  height: 72px;
+  border-radius: 16px;
+  background: #1d8cff;
+  color: #fff;
+  font-size: 20px;
+  font-weight: 700;
+  margin-bottom: 20px;
+}
+
+.about-platform-name {
+  margin: 0 !important;
+}
+
+.about-version {
+  color: #6b7280;
+  margin-top: 4px;
+  margin-bottom: 8px;
+}
+
+.about-info-block {
+  width: 100%;
+  text-align: left;
+}
+
+.about-info-label {
+  color: #6b7280;
+  margin-right: 6px;
+}
+
+.about-logs-entry {
+  margin: 32px 0;
+}
+
+.about-footer {
+  margin-top: 40px;
+  color: #9ca3af;
+  font-size: 12px;
+  line-height: 1.6;
+}
+
+.about-beian-placeholder {
+  opacity: 0.5;
+}
+
+/* Audit log page */
+
+.audit-log-page {
+  padding: 24px 32px;
+}
