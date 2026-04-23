@@ -10,6 +10,7 @@ import { AdvancedSearchPage } from "./features/courses/AdvancedSearchPage";
 import { PayrollListPage } from "./features/payroll/PayrollListPage";
 import { DataCenterPage } from "./features/quick-links/DataCenterPage";
 import { SopCenterPage } from "./features/quick-links/SopCenterPage";
+import { AboutPage } from "./features/about/AboutPage";
 import { AppShell } from "./layouts/AppShell";
 import { UserSettingsLayout } from "./layouts/UserSettingsLayout";
 import { LoginPage } from "./pages/LoginPage";
@@ -126,14 +127,7 @@ export const router = createBrowserRouter([
       },
       {
         path: "about",
-        element: (
-          <ModulePage
-            title="关于"
-            summary="对应版本信息、企业信息、日志入口和版权备案区域。"
-            milestones={["关于页路由已预留", "日志入口可在接入 RBAC 后落盘", "适合挂健康检查与版本信息"]}
-            specs={["docs/spec/07-Phase6-数据表-SOP-关于.md"]}
-          />
-        ),
+        element: <AboutPage />,
       },
     ],
   },
