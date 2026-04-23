@@ -14,6 +14,7 @@ import { StorageModule } from "./modules/storage/storage.module";
 import { AuditLogsModule } from "./modules/audit-logs/audit-logs.module";
 import { EmployeesModule } from "./modules/employees/employees.module";
 import { StudentsModule } from "./modules/students/students.module";
+import { CourseOutlinesModule } from "./modules/course-outlines/course-outlines.module";
 
 @Module({
   imports: [
@@ -28,6 +29,7 @@ import { StudentsModule } from "./modules/students/students.module";
     AuditLogsModule,
     EmployeesModule,
     StudentsModule,
+    CourseOutlinesModule,
     UsersModule,
     AuthModule,
     HealthModule,
