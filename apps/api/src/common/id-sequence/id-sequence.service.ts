@@ -2,7 +2,15 @@ import { Injectable } from "@nestjs/common";
 import { Prisma } from "@prisma/client";
 import { PrismaService } from "../../prisma/prisma.service";
 
-export type IdSequenceKind = "employee" | "student" | "course";
+/**
+ * Built-in kinds are narrow strings; callers that need composite scopes
+ * (e.g. course numbers scoped by TT+KK+YY) can pass any string — the
+ * IdSequence table only enforces uniqueness on (kind, year).
+ */
+export type IdSequenceKind =
+  | "employee"
+  | "student"
+  | `course:${string}`;
 
 @Injectable()
 export class IdSequenceService {
