@@ -11,6 +11,7 @@ import { PayrollListPage } from "./features/payroll/PayrollListPage";
 import { DataCenterPage } from "./features/quick-links/DataCenterPage";
 import { SopCenterPage } from "./features/quick-links/SopCenterPage";
 import { AboutPage } from "./features/about/AboutPage";
+import { AuditLogListPage } from "./features/audit-logs/AuditLogListPage";
 import { AppShell } from "./layouts/AppShell";
 import { UserSettingsLayout } from "./layouts/UserSettingsLayout";
 import { LoginPage } from "./pages/LoginPage";
@@ -128,6 +129,16 @@ export const router = createBrowserRouter([
       {
         path: "about",
         element: <AboutPage />,
+      },
+      {
+        path: "logs",
+        element: (
+          <RequireAuth>
+            <RequireRole roles={["SUPER_ADMIN", "ADMIN"]}>
+              <AuditLogListPage />
+            </RequireRole>
+          </RequireAuth>
+        ),
       },
     ],
   },
