@@ -106,8 +106,22 @@ model CourseOutlineVersion {
   isActive    Boolean             @default(false)
   createdAt   DateTime            @default(now())
   updatedAt   DateTime            @updatedAt
+  sections    CourseSection[]
   items       CourseOutlineItem[]
   courses     Course[]
+
+  @@index([isActive])
+}
+
+model CourseSection {
+  id               String @id @default(cuid())
+  outlineVersionId String
+  code             String
+  name             String
+  displayOrder     Int    @default(0)
+  outlineVersion   CourseOutlineVersion @relation(fields: [outlineVersionId], references: [id], onDelete: Cascade)
+
+  @@unique([outlineVersionId, code])
 }
 
 model CourseOutlineItem {
@@ -120,6 +134,9 @@ model CourseOutlineItem {
   plannedTeacherJobNo   String?
   lessonPlanUrl         String?
   outlineVersion        CourseOutlineVersion @relation(fields: [outlineVersionId], references: [id], onDelete: Cascade)
+
+  @@unique([outlineVersionId, sectionCode, sequenceNo])
+  @@index([outlineVersionId, sectionCode])
 }
 
 model Course {
