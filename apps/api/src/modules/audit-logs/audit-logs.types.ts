@@ -26,6 +26,8 @@ export type AuditTargetType =
   | "user"
   | "course"
   | "payroll"
+  | "payroll_settlement"
+  | "payroll_manual_record"
   | "User"
   | "student"
   | "course_outline_version"
