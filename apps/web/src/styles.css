@@ -350,3 +350,16 @@ body {
 .active-filter-tag-row .ant-tag {
   margin-bottom: 4px;
 }
+
+.course-outline-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 24px;
+  flex-wrap: wrap;
+}
+
+.course-outline-section-card {
+  margin-bottom: 32px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+}
