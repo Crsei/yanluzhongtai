@@ -1,10 +1,12 @@
-import { createBrowserRouter } from "react-router-dom";
+import { createBrowserRouter, Navigate } from "react-router-dom";
 import { RequireAuth } from "./features/auth/RequireAuth";
 import { RequireRole } from "./features/auth/RequireRole";
 import { RootEntryRedirect } from "./features/auth/RootEntryRedirect";
 import { EmployeeListPage } from "./features/employees/EmployeeListPage";
 import { StudentListPage } from "./features/students/StudentListPage";
 import { CourseOutlinePage } from "./features/course-outlines/CourseOutlinePage";
+import { CourseListPage } from "./features/courses/CourseListPage";
+import { AdvancedSearchPage } from "./features/courses/AdvancedSearchPage";
 import { AppShell } from "./layouts/AppShell";
 import { UserSettingsLayout } from "./layouts/UserSettingsLayout";
 import { LoginPage } from "./pages/LoginPage";
@@ -69,16 +71,23 @@ export const router = createBrowserRouter([
         path: "courses",
         element: (
           <RequireAuth>
-            <ModulePage
-              title="课程管理"
-              summary="课程大纲已上线;课程列表 / 学生选课将在 Phase 4 开放。"
-              milestones={["课程大纲已上线", "课程列表/选课待 Phase 4"]}
-              specs={[
-                "docs/spec/04-Phase3-课程大纲管理.md",
-                "docs/spec/05-Phase4-课程信息与学生选课.md",
-              ]}
-              entryLinks={[{ label: "进入课程大纲", to: "/courses/outline" }]}
-            />
+            <Navigate to="/courses/list" replace />
+          </RequireAuth>
+        ),
+      },
+      {
+        path: "courses/list",
+        element: (
+          <RequireAuth>
+            <CourseListPage />
+          </RequireAuth>
+        ),
+      },
+      {
+        path: "courses/advanced-search",
+        element: (
+          <RequireAuth>
+            <AdvancedSearchPage />
           </RequireAuth>
         ),
       },
