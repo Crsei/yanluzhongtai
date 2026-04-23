@@ -4,6 +4,7 @@ import { RequireRole } from "./features/auth/RequireRole";
 import { RootEntryRedirect } from "./features/auth/RootEntryRedirect";
 import { EmployeeListPage } from "./features/employees/EmployeeListPage";
 import { StudentListPage } from "./features/students/StudentListPage";
+import { CourseOutlinePage } from "./features/course-outlines/CourseOutlinePage";
 import { AppShell } from "./layouts/AppShell";
 import { UserSettingsLayout } from "./layouts/UserSettingsLayout";
 import { LoginPage } from "./pages/LoginPage";
@@ -70,13 +71,22 @@ export const router = createBrowserRouter([
           <RequireAuth>
             <ModulePage
               title="课程管理"
-              summary="包含课程大纲、课程详情、学生选课和高级搜索等核心业务链路。"
-              milestones={["课程模块路由已预留", "移动端侧边栏形态已预留", "后续可拆 outline / detail 子路由"]}
+              summary="课程大纲已上线;课程列表 / 学生选课将在 Phase 4 开放。"
+              milestones={["课程大纲已上线", "课程列表/选课待 Phase 4"]}
               specs={[
                 "docs/spec/04-Phase3-课程大纲管理.md",
                 "docs/spec/05-Phase4-课程信息与学生选课.md",
               ]}
+              entryLinks={[{ label: "进入课程大纲", to: "/courses/outline" }]}
             />
+          </RequireAuth>
+        ),
+      },
+      {
+        path: "courses/outline",
+        element: (
+          <RequireAuth>
+            <CourseOutlinePage />
           </RequireAuth>
         ),
       },
