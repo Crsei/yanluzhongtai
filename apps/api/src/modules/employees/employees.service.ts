@@ -243,15 +243,19 @@ export class EmployeesService {
     const before = await this.prisma.employee.findUnique({ where: { id } });
     if (!before) throw new NotFoundException("员工不存在");
 
-    const [payrollCount, courseCount, counselorCount, plannerCount] =
+    const [payrollCount, manualRecordCount, courseCount, counselorCount, plannerCount] =
       await this.prisma.$transaction([
         this.prisma.payrollSettlement.count({ where: { employeeJobNo: before.jobNo } }),
+        this.prisma.payrollManualRecord.count({ where: { employeeJobNo: before.jobNo } }),
         this.prisma.course.count({ where: { actualTeacherJobNo: before.jobNo } }),
         this.prisma.student.count({ where: { counselorJobNo: before.jobNo } }),
         this.prisma.student.count({ where: { plannerJobNo: before.jobNo } }),
       ]);
 
-    if (payrollCount + courseCount + counselorCount + plannerCount > 0) {
+    if (
+      payrollCount + manualRecordCount + courseCount + counselorCount + plannerCount >
+      0
+    ) {
       throw new ConflictException(
         "该员工有关联学生/薪酬/课程，不可删除，请将状态改为已离职",
       );
