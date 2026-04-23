@@ -6,6 +6,7 @@ export type AuditAction =
   | "deactivate"
   | "register"
   | "settle"
+  | "import_overwrite"
   | "user.register"
   | "user.update_phone"
   | "user.update_username"
@@ -17,7 +18,15 @@ export type AuditAction =
   | "student.update"
   | "student.delete";
 
-export type AuditTargetType = "employee" | "user" | "course" | "payroll" | "User" | "student";
+export type AuditTargetType =
+  | "employee"
+  | "user"
+  | "course"
+  | "payroll"
+  | "User"
+  | "student"
+  | "course_outline_version"
+  | "course_outline_item";
 
 export type AuditRecordInput = {
   operatorId: string | null;
