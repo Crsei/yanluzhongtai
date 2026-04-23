@@ -116,3 +116,81 @@
 ## 共享组件：EmployeePicker
 
 `components/EmployeePicker.tsx`：远程搜索员工 jobNo 的 Select，用于学生模块的老师挑选；Phase 3 课程模块将直接复用于"计划 / 实际授课老师"字段。Props：`value` / `onChange` / `placeholder` / `disabled` / `excludeResigned`（默认 true）/ `allowClear` / `style`。依赖 `services/employees.ts::findByJobNo`（精确回填）与扩展后的 `employees` 列表接口（支持 `employmentStatus=FULL_TIME,PART_TIME` 多值 + `jobNo=xxx` 精确过滤）。
+
+## 课程大纲（Phase 3）
+
+- 入口：`features/course-outlines/CourseOutlinePage.tsx`，路由 `/courses/outline`。
+- 版本切换：顶部 `Select` + "切换激活版本"按钮（`SUPER_ADMIN` / `ADMIN`）；激活版本切换走 `POST /course-outlines/versions/:id/activate`，前端乐观更新失败回滚。
+- 条目表格：按 `CourseSection.code` 分组渲染；同节内按 `sequenceNo` 升序。
+- Excel 导入：`CourseOutlineImportDrawer.tsx` 同 Phase 1A 三段式；模板每行要求 section 代码 + 序号 + 二级课程名称 + 建议授课方式。
+
+## 课程与选课（Phase 4）
+
+- 入口：`features/courses/CourseListPage.tsx` 与 `AdvancedSearchPage.tsx`，路由 `/courses/list` 与 `/courses/advanced-search`。
+- `CourseListPage`：
+  - 工具按钮：查看 / 编辑 / 添加课程 / 删除课程 / 从 Excel 导入；右侧搜索框 + 状态 `Select` + 高级搜索入口；第一列复选框。
+  - `CourseFormModal.tsx` 单 Modal 复用 view / edit / create 三态；表单分组：大纲定位 / 基础信息 / 实际授课 / 学生选择 / 资源链接。
+  - 大纲联动：`useCoursePickerOptions.ts` 聚合当前激活版本的 sections + items；`outlineItemId` 改变时自动同步 sectionCode / categorySequenceNo / secondaryCategoryName / suggestedTeachingType。
+  - `StudentPickerModal.tsx` 多选学生；`EmployeePicker` 复用于 `actualTeacherJobNo`。
+  - 派生展示：`status` 列由后端按 `plannedAt` / `durationMinutes` / now 派生；`creditHours` 在写入时换算。
+- `AdvancedSearchPage.tsx`：URL 可分享的玻璃面板；`ActiveFilterTags` 在列表上方显示可删除 Tag 行。
+- 导入：`CourseImportDrawer.tsx` 模板下载 → presign 直传 MinIO → dry-run 报告 → commit；dry-run 报告按行列出错误，commit 跳过错误行继续导入有效行。
+- 审计：`course.create` / `course.update`（字段级）/ `course.delete`；选课只进 `course.update` 的 diff 中。
+
+## 薪酬管理（Phase 5）
+
+- 入口：`features/payroll/PayrollListPage.tsx`，路由 `/payroll`（`RequireAuth` + `RequireRole(["SUPER_ADMIN", "ADMIN"])`）。
+- 时间范围：本月 / 上月 / 自定义 `RangePicker picker="month"`；自定义区间拆 `YYYYMM` 集合后并集聚合。
+- 列表行：同一 (老师, 年月) 可同时出现 1 行 auto + N 行 manual；红色金额样式 `.payroll-money-red`。
+- `SettleDialog.tsx`：
+  - 首次结算（无历史 settlement）时 rate 输入为空、必填；后续结算从历史带出，只读展示以防误改。
+  - `剩余可结金额 = subtotalPayable - SUM(subtotalPaid)` 校验上限。
+- `AddManualRecordDialog.tsx`：`EmployeePicker` 选员工 + `RangePicker picker="month"` 选归属月；`extraLabor` 和 `extraDeduction` 二选一非零。
+- `ViewCoursesDialog.tsx`：弹窗展示当前 (老师, 年月) 下所有 `COMPLETED` 课程详情（课程编号 / 名称 / 计划时间 / 课时 / 学生数 / 授课方式）。
+- 手动记录只支持添加 + 删除，不支持编辑（spec §2 / §6）。
+- 审计：`settle`（targetType=`payroll_settlement`）/ `create` + `delete`（targetType=`payroll_manual_record`）。
+
+## 数据表 / SOP / 关于 / 日志（Phase 6）
+
+### 入口与路由
+
+- `/links`：`DataCenterPage` 薄 wrapper → `QuickLinkCenterPage pageType=DATA_TABLE accent=blue`；需要登录。
+- `/sop`：`SopCenterPage` 薄 wrapper → `QuickLinkCenterPage pageType=SOP accent=green`；访客可访问，hook 根据登录状态调 `/api/public/sop-links` 或 `/api/quick-links`。
+- `/about`：`AboutPage` + `constants/about.ts`；访客可访问；`SUPER_ADMIN` / `ADMIN` 可见"查看中台日志"按钮，点击跳 `/logs`。
+- `/logs`：`AuditLogListPage`；`RequireAuth` + `RequireRole(["SUPER_ADMIN", "ADMIN"])`；分页 50，基础筛选（操作人 ID / 动作 / 目标类型 / 时间区间）。
+
+### QuickLinkCenterPage 共享组件
+
+- Props：`pageType`、`title`、`accent: "blue" | "green"`。
+- 顶部 4 按钮：排序 / 添加 / 编辑 / 删除；仅管理员可见；未选时编辑 / 删除禁用，多选禁用编辑（沿用 spec 00 §6 基线）。
+- 卡片网格：三列 (`lg` 及以上) → 两列 (`md`) → 一列 (`sm`)；`.quick-link-card-blue:hover` 与 `.quick-link-card-green:hover` 分别对应数据表 / SOP 的强调边框色。
+- `QuickLinkCard.tsx` 根据 `kind` 切换点击行为：
+  - `NAVIGATE` → `window.open(url, "_blank", "noopener")`
+  - `COPY` → `navigator.clipboard.writeText(url)` + toast；不支持时降级 warning
+  - `DOWNLOAD` → 动态 `<a download>` 触发浏览器下载
+- 右下角小徽标显示 kind 文案 + 图标，便于用户知晓点击后的行为。
+
+### QuickLinkFormModal / QuickLinkSortModal / QuickLinkDeleteConfirm
+
+- `QuickLinkFormModal.tsx`：view 不提供（直接跳转即可），只有 create 与 edit；`category` 用 AntD `Select mode="tags"` 支持"已有分组下拉 + 新分组输入"，提交前把 `string[]` 展平为单字符串。
+- `QuickLinkSortModal.tsx`：`@dnd-kit/core` + `@dnd-kit/sortable` 驱动的垂直拖拽；每次保存按当前组顺序重排 `sortOrder = (idx+1) * 10`。`ReorderQuickLinksDto` 在 service 层校验所有 id 属于指定 `pageType`。
+- `QuickLinkDeleteConfirm.tsx`：`Modal.confirm` 包一层；逐条调 `quickLinksApi.remove` 保证每次删除都独立记 audit；用 `try / finally` 保证中途失败也 invalidate 列表。
+
+### AboutPage
+
+- Logo（"研录"文字 Logo）/ 平台名 / 版本号 / 反馈邮箱 `mailto:`；"查看中台日志"按钮按角色条件渲染；底部版权 + 备案占位。
+- 配置常量：`apps/web/src/constants/about.ts`。上线前替换 `TBD` 的公司名 / 反馈邮箱 / 版权行 / 备案号。
+
+### AuditLogListPage
+
+- 筛选区：操作人 ID / 动作 / 目标类型 / `RangePicker showTime`。
+- 表格列：时间（YYYY-MM-DD HH:mm:ss）/ 操作人（用户名 + 手机后四位）/ 动作 / 目标类型 / 目标 ID / 字段 / 前值 / 后值。
+- 分页：每页 50（spec §4.4）；`useAuditLogs` 走 TanStack Query + `keepPreviousData`。
+
+### 静态下载资源
+
+- `apps/web/public/templates/` 目录存 `QuickLinkKind=DOWNLOAD` 引用的文件；`.rar` / `.zip` 不进仓库；README 里说明目录用途。
+
+### 样式
+
+- `styles.css` 增加：`--quick-link-accent-blue` / `--quick-link-accent-green` CSS 变量；`.quick-link-grid` 三列响应式；`.quick-link-card*`、`.quick-link-sort-*`、`.about-*`、`.audit-log-page` 等。

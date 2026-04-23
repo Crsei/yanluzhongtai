@@ -266,3 +266,124 @@ Admin（SUPER_ADMIN，部分允许 ADMIN）：
 新增 action：`student.create` / `student.update` / `student.delete`；`targetType = "student"`。
 `AuditLogsService.record` 泛化为：`action === "update" || action.endsWith(".update")` 时走字段级拆条，对已上线的 `employee.update`（Phase 1A）零影响。
 Excel 导入每行独立写一条 `student.create`，`after` 中附 `__importBatchKey` 便于按批次回溯。
+
+## Phase 3 — 课程大纲
+
+### Schema 变更
+
+- 新增 `CourseSection` 表：同一 `CourseOutlineVersion` 下按 `code` 唯一，用于"按节展示大纲条目"的分组。
+- `CourseOutlineVersion` 新增 `isActive` 与 `@@index([isActive])`；全局最多只允许一个激活版本，激活策略在 service 层事务内切换。
+- `CourseOutlineItem` 新增 `@@unique([outlineVersionId, sectionCode, sequenceNo])`。
+
+### MinIO 前缀白名单新增
+
+`course-outlines/import-batches/` — 课程大纲导入批次；与学生导入同构，生产环境建议同样的 lifecycle 规则。
+
+### 大纲版本切换约束
+
+- 只有超管 / 管理员可切换激活版本。
+- 切换激活版本会在事务内把旧激活置 false、新激活置 true，并记一条 audit 行。
+- 删除激活版本受 `Course.outlineVersionId` 引用保护（service 层校验）。
+
+## Phase 4 — 课程信息与选课
+
+### Schema 变更
+
+- `Course` 新增多列：`outlineItemId`、`sectionName`、`categorySequenceNo`、`secondaryCategoryName`、`suggestedTeachingType`、`plannedAt`、`courseYear`、`actualTeacherJobNo`、`actualTeachingType`、`durationMinutes`、`creditHours`、`replayUrl`、`videoUrl`、`resourceUrl`、`note`。
+- 新增三个索引：`@@index([plannedAt])` / `@@index([sectionCode, categorySequenceNo])` / `@@index([actualTeacherJobNo])`。
+- `Enrollment` 复合主键 `(studentId, courseId)`；`Student` / `Course` 级联删除。
+
+### 课程编号
+
+- 格式 `TTKKYYNNN`：二级课程类别代号 2 位 + 大纲 section 代号 2 位 + 课程年份后两位 + 序号 3 位。
+- `IdSequenceKind` 接受 `course:TT_KK_YY` 这类复合字符串 kind；`common/course-no/course-no.ts` 提供 `composeCourseSeqKind` / `formatNnn` / `normalizeTt` / `normalizeKk` / `deriveYy`。
+- 课程一经创建 `courseNo` 不变（`Course` 更新 DTO 不接受 `courseNo` / `plannedAt` 的 year 变更）；删除后序号不回收。
+
+### 派生字段
+
+- `status`：`computeCourseStatus(plannedAt, durationMinutes, now)` 在读时派生，不存 DB。
+- `creditHours`：`computeCreditHours(durationMinutes)` 在写时换算并存 DB（便于导出与薪酬侧一致复用）。
+
+### Excel 导入
+
+- 模板包含大纲 TT / KK 列与中文 section 名；`courses-import.service.ts` 对照当前激活版本的 `CourseSection` / `CourseOutlineItem` 做校验。
+- 有效行走正常 create 流程；无效行在 dry-run 返回 `{ row, field, message }` 数组；commit 时跳过无效行继续导入有效行。
+
+### 前端路由
+
+- `/courses` → 默认重定向 `/courses/list`
+- `/courses/list`：主列表 + 增删改导入 + 查看详情 Modal + 学生选择器
+- `/courses/advanced-search`：URL 可分享的高级搜索玻璃面板
+- `/courses/outline`：Phase 3 大纲页
+
+### 审计日志
+
+- 新增 action：`course.create` / `course.update` / `course.delete`；`targetType = "course"`。
+- 选课写入不单独记 audit（隐含在 `course.update` 中）。
+
+## Phase 5 — 薪酬管理
+
+### Schema 变更
+
+- 新增 `PayrollManualRecord` 表：手动补录的劳务 / 扣除项，独立于 `PayrollSettlement`。
+- `PayrollSettlement` 与 `PayrollManualRecord` 都有 `@@index([employeeJobNo, settlementPeriod])`。
+- 单位课时费首结 + 历史一致性校验：同 `(employeeJobNo, settlementPeriod)` 所有 `PayrollSettlement.hourlyRate` 必须一致；新结算若 rate ≠ 历史值，service 层直接 400。
+
+### 权限
+
+- `/payroll` 仅 `SUPER_ADMIN` / `ADMIN` 可访问（路由级 + 控制器级都加 `@Roles`）。
+- 一般成员访问时走 `UnauthorizedPage kind="forbidden"`。
+
+### 列表语义
+
+- 按 (老师 jobNo, 年月 `YYYYMM`) 聚合。
+- 同一 `(teacher, period)` 可并存：一行 auto 行（聚合 settlement）+ N 行 manual 行。
+- "仅未结清" 过滤：auto 行在 `subtotalPayable > SUM(subtotalPaid)` 时保留；manual 行始终保留。
+
+### 已授课时数据源
+
+- 仅计 `status = COMPLETED` 且 `durationMinutes` / `creditHours` 均有值的课程。
+- 所属年月取 `Course.plannedAt` 的 `YYYYMM`；`plannedAt` 为空的课程不归入任何期间。
+
+### 审计日志
+
+- 新增 action：`settle`（结算写入）+ `create` / `delete`（手动补录）；`targetType = payroll_settlement` / `payroll_manual_record`。
+
+## Phase 6 — 数据表 / SOP / 关于 / 日志
+
+### 新增依赖
+
+- 后端：`@nestjs/schedule`（审计日志 180 天清理 cron）。
+- 前端：`@dnd-kit/core` + `@dnd-kit/sortable` + `@dnd-kit/utilities`（排序弹窗拖拽）。
+
+### Schema 变更
+
+- 新增两个 enum：`QuickLinkPageType`（`DATA_TABLE` / `SOP`）、`QuickLinkKind`（`NAVIGATE` / `COPY` / `DOWNLOAD`）。
+- `QuickLink` 扩列：`pageType`、`kind`；新增索引 `@@index([pageType, category, sortOrder])`。
+- `AuditLog` 新增三个索引：`@@index([createdAt])` / `@@index([operatorId])` / `@@index([targetType, targetId])`。
+
+### API 端点
+
+- `GET /api/public/sop-links` — `@Public()`，访客可访问；强制返回 `pageType=SOP`。
+- `GET /api/quick-links?pageType=DATA_TABLE|SOP` — 需登录；任意角色。
+- `POST /api/quick-links` / `PATCH /api/quick-links/:id` / `DELETE /api/quick-links/:id` / `POST /api/quick-links/reorder` — 仅 `SUPER_ADMIN` / `ADMIN`。
+- `GET /api/audit-logs` — 仅 `SUPER_ADMIN` / `ADMIN`；分页 + `operatorId` / `targetType` / `action` / `fromDate` / `toDate` 过滤。
+
+### 静态下载资源
+
+- `apps/web/public/templates/` 目录保留；实际 `.rar` / `.zip` 不进仓库（`.gitignore` 已忽略），由运维上线时手工放置。
+- 在后台添加 `kind=DOWNLOAD` 的 QuickLink 时，`url` 填 `/templates/<file>`，点击卡片触发浏览器下载。
+
+### 审计日志清理
+
+- `AuditLogsRetentionService` 使用 `@Cron(CronExpression.EVERY_DAY_AT_3AM)`，每天 03:00（服务器本地时区）跑一次 `deleteMany({ where: { createdAt: { lt: now - 180d } } })`，结果写入 Nest logger，不再追加 audit 行。
+- 失败时只 log error，不抛出，以免影响下一次执行。
+
+### 审计日志 action 扩展
+
+- `quick_link.create` / `quick_link.update` / `quick_link.delete` / `quick_link.reorder`；`targetType = "quick_link"`。
+- `quick_link.reorder` 不做字段级拆条，`after` 存 `{ pageType, items }` 完整快照。
+
+### 关于页配置
+
+- `apps/web/src/constants/about.ts` 维护平台名 / 版本号 / 企业名 / 反馈邮箱 / 版权行 / 备案号。上线前把 `TBD` 替换成正式值。

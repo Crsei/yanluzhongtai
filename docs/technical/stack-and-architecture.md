@@ -22,12 +22,15 @@
 
 ### 1.2 后端
 
-- `NestJS`
+- `NestJS 10`
 - `TypeScript`
-- `Prisma`
-- `PostgreSQL`
-- `JWT`
+- `Prisma 5`
+- `PostgreSQL 16`
+- `JWT`（短期 `accessToken`）
 - `HttpOnly Refresh Cookie`
+- `class-validator` / `class-transformer`（DTO 校验）
+- `ExcelJS`（Excel 模板生成 / 解析）
+- `@nestjs/schedule`（Phase 6 审计日志 180 天清理 cron）
 
 选择原因：
 
@@ -58,61 +61,63 @@
 
 ## 2. 架构分层
 
-### 2.0 认证与权限基线
+### 2.0 认证与权限基线（已落地）
 
-Phase 0 的认证方案以“体验统一”和“最小可接受安全边界”为目标，约定如下：
+Phase 0 的认证方案以"体验统一"和"最小可接受安全边界"为目标，约定如下：
 
 - Access Token：
   - 作为 `Bearer` token 使用
-  - 有效期短，设计基线为 `15 分钟`
-  - 前端只放内存和 `sessionStorage`
+  - 有效期短，当前基线 `15 分钟`
+  - 前端只放内存 + `sessionStorage`
 - Refresh Token：
-  - 放 `HttpOnly Cookie`
-  - 勾选“保留登录状态”时可保留较长时间
+  - 放 `HttpOnly Cookie`（`REFRESH_COOKIE_NAME`，默认 `yanlu_rt`）
+  - 勾选"保留登录状态"时可保留较长时间
   - 未勾选时采用浏览器会话期
-- 前端恢复会话时优先尝试现有 access token，再退回 `/auth/refresh`
-- 不采用“30 天 Bearer token + localStorage”方案
+- 前端恢复会话时优先尝试现有 access token；401 自动回退 `/auth/refresh` 再重试
+- 不采用"30 天 Bearer token + localStorage"方案
 
-Phase 0 已知权限边界也应当天生效，而不是整体后置：
+权限边界（全部已在代码中强制）：
 
-- 访客：只允许访问 `SOP`、`关于`
-- 一般成员：不可访问 `薪酬管理`
-- 管理员、超级管理员：可访问已定义的受限模块
+- 访客（未登录）：只允许 `/sop`、`/about`、公开资源 `/api/public/sop-links`
+- 一般成员（`MEMBER`）：不可访问 `/payroll` 与 `/logs`
+- 管理员（`ADMIN`）：可访问全部业务模块；`/users` 中只能把 `MEMBER` 升为 `ADMIN`
+- 超级管理员（`SUPER_ADMIN`）：全权；含注册 / 重置密码 / 注销 / 任意角色调整
 
-更细的按钮级权限与复杂业务角色矩阵可在后续阶段继续细化。
+页面级权限：`apps/web/src/features/auth/RequireAuth.tsx` + `RequireRole.tsx`。
+按钮级权限：`useAuthStore` 在组件内判断 `user.role`。
+API 级权限：`@Roles(UserRole.SUPER_ADMIN, UserRole.ADMIN)` + 全局 `RolesGuard`；公开端点用 `@Public()`；首次登录强制改密由 `MustChangePasswordGuard` 白名单放行 `GET /auth/me` 和 `POST /users/me/initial-password-change`。
 
 ### 2.1 前端分层
 
-- `layouts`：中台基础布局
-- `pages`：页面级路由组件
-- `config`：导航、路由、模块元数据
-- `features/auth`：登录、会话恢复、未授权页、路由级权限包装
-- `stores`：使用 Zustand 管理会话、用户、hydration 状态
-- `services/http`：统一处理 base URL、Authorization、401 和 refresh 流程
-- 后续可扩展：
-  - `components`
-  - `features`
-  - `services`
-  - `stores`
+- `layouts/`：`AppShell`（业务模块壳）+ `UserSettingsLayout`（用户设置 / 用户管理独立标签页）
+- `pages/`：`LoginPage`、`ModulePage`（阶段过渡占位，逐步替换为实页）
+- `config/navigation.tsx`：侧边栏 7 项导航（员工 / 学生 / 课程 / 薪酬 / 数据表 / SOP / 关于）
+- `features/auth/`：登录、会话恢复、`RequireAuth`、`RequireRole`、`UnauthorizedPage`、`ForcePasswordChangePage`
+- `features/user-settings/` / `features/users/`：Phase 1B 自助设置 + 管理员用户管理
+- `features/employees/` / `students/` / `course-outlines/` / `courses/` / `payroll/`：Phase 1A–5 业务模块
+- `features/quick-links/` / `about/` / `audit-logs/`：Phase 6 三项
+- `components/`：跨模块共享组件（`EmployeePicker` 等）
+- `stores/authStore.ts`：Zustand 管理会话 / 用户 / hydrated / rememberMe
+- `services/http.ts`：`fetch` 封装；统一处理 base URL、Bearer、401 → refresh → retry、403 `MUST_CHANGE_PASSWORD` 拦截跳转
+- `services/<domain>.ts`：每域一个 API wrapper，被 `features/<domain>/hooks/` 的 TanStack Query hook 消费
+- `constants/`：`dictionaries`（镜像 api）、`about`（Phase 6 关于页配置）
 
 ### 2.2 后端分层
 
-- `src/main.ts`：启动入口
-- `src/app.module.ts`：总模块
-- `src/config`：环境变量与配置校验
-- `src/prisma`：数据库客户端模块
-- `src/health`：健康检查
-- `src/modules/auth`：登录、刷新、登出、JWT 校验、Public/Roles 装饰器与 Guard
-- 后续业务模块建议：
-  - `auth`
-  - `users`
-  - `employees`
-  - `students`
-  - `course-outlines`
-  - `courses`
-  - `payroll`
-  - `links`
-  - `audit-logs`
+- `src/main.ts`：启动入口 + `/api` 前缀 + cookie-parser + CORS（`APP_ORIGIN`）
+- `src/app.module.ts`：挂 `ScheduleModule.forRoot()` + `ConfigModule` + 所有业务模块 + 三个全局 `APP_GUARD`
+- `src/config`：环境变量必填清单校验
+- `src/common/`：
+  - `id-sequence/`：`@Global()` 按 `(kind, year)` 复合主键累加的编号分配器
+  - `course-no/`：Phase 4 课程编号拼装 + 状态派生 + 学时换算（纯函数）
+  - `dictionaries.ts`：枚举白名单（与 web 镜像，任何改动两边都要改）
+- `src/prisma`：`@Global()` `PrismaService`
+- `src/health`：`GET /api/health` 烟测端点
+- `src/modules/auth`：登录 / 刷新 / 登出 / me；`@Public()` / `@Roles()` / `@CurrentUser()` 装饰器；`JwtAuthGuard` / `RolesGuard` / `MustChangePasswordGuard` 三重 guard
+- `src/modules/users`：Phase 1B 自助 + admin
+- `src/modules/storage`：`@Global()` MinIO presign；启动时自动建 bucket
+- `src/modules/audit-logs`：`@Global()` 写侧 `AuditLogsService.record()` + 读侧 `AuditLogsController` + `AuditLogsRetentionService`（03:00 每日清 180 天）
+- `src/modules/employees / students / course-outlines / courses / payroll / quick-links`：业务模块；每个都是 controller + service（+ import service where applicable）+ `dto/` 文件夹
 
 ## 3. 数据与服务关系
 
