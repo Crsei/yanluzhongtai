@@ -1,5 +1,6 @@
 import { Module } from "@nestjs/common";
 import { ConfigModule } from "@nestjs/config";
+import { ScheduleModule } from "@nestjs/schedule";
 import { APP_GUARD } from "@nestjs/core";
 import { validateEnvironment } from "./config/env.validation";
 import { HealthModule } from "./health/health.module";
@@ -20,6 +21,7 @@ import { PayrollModule } from "./modules/payroll/payroll.module";
 
 @Module({
   imports: [
+    ScheduleModule.forRoot(),
     ConfigModule.forRoot({
       isGlobal: true,
       envFilePath: ["apps/api/.env", ".env"],
