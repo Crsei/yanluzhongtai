@@ -7,6 +7,7 @@ import { StudentListPage } from "./features/students/StudentListPage";
 import { CourseOutlinePage } from "./features/course-outlines/CourseOutlinePage";
 import { CourseListPage } from "./features/courses/CourseListPage";
 import { AdvancedSearchPage } from "./features/courses/AdvancedSearchPage";
+import { PayrollListPage } from "./features/payroll/PayrollListPage";
 import { AppShell } from "./layouts/AppShell";
 import { UserSettingsLayout } from "./layouts/UserSettingsLayout";
 import { LoginPage } from "./pages/LoginPage";
@@ -104,12 +105,7 @@ export const router = createBrowserRouter([
         element: (
           <RequireAuth>
             <RequireRole roles={["SUPER_ADMIN", "ADMIN"]}>
-              <ModulePage
-                title="薪酬管理"
-                summary="对应老师课时汇总、结算弹窗、手动记录和按周期筛选。"
-                milestones={["薪酬模块路由已预留", "后续直接对接课程与结算接口", "适合追加列表与弹窗容器"]}
-                specs={["docs/spec/06-Phase5-薪酬管理.md"]}
-              />
+              <PayrollListPage />
             </RequireRole>
           </RequireAuth>
         ),
