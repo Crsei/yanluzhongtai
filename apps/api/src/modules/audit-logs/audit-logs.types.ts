@@ -19,7 +19,11 @@ export type AuditAction =
   | "student.delete"
   | "course.create"
   | "course.update"
-  | "course.delete";
+  | "course.delete"
+  | "quick_link.create"
+  | "quick_link.update"
+  | "quick_link.delete"
+  | "quick_link.reorder";
 
 export type AuditTargetType =
   | "employee"
@@ -31,7 +35,8 @@ export type AuditTargetType =
   | "User"
   | "student"
   | "course_outline_version"
-  | "course_outline_item";
+  | "course_outline_item"
+  | "quick_link";
 
 export type AuditRecordInput = {
   operatorId: string | null;
