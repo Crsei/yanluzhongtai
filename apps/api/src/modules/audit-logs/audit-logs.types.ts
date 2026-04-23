@@ -16,7 +16,10 @@ export type AuditAction =
   | "user.deactivate"
   | "student.create"
   | "student.update"
-  | "student.delete";
+  | "student.delete"
+  | "course.create"
+  | "course.update"
+  | "course.delete";
 
 export type AuditTargetType =
   | "employee"
