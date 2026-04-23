@@ -46,3 +46,24 @@ export type AuditRecordInput = {
   before?: Record<string, unknown> | null;
   after?: Record<string, unknown> | null;
 };
+
+export type AuditLogItem = {
+  id: string;
+  createdAt: string;
+  operatorId: string | null;
+  operatorUsername: string | null;
+  operatorPhone: string | null;
+  action: string;
+  targetType: string;
+  targetId: string;
+  fieldName: string | null;
+  beforeValue: string | null;
+  afterValue: string | null;
+};
+
+export type AuditLogListResponse = {
+  items: AuditLogItem[];
+  total: number;
+  page: number;
+  pageSize: number;
+};
