@@ -16,6 +16,7 @@ import { EmployeesModule } from "./modules/employees/employees.module";
 import { StudentsModule } from "./modules/students/students.module";
 import { CourseOutlinesModule } from "./modules/course-outlines/course-outlines.module";
 import { CoursesModule } from "./modules/courses/courses.module";
+import { PayrollModule } from "./modules/payroll/payroll.module";
 
 @Module({
   imports: [
@@ -32,6 +33,7 @@ import { CoursesModule } from "./modules/courses/courses.module";
     StudentsModule,
     CourseOutlinesModule,
     CoursesModule,
+    PayrollModule,
     UsersModule,
     AuthModule,
     HealthModule,
