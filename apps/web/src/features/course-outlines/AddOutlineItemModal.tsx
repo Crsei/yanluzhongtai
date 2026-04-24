@@ -13,7 +13,12 @@ import {
   Typography,
 } from "antd";
 import { useEffect, useMemo, useState } from "react";
-import { TEACHING_TYPE_OPTIONS } from "../../constants/dictionaries";
+import {
+  COURSE_SECTION_LABELS,
+  NEW_SECTION_CODE_OPTIONS,
+  TEACHING_TYPE_OPTIONS,
+  type CourseSectionCode,
+} from "../../constants/dictionaries";
 import { EmployeePicker } from "../../components/EmployeePicker";
 import { useOutlineMutations } from "./hooks/useOutlineMutations";
 import type { CourseSection, CreateItemBody } from "./types";
@@ -74,7 +79,8 @@ export function AddOutlineItemModal({ open, versionId, sections, onClose }: Prop
   const saveInline = () => {
     const code = inlineDraft.code.trim().toUpperCase();
     const name = inlineDraft.name.trim();
-    if (!/^[A-Z]{2}$/.test(code)) return;
+    // spec §2.3.3: 板块代码必须在 12 个预定义枚举中(且已由上方 Select 保证)。
+    if (!(code in COURSE_SECTION_LABELS)) return;
     if (!name) return;
     if (sections.some((s) => s.code === code)) return;
     const next = { code, name, displayOrder: inlineDraft.displayOrder };
@@ -154,25 +160,23 @@ export function AddOutlineItemModal({ open, versionId, sections, onClose }: Prop
                   新建板块(随本次条目一起保存)
                 </Typography.Text>
                 <Row gutter={12} style={{ marginTop: 8 }}>
-                  <Col span={8}>
-                    <Input
-                      placeholder="代码(2 位大写字母)"
-                      maxLength={2}
-                      value={inlineDraft.code}
-                      onChange={(e) =>
+                  <Col span={18}>
+                    {/* spec §2.3.3: 板块代码与名称来自 12 个预定义枚举,禁止自由输入。 */}
+                    <Select<CourseSectionCode>
+                      placeholder="选择板块代码与名称"
+                      style={{ width: "100%" }}
+                      options={NEW_SECTION_CODE_OPTIONS}
+                      value={
+                        (inlineDraft.code || undefined) as
+                          | CourseSectionCode
+                          | undefined
+                      }
+                      onChange={(code) =>
                         setInlineDraft((d) => ({
                           ...d,
-                          code: e.target.value.toUpperCase(),
+                          code,
+                          name: COURSE_SECTION_LABELS[code],
                         }))
-                      }
-                    />
-                  </Col>
-                  <Col span={10}>
-                    <Input
-                      placeholder="板块名称"
-                      value={inlineDraft.name}
-                      onChange={(e) =>
-                        setInlineDraft((d) => ({ ...d, name: e.target.value }))
                       }
                     />
                   </Col>

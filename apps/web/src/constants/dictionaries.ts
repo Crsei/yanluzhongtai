@@ -90,12 +90,13 @@ export const STUDENT_SOURCE = [
 export type StudentSource = (typeof STUDENT_SOURCE)[number];
 export const STUDENT_SOURCE_OPTIONS = STUDENT_SOURCE.map((v) => ({ value: v, label: v }));
 
+// spec §3.3.2: 越接近毕业,急迫感越强,用 emoji 后缀表示。
 export const GRADE_VALUES = [
   "大一",
-  "大二",
-  "大三",
-  "大四",
-  "大五",
+  "大二❕",
+  "大三❗",
+  "大四❗❗",
+  "大五❗❗",
   "已毕业",
 ] as const;
 export type GradeValue = (typeof GRADE_VALUES)[number];
@@ -111,6 +112,49 @@ export const TEACHING_TYPE_OPTIONS = TEACHING_TYPE.map((value) => ({
   value,
   label: value,
 }));
+
+/**
+ * spec §2.3.3: 课程板块的 12 个预定义代码与固定中文名。
+ * XX 是"--请选择--"占位,其余 11 个供新建板块使用。
+ */
+export const COURSE_SECTION_CODES = [
+  "XX",
+  "GP",
+  "KY",
+  "DC",
+  "JS",
+  "LW",
+  "RZ",
+  "ZL",
+  "WZ",
+  "ZP",
+  "KA",
+  "QT",
+] as const;
+export type CourseSectionCode = (typeof COURSE_SECTION_CODES)[number];
+
+export const COURSE_SECTION_LABELS: Record<CourseSectionCode, string> = {
+  XX: "--请选择--",
+  GP: "GPA提升",
+  KY: "科研赋能",
+  DC: "大创项目",
+  JS: "竞赛",
+  LW: "论文",
+  RZ: "软著",
+  ZL: "专利",
+  WZ: "外语与证书",
+  ZP: "作品集辅导",
+  KA: "考研系列课",
+  QT: "其他",
+};
+
+/** 可新建板块的代码列表(排除占位的 XX)。 */
+export const NEW_SECTION_CODE_OPTIONS = COURSE_SECTION_CODES
+  .filter((c) => c !== "XX")
+  .map((code) => ({
+    value: code,
+    label: `${code} — ${COURSE_SECTION_LABELS[code]}`,
+  }));
 
 // ---------------------------------------------------------------------------
 // Phase 4: Course status dictionary (mirror of api-side COURSE_STATUS)

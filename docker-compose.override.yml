@@ -1,0 +1,11 @@
+# TEMPORARY override to work around a local Windows networking layer
+# (proxy/TUN) that intercepts ports 5433 / 9000 / 9001. Uses high ports
+# unlikely to be intercepted. Delete this file once the proxy issue is fixed.
+services:
+  db:
+    ports:
+      - "15433:5432"
+  minio:
+    ports:
+      - "19000:9000"
+      - "19001:9001"

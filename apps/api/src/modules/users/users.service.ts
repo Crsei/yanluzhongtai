@@ -13,6 +13,21 @@ import { AuditLogsService } from "../audit-logs/audit-logs.service";
 
 export const BCRYPT_COST = 12;
 
+/**
+ * spec §1.2: 超级管理员 1–3 人、管理员 0–10 人。
+ * 下限通过 `guardLastActiveSuperAdmin` 保证至少 1 个超管；
+ * 这里只负责上限,在 `register` / `updateRole` 晋升路径上检查。
+ */
+export const ROLE_CAPS: Partial<Record<UserRole, number>> = {
+  [UserRole.SUPER_ADMIN]: 3,
+  [UserRole.ADMIN]: 10,
+};
+
+const ROLE_CAP_MESSAGES: Partial<Record<UserRole, string>> = {
+  [UserRole.SUPER_ADMIN]: "超级管理员人数已达上限(最多 3 人)",
+  [UserRole.ADMIN]: "管理员人数已达上限(最多 10 人)",
+};
+
 export type UserListItem = {
   id: string;
   phone: string;
@@ -99,6 +114,31 @@ export class UsersService {
     }
   }
 
+  /**
+   * spec §1.2 上限侧:只在将 newRole 人数 +1 之前检查,因此需要排除 `excludeUserId`
+   * (即正被"从别的角色晋升过来"那个人本身,不然会把自己计入现有容量)。
+   * register 场景没有既存用户可排除,传 undefined 即可。
+   */
+  async guardRoleCap(
+    newRole: UserRole,
+    excludeUserId?: string,
+  ): Promise<void> {
+    const cap = ROLE_CAPS[newRole];
+    if (cap === undefined) return;
+    const current = await this.prisma.user.count({
+      where: {
+        role: newRole,
+        deactivatedAt: null,
+        ...(excludeUserId ? { NOT: { id: excludeUserId } } : {}),
+      },
+    });
+    if (current >= cap) {
+      throw new ConflictException(
+        ROLE_CAP_MESSAGES[newRole] ?? "该角色人数已达上限",
+      );
+    }
+  }
+
   async list(params: {
     page: number;
     pageSize: number;
@@ -157,6 +197,8 @@ export class UsersService {
   }> {
     const initialPassword = input.phone.slice(-6);
     const passwordHash = await bcrypt.hash(initialPassword, BCRYPT_COST);
+    // spec §1.2:注册前校验目标角色人数上限(SUPER_ADMIN≤3 / ADMIN≤10)。
+    await this.guardRoleCap(input.role);
     try {
       const user = await this.prisma.user.create({
         data: {
@@ -376,6 +418,9 @@ export class UsersService {
     ) {
       await this.guardLastActiveSuperAdmin(input.targetId, target.role);
     }
+
+    // spec §1.2:晋升到 SUPER_ADMIN / ADMIN 前检查人数上限(SUPER_ADMIN≤3 / ADMIN≤10)
+    await this.guardRoleCap(input.newRole, input.targetId);
 
     await this.prisma.user.update({
       where: { id: input.targetId },

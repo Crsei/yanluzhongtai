@@ -6,13 +6,20 @@ import {
   Matches,
   MaxLength,
 } from "class-validator";
-import { TEACHING_TYPE, TeachingType } from "../../../common/dictionaries";
+import {
+  COURSE_SECTION_CODES,
+  TEACHING_TYPE,
+  TeachingType,
+} from "../../../common/dictionaries";
 
 export class UpdateItemDto {
   /** sectionCode must reference an existing section within the item's version. */
   @IsOptional()
   @IsString()
-  @Matches(/^[A-Z]{2}$/, { message: "板块代码需为两位大写字母" })
+  @IsIn(COURSE_SECTION_CODES, {
+    // spec §2.3.3: 12 个预定义板块代码
+    message: `板块代码仅支持 ${COURSE_SECTION_CODES.join("/")}`,
+  })
   sectionCode?: string;
 
   @IsOptional()

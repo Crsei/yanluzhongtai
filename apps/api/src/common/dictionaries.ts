@@ -86,13 +86,22 @@ export const STUDENT_SOURCE = [
 ] as const;
 export type StudentSource = (typeof STUDENT_SOURCE)[number];
 
-/** Frontend-only display dict; backend computes from enrollmentYear/graduationYear. */
+/**
+ * Frontend-only display dict; backend computes from enrollmentYear/graduationYear.
+ * spec §3.3.2: 越接近毕业,急迫感越强,用 emoji 后缀表示。
+ *   大一        (无后缀)
+ *   大二❕      (轻微提醒)
+ *   大三❗      (提醒)
+ *   大四❗❗    (强烈提醒)
+ *   大五❗❗    (强烈提醒)
+ *   已毕业      (无后缀)
+ */
 export const GRADE_VALUES = [
   "大一",
-  "大二",
-  "大三",
-  "大四",
-  "大五",
+  "大二❕",
+  "大三❗",
+  "大四❗❗",
+  "大五❗❗",
   "已毕业",
 ] as const;
 export type GradeValue = (typeof GRADE_VALUES)[number];
@@ -115,6 +124,50 @@ export type StorageFolder = (typeof STORAGE_FOLDERS)[number];
 /** 建议 / 实际授课方式 — shared between Phase 3 大纲 and Phase 4 课程详情。 */
 export const TEACHING_TYPE = ["公共课", "1v1", "小班课", "录播", "其他"] as const;
 export type TeachingType = (typeof TEACHING_TYPE)[number];
+
+/**
+ * spec §2.3.3: 课程大纲的板块(TT)只能取下列 12 个枚举。
+ * XX 是"请选择"占位(在显示界面中不会作小标题呈现),其余 11 个对应 UI 下拉选项。
+ */
+export const COURSE_SECTION_CODES = [
+  "XX",
+  "GP",
+  "KY",
+  "DC",
+  "JS",
+  "LW",
+  "RZ",
+  "ZL",
+  "WZ",
+  "ZP",
+  "KA",
+  "QT",
+] as const;
+export type CourseSectionCode = (typeof COURSE_SECTION_CODES)[number];
+
+export const COURSE_SECTION_LABELS: Record<CourseSectionCode, string> = {
+  XX: "--请选择--",
+  GP: "GPA提升",
+  KY: "科研赋能",
+  DC: "大创项目",
+  JS: "竞赛",
+  LW: "论文",
+  RZ: "软著",
+  ZL: "专利",
+  WZ: "外语与证书",
+  ZP: "作品集辅导",
+  KA: "考研系列课",
+  QT: "其他",
+};
+
+/** 反向映射:Excel 导入时从中文名反查代码。 */
+export const COURSE_SECTION_CODE_BY_LABEL: Record<string, CourseSectionCode> =
+  Object.fromEntries(
+    Object.entries(COURSE_SECTION_LABELS).map(([code, label]) => [
+      label,
+      code as CourseSectionCode,
+    ]),
+  );
 
 // ---------------------------------------------------------------------------
 // Phase 4: Course status (derived on read; kept here for DTO validation)

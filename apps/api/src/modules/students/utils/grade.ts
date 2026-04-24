@@ -26,10 +26,11 @@ export function calculateGrade(
       : currentYear - enrollmentYear;
 
   if (academicYear < 1) return null;
-  if (academicYear >= 5) return "大五";
-  if (academicYear === 4) return "大四";
-  if (academicYear === 3) return "大三";
-  if (academicYear === 2) return "大二";
+  // spec §3.3.2: emoji 后缀标记急迫感
+  if (academicYear >= 5) return "大五❗❗";
+  if (academicYear === 4) return "大四❗❗";
+  if (academicYear === 3) return "大三❗";
+  if (academicYear === 2) return "大二❕";
   return "大一";
 }
 
@@ -43,10 +44,10 @@ export const GRADE_TEXT_CASE_SQL = `
     WHEN EXTRACT(YEAR FROM CURRENT_DATE)::int > "graduationYear" THEN '已毕业'
     WHEN EXTRACT(YEAR FROM CURRENT_DATE)::int = "graduationYear" AND EXTRACT(MONTH FROM CURRENT_DATE) >= 7 THEN '已毕业'
     WHEN (CASE WHEN EXTRACT(MONTH FROM CURRENT_DATE) >= 9 THEN EXTRACT(YEAR FROM CURRENT_DATE)::int - "enrollmentYear" + 1 ELSE EXTRACT(YEAR FROM CURRENT_DATE)::int - "enrollmentYear" END) < 1 THEN NULL
-    WHEN (CASE WHEN EXTRACT(MONTH FROM CURRENT_DATE) >= 9 THEN EXTRACT(YEAR FROM CURRENT_DATE)::int - "enrollmentYear" + 1 ELSE EXTRACT(YEAR FROM CURRENT_DATE)::int - "enrollmentYear" END) >= 5 THEN '大五'
-    WHEN (CASE WHEN EXTRACT(MONTH FROM CURRENT_DATE) >= 9 THEN EXTRACT(YEAR FROM CURRENT_DATE)::int - "enrollmentYear" + 1 ELSE EXTRACT(YEAR FROM CURRENT_DATE)::int - "enrollmentYear" END) = 4 THEN '大四'
-    WHEN (CASE WHEN EXTRACT(MONTH FROM CURRENT_DATE) >= 9 THEN EXTRACT(YEAR FROM CURRENT_DATE)::int - "enrollmentYear" + 1 ELSE EXTRACT(YEAR FROM CURRENT_DATE)::int - "enrollmentYear" END) = 3 THEN '大三'
-    WHEN (CASE WHEN EXTRACT(MONTH FROM CURRENT_DATE) >= 9 THEN EXTRACT(YEAR FROM CURRENT_DATE)::int - "enrollmentYear" + 1 ELSE EXTRACT(YEAR FROM CURRENT_DATE)::int - "enrollmentYear" END) = 2 THEN '大二'
+    WHEN (CASE WHEN EXTRACT(MONTH FROM CURRENT_DATE) >= 9 THEN EXTRACT(YEAR FROM CURRENT_DATE)::int - "enrollmentYear" + 1 ELSE EXTRACT(YEAR FROM CURRENT_DATE)::int - "enrollmentYear" END) >= 5 THEN '大五❗❗'
+    WHEN (CASE WHEN EXTRACT(MONTH FROM CURRENT_DATE) >= 9 THEN EXTRACT(YEAR FROM CURRENT_DATE)::int - "enrollmentYear" + 1 ELSE EXTRACT(YEAR FROM CURRENT_DATE)::int - "enrollmentYear" END) = 4 THEN '大四❗❗'
+    WHEN (CASE WHEN EXTRACT(MONTH FROM CURRENT_DATE) >= 9 THEN EXTRACT(YEAR FROM CURRENT_DATE)::int - "enrollmentYear" + 1 ELSE EXTRACT(YEAR FROM CURRENT_DATE)::int - "enrollmentYear" END) = 3 THEN '大三❗'
+    WHEN (CASE WHEN EXTRACT(MONTH FROM CURRENT_DATE) >= 9 THEN EXTRACT(YEAR FROM CURRENT_DATE)::int - "enrollmentYear" + 1 ELSE EXTRACT(YEAR FROM CURRENT_DATE)::int - "enrollmentYear" END) = 2 THEN '大二❕'
     ELSE '大一'
   END
 `;

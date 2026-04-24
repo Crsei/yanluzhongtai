@@ -13,11 +13,8 @@ export function confirmDeleteEmployee(
     icon: <ExclamationCircleFilled style={{ color: "#ff4d4f" }} />,
     content: (
       <div>
-        <Typography.Paragraph style={{ marginBottom: 8 }}>
-          员工离职建议优先在编辑里改状态为"已离职"，不要直接删除。
-        </Typography.Paragraph>
         <Typography.Paragraph type="warning" style={{ marginBottom: 0 }}>
-          删除会影响关联数据（薪酬记录、历史课程、所带学生等），且无法恢复。
+          若员工离职，请修改其在职状态，而不是直接删除。删除员工将会影响所有与其关联的数据或字段！您确定要继续删除吗？
         </Typography.Paragraph>
       </div>
     ),
