@@ -161,18 +161,18 @@ export class EmployeesService {
   }
 
   async create(dto: CreateEmployeeDto, operatorId: string): Promise<Employee> {
-    const hireDate = dto.hireDate ? new Date(dto.hireDate) : new Date();
-    const year = hireDate.getFullYear();
+    const hireDate = dto.hireDate ? new Date(dto.hireDate) : null;
+    const year = (hireDate ?? new Date()).getFullYear();
     const seq = await this.idSequence.allocate("employee", year);
     const jobNo = IdSequenceService.formatEmployeeJobNo(year, seq);
 
     const created = await this.prisma.employee.create({
       data: {
         jobNo,
-        name: dto.name,
-        gender: dto.gender,
-        employmentStatus: dto.employmentStatus as EmploymentStatus,
-        jobTitle: dto.jobTitle ?? "",
+        name: dto.name ?? null,
+        gender: dto.gender ?? null,
+        employmentStatus: (dto.employmentStatus as EmploymentStatus | undefined) ?? null,
+        jobTitle: dto.jobTitle ?? null,
         hireDate,
         phone: dto.phone ?? null,
         bankCardNo: dto.bankCardNo ?? null,

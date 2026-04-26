@@ -3,41 +3,41 @@ import type { CourseStatusCode } from "../../common/course-no/course-status";
 export type CourseListItem = {
   id: string;
   courseNo: string;
-  name: string;
-  sectionCode: string;
-  sectionName: string;
-  categorySequenceNo: string;
-  secondaryCategoryName: string;
+  name: string | null;
+  sectionCode: string | null;
+  sectionName: string | null;
+  categorySequenceNo: string | null;
+  secondaryCategoryName: string | null;
   plannedAt: Date | null;
   status: CourseStatusCode;
   actualTeachingType: string | null;
-  actualTeacher: { jobNo: string; name: string; employmentStatus: string } | null;
+  actualTeacher: { jobNo: string; name: string | null; employmentStatus: string | null } | null;
   enrolledStudentCount: number;
 };
 
 export type CourseDetailStudent = {
   id: string;
   studentNo: string;
-  name: string;
-  servicePlatform: string;
+  name: string | null;
+  servicePlatform: string | null;
 };
 
 export type CourseDetail = {
   id: string;
   courseNo: string;
-  name: string;
+  name: string | null;
   outlineVersionId: string | null;
   outlineItemId: string | null;
   outlineVersionName: string | null;
-  sectionCode: string;
-  sectionName: string;
-  categorySequenceNo: string;
-  secondaryCategoryName: string;
+  sectionCode: string | null;
+  sectionName: string | null;
+  categorySequenceNo: string | null;
+  secondaryCategoryName: string | null;
   suggestedTeachingType: string | null;
   plannedAt: Date | null;
-  courseYear: number;
+  courseYear: number | null;
   actualTeacherJobNo: string | null;
-  actualTeacher: { jobNo: string; name: string; employmentStatus: string } | null;
+  actualTeacher: { jobNo: string; name: string | null; employmentStatus: string | null } | null;
   actualTeachingType: string | null;
   durationMinutes: number | null;
   creditHours: string | null;

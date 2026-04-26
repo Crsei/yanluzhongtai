@@ -104,7 +104,7 @@ export function CourseListPage() {
 
   const onDelete = () => {
     confirmDeleteCourses(
-      selectedRows.map((r) => ({ id: r.id, courseNo: r.courseNo, name: r.name })),
+      selectedRows.map((r) => ({ id: r.id, courseNo: r.courseNo, name: r.name ?? "" })),
       async () => {
         await removeMany.mutateAsync(selectedIds);
         setSelectedIds([]);
@@ -120,7 +120,7 @@ export function CourseListPage() {
       key: "section",
       width: 140,
       render: (_: unknown, r: CourseListItem) =>
-        `${r.sectionName} (${r.sectionCode})`,
+        r.sectionName || r.sectionCode ? `${r.sectionName ?? "未命名"} (${r.sectionCode ?? "无代码"})` : "—",
     },
     {
       title: "计划授课时间",

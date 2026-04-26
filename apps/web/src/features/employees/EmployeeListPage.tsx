@@ -77,7 +77,7 @@ export function EmployeeListPage() {
     const target = (data?.items ?? []).find((row) => row.id === selectedRowKeys[0]);
     if (!target) return;
     confirmDeleteEmployee(
-      { id: target.id, name: target.name, jobNo: target.jobNo },
+      { id: target.id, name: target.name ?? "", jobNo: target.jobNo },
       mutations,
     );
   };

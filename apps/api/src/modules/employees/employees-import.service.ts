@@ -55,7 +55,7 @@ const COLUMN_HEADER_ALIASES: Record<Col, readonly string[]> = {
   resumeText: ["文字版简历", "简历(文字)"],
 };
 
-const REQUIRED_COLUMNS: Col[] = ["name", "gender", "employmentStatus"];
+const REQUIRED_COLUMNS: Col[] = [];
 
 const EMPLOYMENT_STATUS_BY_LABEL = Object.fromEntries(
   Object.entries(EMPLOYMENT_STATUS_LABELS).map(([code, label]) => [label, code]),
@@ -257,15 +257,6 @@ export class EmployeesImportService {
     for (const { rowNumber, raw } of rows) {
       const rowErrors: ImportRowError[] = [];
 
-      const required: Array<[keyof typeof raw, string]> = [
-        ["name", "员工姓名"],
-        ["gender", "性别"],
-        ["employmentStatus", "在职状态"],
-      ];
-      for (const [key, label] of required) {
-        if (!raw[key]) rowErrors.push({ row: rowNumber, field: label, message: "必填" });
-      }
-
       if (raw.gender && !(GENDER as readonly string[]).includes(raw.gender)) {
         rowErrors.push({ row: rowNumber, field: "性别", message: `非法值，仅支持 ${GENDER.join("/")}` });
       }
@@ -324,10 +315,10 @@ export class EmployeesImportService {
         hireYear,
         data: {
           jobNo: "PLACEHOLDER", // overwritten in commit() after IdSequence allocation
-          name: raw.name!,
-          gender: raw.gender!,
-          employmentStatus: employmentStatus as EmploymentStatus,
-          jobTitle: raw.jobTitle ?? "",
+          name: raw.name ?? null,
+          gender: raw.gender ?? null,
+          employmentStatus: (employmentStatus as EmploymentStatus | undefined) ?? null,
+          jobTitle: raw.jobTitle ?? null,
           hireDate: hireDate ?? undefined,
           phone: raw.phone ?? null,
           bankCardNo: raw.bankCardNo ?? null,

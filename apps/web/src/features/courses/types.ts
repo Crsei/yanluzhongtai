@@ -3,11 +3,11 @@ import type { CourseStatus, TeachingType } from "../../constants/dictionaries";
 export type CourseListItem = {
   id: string;
   courseNo: string;
-  name: string;
-  sectionCode: string;
-  sectionName: string;
-  categorySequenceNo: string;
-  secondaryCategoryName: string;
+  name: string | null;
+  sectionCode: string | null;
+  sectionName: string | null;
+  categorySequenceNo: string | null;
+  secondaryCategoryName: string | null;
   plannedAt: string | null;
   status: CourseStatus;
   actualTeachingType: TeachingType | null;
@@ -29,8 +29,8 @@ export type CourseListResponse = {
 export type CoursePickedStudent = {
   id: string;
   studentNo: string;
-  name: string;
-  servicePlatform: string;
+  name: string | null;
+  servicePlatform: string | null;
 };
 
 export type CourseDetail = Omit<CourseListItem, "enrolledStudentCount"> & {
@@ -38,7 +38,7 @@ export type CourseDetail = Omit<CourseListItem, "enrolledStudentCount"> & {
   outlineItemId: string | null;
   outlineVersionName: string | null;
   suggestedTeachingType: string | null;
-  courseYear: number;
+  courseYear: number | null;
   actualTeacherJobNo: string | null;
   durationMinutes: number | null;
   creditHours: string | null;
@@ -67,8 +67,8 @@ export type CourseQueryParams = {
 };
 
 export type CreateCourseBody = {
-  outlineItemId: string;
-  name: string;
+  outlineItemId?: string | null;
+  name?: string | null;
   plannedAt?: string | null;
   actualTeacherJobNo?: string | null;
   actualTeachingType?: TeachingType | null;

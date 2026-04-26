@@ -8,14 +8,14 @@ export type VersionListItem = {
 
 export type PlannedTeacherSummary = {
   jobNo: string;
-  name: string;
-  employmentStatus: "FULL_TIME" | "PART_TIME" | "RESIGNED";
+  name: string | null;
+  employmentStatus: "FULL_TIME" | "PART_TIME" | "RESIGNED" | null;
 };
 
 export type ActualTeacherSummary = {
   jobNo: string;
-  name: string;
-  employmentStatus: "FULL_TIME" | "PART_TIME" | "RESIGNED";
+  name: string | null;
+  employmentStatus: "FULL_TIME" | "PART_TIME" | "RESIGNED" | null;
   courseCount: number;
 };
 
@@ -31,9 +31,9 @@ export type CourseOutlineItem = {
   id: string;
   outlineVersionId: string;
   sectionCode: string;
-  sequenceNo: string;
-  secondaryCategoryName: string;
-  suggestedTeachingType: string;
+  sequenceNo: string | null;
+  secondaryCategoryName: string | null;
+  suggestedTeachingType: string | null;
   plannedTeacherJobNo: string | null;
   lessonPlanUrl: string | null;
   plannedTeacher: PlannedTeacherSummary | null;
@@ -55,18 +55,18 @@ export type VersionDetail = {
 export type CreateItemBody = {
   sectionCode?: string;
   newSection?: { code: string; name: string; displayOrder?: number };
-  sequenceNo: string;
-  secondaryCategoryName: string;
-  suggestedTeachingType: string;
+  sequenceNo?: string | null;
+  secondaryCategoryName?: string | null;
+  suggestedTeachingType?: string | null;
   plannedTeacherJobNo?: string | null;
   lessonPlanUrl?: string | null;
 };
 
 export type UpdateItemBody = Partial<{
   sectionCode: string;
-  sequenceNo: string;
-  secondaryCategoryName: string;
-  suggestedTeachingType: string;
+  sequenceNo: string | null;
+  secondaryCategoryName: string | null;
+  suggestedTeachingType: string | null;
   plannedTeacherJobNo: string | null;
   lessonPlanUrl: string | null;
 }>;

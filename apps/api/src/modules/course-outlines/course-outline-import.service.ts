@@ -51,11 +51,7 @@ const COLUMN_HEADER_ALIASES: Record<Col, readonly string[]> = {
   lessonPlanUrl: ["教案排期链接"],
 };
 
-const REQUIRED_COLUMNS: Col[] = [
-  "sequenceNo",
-  "secondaryCategoryName",
-  "suggestedTeachingType",
-];
+const REQUIRED_COLUMNS: Col[] = [];
 
 type ParsedRow = {
   rowNumber: number;
@@ -67,9 +63,9 @@ type ValidatedRow = {
   sectionCode: string;
   sectionName: string;
   sectionDisplayOrder: number | null;
-  sequenceNo: string;
-  secondaryCategoryName: string;
-  suggestedTeachingType: TeachingType;
+  sequenceNo: string | null;
+  secondaryCategoryName: string | null;
+  suggestedTeachingType: string | null;
   plannedTeacherJobNo: string | null;
   lessonPlanUrl: string | null;
 };
@@ -251,8 +247,6 @@ export class CourseOutlineImportService {
       const sheetSection = this.parseSectionFromSheetName(sheet.name);
       const present = new Set(headerMap.values());
       const missing = REQUIRED_COLUMNS.filter((k) => !present.has(k));
-      if (!present.has("sectionCode") && !sheetSection.sectionCode) missing.push("sectionCode");
-      if (!present.has("sectionName") && !sheetSection.sectionName) missing.push("sectionName");
       if (missing.length > 0) {
         errors.push({
           row: 1,
@@ -312,10 +306,6 @@ export class CourseOutlineImportService {
 
     for (const { rowNumber, raw } of rows) {
       const rowErrors: ImportRowError[] = [];
-
-      for (const key of REQUIRED_COLUMNS) {
-        if (!raw[key]) rowErrors.push({ row: rowNumber, field: COLUMN_HEADERS[key], message: "必填" });
-      }
 
       const sectionCode = raw.sectionCode ?? (raw.sectionName ? COURSE_SECTION_CODE_BY_LABEL[raw.sectionName] ?? "" : "");
       if (sectionCode && !(COURSE_SECTION_CODES as readonly string[]).includes(sectionCode)) {
@@ -449,9 +439,9 @@ export class CourseOutlineImportService {
         sectionCode,
         sectionName,
         sectionDisplayOrder,
-        sequenceNo,
-        secondaryCategoryName: raw.secondaryCategoryName!,
-        suggestedTeachingType: raw.suggestedTeachingType as TeachingType,
+        sequenceNo: sequenceNo || null,
+        secondaryCategoryName: raw.secondaryCategoryName ?? null,
+        suggestedTeachingType: raw.suggestedTeachingType ?? null,
         plannedTeacherJobNo,
         lessonPlanUrl: raw.lessonPlanUrl ?? null,
       });

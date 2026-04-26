@@ -118,11 +118,6 @@ const COLUMN_HEADER_ALIASES: Record<Col, readonly string[]> = {
 };
 
 const REQUIRED_COLUMNS: Col[] = [
-  "name",
-  "gender",
-  "servicePlatform",
-  "source",
-  "serviceStatusLabel",
 ];
 
 type ParsedRow = {
@@ -300,8 +295,7 @@ export class StudentsImportService {
     const errs: ImportError[] = [];
     const push = (field: string, message: string) => errs.push({ row: r.row, field, message });
 
-    if (!r.name) push("学生姓名", "必填");
-    if (!GENDER.includes(r.gender as typeof GENDER[number])) push("性别", `非法值 "${r.gender}"`);
+    if (r.gender && !GENDER.includes(r.gender as typeof GENDER[number])) push("性别", `非法值 "${r.gender}"`);
 
     if (r.enrollmentYear !== null && (!Number.isInteger(r.enrollmentYear) || r.enrollmentYear < 2000 || r.enrollmentYear > 2100)) {
       push("入学年份", `非法值 "${r.enrollmentYear}"`);
@@ -314,13 +308,13 @@ export class StudentsImportService {
       push("毕业年份", `学制过长（>10 年）：${r.enrollmentYear}-${r.graduationYear}`);
     }
 
-    if (!SERVICE_PLATFORM.includes(r.servicePlatform as typeof SERVICE_PLATFORM[number])) {
+    if (r.servicePlatform && !SERVICE_PLATFORM.includes(r.servicePlatform as typeof SERVICE_PLATFORM[number])) {
       push("服务群所在平台", `非法值 "${r.servicePlatform}"`);
     }
-    if (!STUDENT_SOURCE.includes(r.source as typeof STUDENT_SOURCE[number])) {
+    if (r.source && !STUDENT_SOURCE.includes(r.source as typeof STUDENT_SOURCE[number])) {
       push("学生来源", `非法值 "${r.source}"`);
     }
-    if (!SERVICE_STATUS_BY_LABEL[r.serviceStatusLabel]) {
+    if (r.serviceStatusLabel && !SERVICE_STATUS_BY_LABEL[r.serviceStatusLabel]) {
       push(
         "服务状态",
         `非法值 "${r.serviceStatusLabel}"；允许值：${Object.keys(SERVICE_STATUS_BY_LABEL).join(" / ")}`,
@@ -416,8 +410,8 @@ export class StudentsImportService {
       const studentNo = formatStudentNo(sequenceYear, seq);
       return {
         studentNo,
-        name: r.name,
-        gender: r.gender,
+        name: r.name || null,
+        gender: r.gender || null,
         enrollmentYear: r.enrollmentYear,
         graduationYear: r.graduationYear,
         school: r.school || null,
@@ -426,9 +420,9 @@ export class StudentsImportService {
         plannerJobNo: r.plannerJobNo || null,
         phone: r.phone || null,
         email: r.email || null,
-        servicePlatform: r.servicePlatform,
-        source: r.source,
-        serviceStatus: SERVICE_STATUS_BY_LABEL[r.serviceStatusLabel]!,
+        servicePlatform: r.servicePlatform || null,
+        source: r.source || null,
+        serviceStatus: r.serviceStatusLabel ? SERVICE_STATUS_BY_LABEL[r.serviceStatusLabel]! : null,
         serviceChecklistUrl: r.serviceChecklistUrl || null,
         overallPlanUrl: r.overallPlanUrl || null,
         policyText: r.policyText || null,

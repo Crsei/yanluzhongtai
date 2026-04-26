@@ -10,14 +10,14 @@ export type VersionListItem = {
 
 export type PlannedTeacherSummary = {
   jobNo: string;
-  name: string;
-  employmentStatus: string;
+  name: string | null;
+  employmentStatus: string | null;
 };
 
 export type ActualTeacherSummary = {
   jobNo: string;
-  name: string;
-  employmentStatus: string;
+  name: string | null;
+  employmentStatus: string | null;
   courseCount: number;
 };
 

@@ -152,7 +152,7 @@ export class CourseOutlinesService {
     });
   }
 
-  private sequenceOrder(seq: string): number {
+  private sequenceOrder(seq: string | null): number {
     const n = Number(seq);
     return Number.isFinite(n) ? n : Number.MAX_SAFE_INTEGER;
   }

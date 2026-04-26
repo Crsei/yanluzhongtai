@@ -34,7 +34,7 @@ type FormValues = Record<string, unknown>;
 
 function toFormValues(s: StudentDetail | null): FormValues {
   if (!s) {
-    return { serviceStatus: "NOT_STARTED" };
+    return {};
   }
   return {
     ...s,
@@ -106,17 +106,17 @@ export function StudentFormModal({ open, mode, initial, onClose, onModeChange }:
             </Form.Item>
           </Col>
           <Col span={12}>
-            <Form.Item label="姓名" name="name" rules={[{ required: true, max: 50 }]}>
+            <Form.Item label="学生姓名" name="name" rules={[{ max: 50 }]}>
               <Input placeholder="请输入学生姓名" />
             </Form.Item>
           </Col>
           <Col span={12}>
-            <Form.Item label="性别" name="gender" rules={[{ required: true }]}>
+            <Form.Item label="性别" name="gender">
               <Select options={[{ value: "男", label: "男" }, { value: "女", label: "女" }]} />
             </Form.Item>
           </Col>
           <Col span={12}>
-            <Form.Item label="电话" name="phone" rules={[{ pattern: /^1[3-9]\d{9}$/, message: "手机号格式不正确" }]}>
+            <Form.Item label="电话号码" name="phone" rules={[{ pattern: /^1[3-9]\d{9}$/, message: "手机号格式不正确" }]}>
               <Input placeholder="11 位手机号" />
             </Form.Item>
           </Col>
@@ -155,12 +155,12 @@ export function StudentFormModal({ open, mode, initial, onClose, onModeChange }:
             </Form.Item>
           </Col>
           <Col span={12}>
-            <Form.Item label="学校" name="school">
+            <Form.Item label="所在院校" name="school">
               <Input />
             </Form.Item>
           </Col>
           <Col span={12}>
-            <Form.Item label="专业" name="major">
+            <Form.Item label="所在专业" name="major">
               <Input />
             </Form.Item>
           </Col>
@@ -179,17 +179,17 @@ export function StudentFormModal({ open, mode, initial, onClose, onModeChange }:
             </Form.Item>
           </Col>
           <Col span={12}>
-            <Form.Item label="服务状态" name="serviceStatus" rules={[{ required: true }]}>
+            <Form.Item label="服务状态" name="serviceStatus">
               <Select options={SERVICE_STATUS_OPTIONS} />
             </Form.Item>
           </Col>
           <Col span={12}>
-            <Form.Item label="服务平台" name="servicePlatform" rules={[{ required: true }]}>
+            <Form.Item label="服务群所在平台" name="servicePlatform">
               <Select options={SERVICE_PLATFORM_OPTIONS} />
             </Form.Item>
           </Col>
           <Col span={12}>
-            <Form.Item label="学生来源" name="source" rules={[{ required: true }]}>
+            <Form.Item label="学生来源" name="source">
               <Select options={STUDENT_SOURCE_OPTIONS} />
             </Form.Item>
           </Col>

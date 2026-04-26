@@ -8,10 +8,10 @@ import type {
 export type EmployeeListItem = {
   id: string;
   jobNo: string;
-  name: string;
-  gender: Gender | string;
-  employmentStatus: EmploymentStatus;
-  jobTitle: string;
+  name: string | null;
+  gender: Gender | string | null;
+  employmentStatus: EmploymentStatus | null;
+  jobTitle: string | null;
   phone: string | null;
   source: EmployeeSource | string | null;
   servingFor: string[];
@@ -46,10 +46,10 @@ export type EmployeeQueryParams = {
 };
 
 export type CreateEmployeeBody = {
-  name: string;
-  gender: Gender;
-  employmentStatus: EmploymentStatus;
-  jobTitle?: string;
+  name?: string | null;
+  gender?: Gender | null;
+  employmentStatus?: EmploymentStatus | null;
+  jobTitle?: string | null;
   hireDate?: string;
   phone?: string;
   bankCardNo?: string;

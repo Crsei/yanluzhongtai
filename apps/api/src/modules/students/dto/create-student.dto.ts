@@ -28,11 +28,13 @@ import {
 
 export class CreateStudentDto {
   @IsString()
+  @IsOptional()
   @MaxLength(50)
-  name!: string;
+  name?: string | null;
 
+  @IsOptional()
   @IsIn(GENDER)
-  gender!: Gender;
+  gender?: Gender | null;
 
   @Type(() => Number)
   @IsOptional()
@@ -75,14 +77,17 @@ export class CreateStudentDto {
   @IsEmail()
   email?: string;
 
+  @IsOptional()
   @IsIn(SERVICE_PLATFORM)
-  servicePlatform!: ServicePlatform;
+  servicePlatform?: ServicePlatform | null;
 
+  @IsOptional()
   @IsIn(STUDENT_SOURCE)
-  source!: StudentSource;
+  source?: StudentSource | null;
 
+  @IsOptional()
   @IsIn(SERVICE_STATUS)
-  serviceStatus!: ServiceStatus;
+  serviceStatus?: ServiceStatus | null;
 
   @IsOptional()
   @IsDecimal({ decimal_digits: "0,2" })

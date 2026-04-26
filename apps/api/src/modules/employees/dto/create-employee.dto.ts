@@ -20,14 +20,14 @@ import {
 } from "../../../common/dictionaries";
 
 export class CreateEmployeeDto {
-  @IsString() @MaxLength(50)
-  name!: string;
+  @IsOptional() @IsString() @MaxLength(50)
+  name?: string | null;
 
-  @IsIn(GENDER as unknown as string[])
-  gender!: Gender;
+  @IsOptional() @IsIn(GENDER as unknown as string[])
+  gender?: Gender | null;
 
-  @IsIn(EMPLOYMENT_STATUS as unknown as string[])
-  employmentStatus!: EmploymentStatus;
+  @IsOptional() @IsIn(EMPLOYMENT_STATUS as unknown as string[])
+  employmentStatus?: EmploymentStatus | null;
 
   @IsOptional() @IsString() @MaxLength(100)
   jobTitle?: string;

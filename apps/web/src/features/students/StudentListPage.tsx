@@ -84,7 +84,7 @@ export function StudentListPage() {
     const row = data?.items.find((i) => i.id === selectedKeys[0]);
     if (!row) return;
     openStudentDeleteConfirm({
-      studentName: row.name,
+      studentName: row.name ?? "",
       studentNo: row.studentNo,
       onConfirm: async () => {
         await removeMutation.mutateAsync(row.id);

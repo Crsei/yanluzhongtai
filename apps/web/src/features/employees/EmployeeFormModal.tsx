@@ -45,8 +45,6 @@ function toFormValues(emp?: EmployeeDetail | null): FormValues {
   if (!emp) {
     return {
       name: "",
-      gender: "男",
-      employmentStatus: "FULL_TIME",
       jobTitle: "",
       hireDate: null,
       servingFor: [],
@@ -55,8 +53,8 @@ function toFormValues(emp?: EmployeeDetail | null): FormValues {
   }
   return {
     name: emp.name,
-    gender: (emp.gender as "男" | "女") ?? "男",
-    employmentStatus: emp.employmentStatus,
+    gender: (emp.gender as "男" | "女" | null) ?? undefined,
+    employmentStatus: emp.employmentStatus ?? undefined,
     jobTitle: emp.jobTitle,
     hireDate: emp.hireDate ? dayjs(emp.hireDate) : null,
     phone: emp.phone ?? undefined,
@@ -151,7 +149,7 @@ export function EmployeeFormModal({ open, mode, employee, onClose, onModeChange 
             <Form.Item
               label="员工姓名"
               name="name"
-              rules={[{ required: true, message: "请输入姓名" }, { max: 50 }]}
+              rules={[{ max: 50 }]}
             >
               <Input placeholder="例：张三" />
             </Form.Item>
@@ -160,7 +158,6 @@ export function EmployeeFormModal({ open, mode, employee, onClose, onModeChange 
             <Form.Item
               label="性别"
               name="gender"
-              rules={[{ required: true, message: "请选择性别" }]}
             >
               <Select options={GENDER_OPTIONS} />
             </Form.Item>
@@ -169,7 +166,6 @@ export function EmployeeFormModal({ open, mode, employee, onClose, onModeChange 
             <Form.Item
               label="雇佣状态"
               name="employmentStatus"
-              rules={[{ required: true, message: "请选择雇佣状态" }]}
             >
               <Select options={EMPLOYMENT_STATUS_OPTIONS} />
             </Form.Item>

@@ -1,4 +1,4 @@
-import { Injectable, BadRequestException } from "@nestjs/common";
+import { Injectable } from "@nestjs/common";
 import { Prisma } from "@prisma/client";
 import * as ExcelJS from "exceljs";
 import {
@@ -82,7 +82,7 @@ const COLUMN_HEADER_ALIASES: Record<Col, readonly string[]> = {
   note: ["备注"],
 };
 
-const REQUIRED_COLUMNS: Col[] = ["name"];
+const REQUIRED_COLUMNS: Col[] = [];
 
 const COURSE_SECTION_IMPORT_ALIASES: Record<string, string> = {
   论文辅导: "LW",
@@ -91,9 +91,11 @@ const COURSE_SECTION_IMPORT_ALIASES: Record<string, string> = {
 
 type ValidatedRow = {
   rowNumber: number;
-  sectionCode: string;
-  categorySequenceNo: string;
-  name: string;
+  courseNoSectionCode: string;
+  courseNoCategorySequenceNo: string;
+  sectionCode: string | null;
+  categorySequenceNo: string | null;
+  name: string | null;
   plannedAt: Date | null;
   actualTeacherJobNo: string | null;
   actualTeachingType: TeachingType | null;
@@ -103,10 +105,10 @@ type ValidatedRow = {
   videoUrl: string | null;
   resourceUrl: string | null;
   note: string | null;
-  outlineItemId: string;
-  outlineVersionId: string;
-  sectionName: string;
-  secondaryCategoryName: string;
+  outlineItemId: string | null;
+  outlineVersionId: string | null;
+  sectionName: string | null;
+  secondaryCategoryName: string | null;
   suggestedTeachingType: string | null;
 };
 
@@ -168,8 +170,8 @@ export class CoursesImportService {
     let created = 0;
     for (const row of validated.rows) {
       const { yy, year } = deriveYy(row.plannedAt);
-      const tt = normalizeTt(row.sectionCode);
-      const kk = normalizeKk(row.categorySequenceNo);
+      const tt = normalizeTt(row.courseNoSectionCode);
+      const kk = normalizeKk(row.courseNoCategorySequenceNo);
       const seq = await this.idSequence.allocate(composeCourseSeqKind(tt, kk), year);
       const courseNo = formatCourseNo({ tt, kk, yy, nnn: formatNnn(seq) });
       const creditHours = computeCreditHours(row.durationMinutes);
@@ -181,9 +183,9 @@ export class CoursesImportService {
             name: row.name,
             outlineVersionId: row.outlineVersionId,
             outlineItemId: row.outlineItemId,
-            sectionCode: tt,
+            sectionCode: row.sectionCode,
             sectionName: row.sectionName,
-            categorySequenceNo: kk,
+            categorySequenceNo: row.categorySequenceNo,
             secondaryCategoryName: row.secondaryCategoryName,
             suggestedTeachingType: row.suggestedTeachingType,
             plannedAt: row.plannedAt,
@@ -260,13 +262,7 @@ export class CoursesImportService {
     });
 
     const present = new Set(headerMap.values());
-    const hasOutlineMatchColumns =
-      (present.has("sectionCode") && present.has("categorySequenceNo")) ||
-      (present.has("sectionName") && present.has("secondaryCategoryName"));
     const missing = REQUIRED_COLUMNS.filter((k) => !present.has(k));
-    if (!hasOutlineMatchColumns) {
-      missing.push("sectionName", "secondaryCategoryName");
-    }
     if (missing.length > 0) {
       return {
         rows: [],
@@ -309,15 +305,16 @@ export class CoursesImportService {
       where: { isActive: true },
       include: { sections: true, items: true },
     });
-    if (!activeOutline) {
-      throw new BadRequestException("当前无激活的大纲版本,无法导入课程");
-    }
-    const sectionByCode = new Map(activeOutline.sections.map((s) => [s.code, s]));
+    const sectionByCode = new Map((activeOutline?.sections ?? []).map((s) => [s.code, s]));
     const itemByKey = new Map(
-      activeOutline.items.map((i) => [`${i.sectionCode}|${i.sequenceNo}`, i]),
+      (activeOutline?.items ?? [])
+        .filter((i) => i.sequenceNo)
+        .map((i) => [`${i.sectionCode}|${i.sequenceNo}`, i]),
     );
     const itemBySectionAndName = new Map(
-      activeOutline.items.map((i) => [`${i.sectionCode}|${i.secondaryCategoryName}`, i]),
+      (activeOutline?.items ?? [])
+        .filter((i) => i.secondaryCategoryName)
+        .map((i) => [`${i.sectionCode}|${i.secondaryCategoryName}`, i]),
     );
 
     // Preload teachers & students for bulk check
@@ -408,7 +405,7 @@ export class CoursesImportService {
         : tt && raw.secondaryCategoryName
           ? itemBySectionAndName.get(`${tt}|${raw.secondaryCategoryName}`)
           : undefined;
-      if (item && !kk) kk = item.sequenceNo;
+      if (item?.sequenceNo && !kk) kk = item.sequenceNo;
       if (tt && (kk || raw.secondaryCategoryName) && !item) {
         rowErrors.push({
           row: rowNumber,
@@ -480,9 +477,11 @@ export class CoursesImportService {
 
       valid.push({
         rowNumber,
-        sectionCode: tt,
-        categorySequenceNo: kk,
-        name: raw.name!,
+        courseNoSectionCode: tt || "XX",
+        courseNoCategorySequenceNo: kk || "99",
+        sectionCode: tt || null,
+        categorySequenceNo: kk || null,
+        name: raw.name ?? item?.secondaryCategoryName ?? null,
         plannedAt,
         actualTeacherJobNo,
         actualTeachingType,
@@ -492,11 +491,11 @@ export class CoursesImportService {
         videoUrl: raw.videoUrl ?? null,
         resourceUrl: raw.resourceUrl ?? null,
         note: raw.note ?? null,
-        outlineItemId: item!.id,
-        outlineVersionId: item!.outlineVersionId,
-        sectionName: section!.name,
-        secondaryCategoryName: item!.secondaryCategoryName,
-        suggestedTeachingType: item!.suggestedTeachingType,
+        outlineItemId: item?.id ?? null,
+        outlineVersionId: item?.outlineVersionId ?? null,
+        sectionName: section?.name ?? raw.sectionName ?? null,
+        secondaryCategoryName: item?.secondaryCategoryName ?? raw.secondaryCategoryName ?? null,
+        suggestedTeachingType: item?.suggestedTeachingType ?? null,
       });
     }
 

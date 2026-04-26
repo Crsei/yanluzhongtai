@@ -4,8 +4,8 @@ import { api, downloadAuthed } from "./http";
 export type StudentListItem = {
   id: string;
   studentNo: string;
-  name: string;
-  gender: string;
+  name: string | null;
+  gender: string | null;
   school: string | null;
   major: string | null;
   enrollmentYear: number | null;
@@ -19,8 +19,9 @@ export type StudentListItem = {
     | "IN_SERVICE"
     | "PAUSED"
     | "TERMINATED"
-    | "COMPLETED";
-  servicePlatform: string;
+    | "COMPLETED"
+    | null;
+  servicePlatform: string | null;
   grade: string | null;
 };
 
@@ -34,7 +35,7 @@ export type StudentListResponse = {
 export type StudentDetail = StudentListItem & {
   phone: string | null;
   email: string | null;
-  source: string;
+  source: string | null;
   totalPublicCredits: string | null;
   totalPrivateCredits: string | null;
   serviceChecklistUrl: string | null;
