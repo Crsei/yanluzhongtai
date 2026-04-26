@@ -35,16 +35,18 @@ export class CreateStudentDto {
   gender!: Gender;
 
   @Type(() => Number)
+  @IsOptional()
   @IsInt()
   @Min(2000)
   @Max(2100)
-  enrollmentYear!: number;
+  enrollmentYear?: number | null;
 
   @Type(() => Number)
+  @IsOptional()
   @IsInt()
   @Min(2000)
   @Max(2100)
-  graduationYear!: number;
+  graduationYear?: number | null;
 
   @IsOptional()
   @IsString()

@@ -29,8 +29,8 @@ export class CreateEmployeeDto {
   @IsIn(EMPLOYMENT_STATUS as unknown as string[])
   employmentStatus!: EmploymentStatus;
 
-  @IsString() @MaxLength(100)
-  jobTitle!: string;
+  @IsOptional() @IsString() @MaxLength(100)
+  jobTitle?: string;
 
   @IsOptional() @IsDateString()
   hireDate?: string;

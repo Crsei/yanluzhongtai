@@ -8,8 +8,8 @@ export type StudentListItem = {
   gender: string;
   school: string | null;
   major: string | null;
-  enrollmentYear: number;
-  graduationYear: number;
+  enrollmentYear: number | null;
+  graduationYear: number | null;
   counselorJobNo: string | null;
   plannerJobNo: string | null;
   remainingPublicCredits: string | null;

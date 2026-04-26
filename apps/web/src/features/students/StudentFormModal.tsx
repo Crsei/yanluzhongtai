@@ -134,7 +134,7 @@ export function StudentFormModal({ open, mode, initial, onClose, onModeChange }:
             <Form.Item
               label="入学年份"
               name="enrollmentYear"
-              rules={[{ required: true, type: "integer", min: 2000, max: 2100 }]}
+              rules={[{ type: "integer", min: 2000, max: 2100 }]}
               tooltip={mode !== "create" ? "入学年份创建后不可修改，如需修正请删除后重建" : undefined}
             >
               <InputNumber
@@ -149,7 +149,7 @@ export function StudentFormModal({ open, mode, initial, onClose, onModeChange }:
             <Form.Item
               label="毕业年份"
               name="graduationYear"
-              rules={[{ required: true, type: "integer", min: 2000, max: 2100 }]}
+              rules={[{ type: "integer", min: 2000, max: 2100 }]}
             >
               <InputNumber min={2000} max={2100} style={{ width: "100%" }} />
             </Form.Item>

@@ -25,23 +25,45 @@ const COLUMNS = [
   "phone", "bankCardNo", "bankName", "source", "servingFor", "resumeText",
 ] as const;
 
-const COLUMN_HEADERS: Record<(typeof COLUMNS)[number], string> = {
-  name: "姓名",
+type Col = (typeof COLUMNS)[number];
+
+const COLUMN_HEADERS: Record<Col, string> = {
+  name: "员工姓名",
   gender: "性别",
-  employmentStatus: "雇佣状态(FULL_TIME/PART_TIME/RESIGNED)",
-  jobTitle: "具体工作职责",
-  hireDate: "入职日期(YYYY-MM-DD)",
-  phone: "电话",
+  employmentStatus: "在职状态",
+  jobTitle: "具体工作职能",
+  hireDate: "入职日期",
+  phone: "电话号码",
   bankCardNo: "银行卡号",
   bankName: "开户行",
   source: "员工来源",
-  servingFor: "正服务于(分号分隔)",
-  resumeText: "简历(文字)",
+  servingFor: "正服务于",
+  resumeText: "文字版简历",
 };
+
+const COLUMN_HEADER_ALIASES: Record<Col, readonly string[]> = {
+  name: ["员工姓名", "姓名"],
+  gender: ["性别"],
+  employmentStatus: ["在职状态", "雇佣状态(FULL_TIME/PART_TIME/RESIGNED)", "雇佣状态"],
+  jobTitle: ["具体工作职能", "具体工作职责"],
+  hireDate: ["入职日期", "入职日期(YYYY-MM-DD)"],
+  phone: ["电话号码", "电话"],
+  bankCardNo: ["银行卡号"],
+  bankName: ["开户行"],
+  source: ["员工来源"],
+  servingFor: ["正服务于", "正服务于(分号分隔)"],
+  resumeText: ["文字版简历", "简历(文字)"],
+};
+
+const REQUIRED_COLUMNS: Col[] = ["name", "gender", "employmentStatus"];
+
+const EMPLOYMENT_STATUS_BY_LABEL = Object.fromEntries(
+  Object.entries(EMPLOYMENT_STATUS_LABELS).map(([code, label]) => [label, code]),
+) as Record<string, EmploymentStatus>;
 
 type ParsedRow = {
   rowNumber: number;
-  raw: Partial<Record<(typeof COLUMNS)[number], string>>;
+  raw: Partial<Record<Col, string>>;
 };
 
 type ValidatedRow = {
@@ -173,6 +195,14 @@ export class EmployeesImportService {
 
   // ------------------------------- internals ------------------------------- //
 
+  private cellToString(value: ExcelJS.CellValue): string {
+    if (value == null) return "";
+    if (value instanceof Date) return value.toISOString().slice(0, 10);
+    if (typeof value === "object" && "text" in value) return String(value.text ?? "").trim();
+    if (typeof value === "object" && "result" in value) return String(value.result ?? "").trim();
+    return String(value).trim();
+  }
+
   private async parse(buffer: Buffer): Promise<{ rows: ParsedRow[]; errors: ImportRowError[] }> {
     const workbook = new ExcelJS.Workbook();
     await workbook.xlsx.load(buffer as unknown as ArrayBuffer);
@@ -183,13 +213,13 @@ export class EmployeesImportService {
 
     // Match headers to expected COLUMNS
     const headerRow = sheet.getRow(1);
-    const headerMap = new Map<number, (typeof COLUMNS)[number]>();
+    const headerMap = new Map<number, Col>();
     headerRow.eachCell((cell, colNumber) => {
       const headerText = String(cell.value ?? "").trim();
-      const matched = COLUMNS.find((key) => COLUMN_HEADERS[key] === headerText);
+      const matched = COLUMNS.find((key) => COLUMN_HEADER_ALIASES[key].includes(headerText));
       if (matched) headerMap.set(colNumber, matched);
     });
-    const missing = COLUMNS.filter((key) => ![...headerMap.values()].includes(key));
+    const missing = REQUIRED_COLUMNS.filter((key) => ![...headerMap.values()].includes(key));
     if (missing.length > 0) {
       return {
         rows: [],
@@ -209,9 +239,9 @@ export class EmployeesImportService {
       const raw: ParsedRow["raw"] = {};
       let hasAny = false;
       headerMap.forEach((key, colNumber) => {
-        const value = row.getCell(colNumber).value;
-        if (value !== null && value !== undefined && String(value).trim() !== "") {
-          raw[key] = String(value).trim();
+        const value = this.cellToString(row.getCell(colNumber).value);
+        if (value !== "") {
+          raw[key] = value;
           hasAny = true;
         }
       });
@@ -228,10 +258,9 @@ export class EmployeesImportService {
       const rowErrors: ImportRowError[] = [];
 
       const required: Array<[keyof typeof raw, string]> = [
-        ["name", "姓名"],
+        ["name", "员工姓名"],
         ["gender", "性别"],
-        ["employmentStatus", "雇佣状态"],
-        ["jobTitle", "具体工作职责"],
+        ["employmentStatus", "在职状态"],
       ];
       for (const [key, label] of required) {
         if (!raw[key]) rowErrors.push({ row: rowNumber, field: label, message: "必填" });
@@ -240,13 +269,13 @@ export class EmployeesImportService {
       if (raw.gender && !(GENDER as readonly string[]).includes(raw.gender)) {
         rowErrors.push({ row: rowNumber, field: "性别", message: `非法值，仅支持 ${GENDER.join("/")}` });
       }
-      if (
-        raw.employmentStatus &&
-        !(EMPLOYMENT_STATUS as readonly string[]).includes(raw.employmentStatus)
-      ) {
+      const employmentStatus = raw.employmentStatus
+        ? (EMPLOYMENT_STATUS_BY_LABEL[raw.employmentStatus] ?? raw.employmentStatus)
+        : undefined;
+      if (employmentStatus && !(EMPLOYMENT_STATUS as readonly string[]).includes(employmentStatus)) {
         rowErrors.push({
           row: rowNumber,
-          field: "雇佣状态",
+          field: "在职状态",
           message: `非法值，仅支持 ${EMPLOYMENT_STATUS.join("/")}（即 ${Object.values(EMPLOYMENT_STATUS_LABELS).join("/")}）`,
         });
       }
@@ -269,7 +298,7 @@ export class EmployeesImportService {
 
       let servingFor: EmployeeServingFor[] = [];
       if (raw.servingFor) {
-        const items = raw.servingFor.split(/[;；,，]/).map((s) => s.trim()).filter(Boolean);
+        const items = raw.servingFor.split(/[;,，；、]/).map((s) => s.trim()).filter(Boolean);
         for (const item of items) {
           if (!(EMPLOYEE_SERVING_FOR as readonly string[]).includes(item)) {
             rowErrors.push({
@@ -297,8 +326,8 @@ export class EmployeesImportService {
           jobNo: "PLACEHOLDER", // overwritten in commit() after IdSequence allocation
           name: raw.name!,
           gender: raw.gender!,
-          employmentStatus: raw.employmentStatus as EmploymentStatus,
-          jobTitle: raw.jobTitle!,
+          employmentStatus: employmentStatus as EmploymentStatus,
+          jobTitle: raw.jobTitle ?? "",
           hireDate: hireDate ?? undefined,
           phone: raw.phone ?? null,
           bankCardNo: raw.bankCardNo ?? null,

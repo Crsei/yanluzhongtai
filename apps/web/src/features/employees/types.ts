@@ -49,7 +49,7 @@ export type CreateEmployeeBody = {
   name: string;
   gender: Gender;
   employmentStatus: EmploymentStatus;
-  jobTitle: string;
+  jobTitle?: string;
   hireDate?: string;
   phone?: string;
   bankCardNo?: string;

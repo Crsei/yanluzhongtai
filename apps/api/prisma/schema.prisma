@@ -77,8 +77,8 @@ model Student {
   studentNo                String        @unique
   name                     String
   gender                   String
-  enrollmentYear           Int
-  graduationYear           Int
+    enrollmentYear           Int?
+    graduationYear           Int?
   school                   String?
   major                    String?
   counselorJobNo           String?

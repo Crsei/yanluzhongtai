@@ -76,15 +76,27 @@ export const SERVICE_STATUS_OPTIONS = SERVICE_STATUS.map((code) => ({
   label: SERVICE_STATUS_LABELS[code],
 }));
 
-export const SERVICE_PLATFORM = ["研录保研", "研录考研", "高途", "其他"] as const;
+export const SERVICE_PLATFORM = [
+  "企业微信",
+  "飞书",
+  "微信",
+  "研录保研",
+  "研录考研",
+  "高途",
+  "其他",
+] as const;
 export type ServicePlatform = (typeof SERVICE_PLATFORM)[number];
 export const SERVICE_PLATFORM_OPTIONS = SERVICE_PLATFORM.map((v) => ({ value: v, label: v }));
 
 export const STUDENT_SOURCE = [
   "自有流量",
+  "自营（保研）",
+  "自营（考研/单项）",
   "研录考研",
   "高途",
+  "高途合作",
   "转介绍",
+  "陈崔-渠道合作",
   "其他",
 ] as const;
 export type StudentSource = (typeof STUDENT_SOURCE)[number];
@@ -106,7 +118,16 @@ export const GRADE_OPTIONS = GRADE_VALUES.map((v) => ({ value: v, label: v }));
 // Phase 3: Course outline dictionaries
 // ---------------------------------------------------------------------------
 
-export const TEACHING_TYPE = ["公共课", "1v1", "小班课", "录播", "其他"] as const;
+export const TEACHING_TYPE = [
+  "公共课",
+  "公共课直播",
+  "1v1",
+  "小班课",
+  "录播",
+  "分发录播",
+  "外包",
+  "其他",
+] as const;
 export type TeachingType = (typeof TEACHING_TYPE)[number];
 export const TEACHING_TYPE_OPTIONS = TEACHING_TYPE.map((value) => ({
   value,

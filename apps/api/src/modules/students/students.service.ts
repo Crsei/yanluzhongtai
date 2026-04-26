@@ -136,8 +136,9 @@ export class StudentsService {
   }
 
   async create(dto: CreateStudentDto, operatorId: string): Promise<Student> {
-    const seq = await this.idSequence.allocate("student", dto.enrollmentYear);
-    const studentNo = formatStudentNo(dto.enrollmentYear, seq);
+    const sequenceYear = dto.enrollmentYear ?? new Date().getFullYear();
+    const seq = await this.idSequence.allocate("student", sequenceYear);
+    const studentNo = formatStudentNo(sequenceYear, seq);
     const created = await this.prisma.student.create({
       data: { ...dto, studentNo, detailNotes: (dto.detailNotes ?? null) as Prisma.InputJsonValue },
     });

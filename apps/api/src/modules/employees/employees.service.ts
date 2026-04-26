@@ -172,7 +172,7 @@ export class EmployeesService {
         name: dto.name,
         gender: dto.gender,
         employmentStatus: dto.employmentStatus as EmploymentStatus,
-        jobTitle: dto.jobTitle,
+        jobTitle: dto.jobTitle ?? "",
         hireDate,
         phone: dto.phone ?? null,
         bankCardNo: dto.bankCardNo ?? null,

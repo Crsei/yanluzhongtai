@@ -17,32 +17,120 @@ import { formatStudentNo } from "./utils/grade";
 
 /** Column order must match `generateTemplate` below. */
 const COLUMNS = [
-  "姓名",
-  "性别",
-  "入学年份",
-  "毕业年份",
-  "学校",
-  "专业",
-  "学管老师工号",
-  "规划师工号",
-  "服务平台",
-  "学生来源",
-  "服务状态",
-  "电话",
-  "邮箱",
-  "公共课总课时",
-  "1v1总课时",
-  "公共课剩余",
-  "1v1剩余",
-  "备注",
+  "name",
+  "gender",
+  "enrollmentYear",
+  "graduationYear",
+  "school",
+  "major",
+  "phone",
+  "servicePlatform",
+  "source",
+  "serviceStatusLabel",
+  "serviceChecklistUrl",
+  "overallPlanUrl",
+  "planningRequirementDetail",
+  "gpaEnglishDetail",
+  "researchDetail",
+  "innovationProjectDetail",
+  "competitionDetail",
+  "paperDetail",
+  "patentSoftwareDetail",
+  "otherServiceDetail",
+  "giftedServiceDetail",
+  "policyText",
+  "counselorJobNo",
+  "plannerJobNo",
+  "email",
+  "totalPublicCredits",
+  "totalPrivateCredits",
+  "remainingPublicCredits",
+  "remainingPrivateCredits",
+  "note",
 ] as const;
+
+type Col = (typeof COLUMNS)[number];
+
+const COLUMN_HEADERS: Record<Col, string> = {
+  name: "学生姓名",
+  gender: "性别",
+  enrollmentYear: "入学年份",
+  graduationYear: "毕业年份",
+  school: "所在院校",
+  major: "所在专业",
+  phone: "电话号码",
+  servicePlatform: "服务群所在平台",
+  source: "学生来源",
+  serviceStatusLabel: "服务状态",
+  serviceChecklistUrl: "服务清单（链接）",
+  overallPlanUrl: "总规划（链接）",
+  planningRequirementDetail: "规划要求详情",
+  gpaEnglishDetail: "GPA+英语提升服务项详情",
+  researchDetail: "科研赋能服务项详情",
+  innovationProjectDetail: "大创项目服务详情",
+  competitionDetail: "竞赛培训服务详情",
+  paperDetail: "论文辅导服务详情",
+  patentSoftwareDetail: "专利、软著服务详情",
+  otherServiceDetail: "其他类型服务详情",
+  giftedServiceDetail: "赠送服务详情",
+  policyText: "保研申请要求",
+  counselorJobNo: "学管老师工号",
+  plannerJobNo: "规划师工号",
+  email: "邮箱",
+  totalPublicCredits: "公共课总课时",
+  totalPrivateCredits: "1v1总课时",
+  remainingPublicCredits: "公共课剩余",
+  remainingPrivateCredits: "1v1剩余",
+  note: "备注",
+};
+
+const COLUMN_HEADER_ALIASES: Record<Col, readonly string[]> = {
+  name: ["学生姓名", "姓名"],
+  gender: ["性别"],
+  enrollmentYear: ["入学年份"],
+  graduationYear: ["毕业年份"],
+  school: ["所在院校", "学校"],
+  major: ["所在专业", "专业"],
+  phone: ["电话号码", "电话"],
+  servicePlatform: ["服务群所在平台", "服务平台"],
+  source: ["学生来源"],
+  serviceStatusLabel: ["服务状态"],
+  serviceChecklistUrl: ["服务清单（链接）", "服务清单(链接)"],
+  overallPlanUrl: ["总规划（链接）", "总规划(链接)"],
+  planningRequirementDetail: ["规划要求详情"],
+  gpaEnglishDetail: ["GPA+英语提升服务项详情"],
+  researchDetail: ["科研赋能服务项详情"],
+  innovationProjectDetail: ["大创项目服务详情"],
+  competitionDetail: ["竞赛培训服务详情"],
+  paperDetail: ["论文辅导服务详情"],
+  patentSoftwareDetail: ["专利、软著服务详情"],
+  otherServiceDetail: ["其他类型服务详情"],
+  giftedServiceDetail: ["赠送服务详情"],
+  policyText: ["保研申请要求"],
+  counselorJobNo: ["学管老师工号"],
+  plannerJobNo: ["规划师工号"],
+  email: ["邮箱"],
+  totalPublicCredits: ["公共课总课时"],
+  totalPrivateCredits: ["1v1总课时"],
+  remainingPublicCredits: ["公共课剩余"],
+  remainingPrivateCredits: ["1v1剩余"],
+  note: ["备注"],
+};
+
+const REQUIRED_COLUMNS: Col[] = [
+  "name",
+  "gender",
+  "servicePlatform",
+  "source",
+  "serviceStatusLabel",
+];
 
 type ParsedRow = {
   row: number; // 1-based row in spreadsheet (header = row 1)
   name: string;
   gender: string;
-  enrollmentYear: number;
-  graduationYear: number;
+  enrollmentYear: number | null;
+  graduationYear: number | null;
   school?: string;
   major?: string;
   counselorJobNo?: string;
@@ -56,6 +144,10 @@ type ParsedRow = {
   totalPrivateCredits?: string;
   remainingPublicCredits?: string;
   remainingPrivateCredits?: string;
+  serviceChecklistUrl?: string;
+  overallPlanUrl?: string;
+  policyText?: string;
+  detailNotes?: Record<string, string>;
   note?: string;
 };
 
@@ -71,29 +163,24 @@ export class StudentsImportService {
   async generateTemplate(): Promise<Buffer> {
     const wb = new ExcelJS.Workbook();
     const ws = wb.addWorksheet("学生导入");
-    ws.columns = COLUMNS.map((header) => ({ header, key: header, width: 16 }));
+    ws.columns = COLUMNS.map((key) => ({ header: COLUMN_HEADERS[key], key, width: 18 }));
     ws.getRow(1).font = { bold: true };
     // One example row demonstrating valid values; the user replaces or deletes it before upload.
-    ws.addRow([
-      "张三",
-      "男",
-      2023,
-      2027,
-      "清华大学",
-      "计算机科学与技术",
-      "",
-      "",
-      "研录保研",
-      "转介绍",
-      "未开始",
-      "13800138000",
-      "zhangsan@example.com",
-      "",
-      "",
-      "",
-      "",
-      "",
-    ]);
+    ws.addRow({
+      name: "张三",
+      gender: "男",
+      enrollmentYear: 2023,
+      graduationYear: 2027,
+      school: "清华大学",
+      major: "计算机科学与技术",
+      phone: "13800138000",
+      servicePlatform: "企业微信",
+      source: "自营（保研）",
+      serviceStatusLabel: "未开始",
+      serviceChecklistUrl: "",
+      overallPlanUrl: "",
+      policyText: "",
+    });
     return Buffer.from(await wb.xlsx.writeBuffer());
   }
 
@@ -102,6 +189,24 @@ export class StudentsImportService {
     const res = await fetch(url);
     if (!res.ok) throw new Error(`读取导入文件失败: ${res.status}`);
     return Buffer.from(await res.arrayBuffer());
+  }
+
+  private cellToString(value: ExcelJS.CellValue): string {
+    if (value == null) return "";
+    if (value instanceof Date) return value.toISOString().slice(0, 10);
+    if (typeof value === "object" && "text" in value) return String(value.text ?? "").trim();
+    if (typeof value === "object" && "result" in value) return String(value.result ?? "").trim();
+    return String(value).trim();
+  }
+
+  private blankToUndefined(value?: string): string | undefined {
+    if (!value || value === "——") return undefined;
+    return value;
+  }
+
+  private parseOptionalYear(value?: string): number | null {
+    const normalized = this.blankToUndefined(value);
+    return normalized === undefined ? null : Number(normalized);
   }
 
   private async parse(buffer: Buffer): Promise<{ rows: ParsedRow[]; headerErrors: ImportError[] }> {
@@ -116,47 +221,76 @@ export class StudentsImportService {
     }
 
     const headerRow = ws.getRow(1);
-    const headerValues = (headerRow.values as (string | undefined)[]).slice(1); // drop leading undefined
-    for (let i = 0; i < COLUMNS.length; i++) {
-      if ((headerValues[i] ?? "").toString().trim() !== COLUMNS[i]) {
-        headerErrors.push({
-          row: 1,
-          field: `header[${i}]`,
-          message: `列标题不匹配：期望 "${COLUMNS[i]}"，实际 "${headerValues[i] ?? ""}"`,
-        });
-      }
+    const headerMap = new Map<number, Col>();
+    headerRow.eachCell((cell, colNumber) => {
+      const headerText = this.cellToString(cell.value);
+      const matched = COLUMNS.find((key) => COLUMN_HEADER_ALIASES[key].includes(headerText));
+      if (matched) headerMap.set(colNumber, matched);
+    });
+    const present = new Set(headerMap.values());
+    const missing = REQUIRED_COLUMNS.filter((key) => !present.has(key));
+    if (missing.length > 0) {
+      headerErrors.push({
+        row: 1,
+        field: "header",
+        message: `缺少列：${missing.map((key) => COLUMN_HEADERS[key]).join("、")}`,
+      });
     }
 
     const rows: ParsedRow[] = [];
     ws.eachRow({ includeEmpty: false }, (row, rowNumber) => {
       if (rowNumber === 1) return;
-      const v = (i: number): string | undefined => {
-        const cell = row.getCell(i + 1).value;
-        if (cell == null) return undefined;
-        if (typeof cell === "object" && "text" in cell) return String((cell as { text: unknown }).text ?? "").trim();
-        return String(cell).trim();
-      };
+      const raw: Partial<Record<Col, string>> = {};
+      let hasAny = false;
+      headerMap.forEach((key, colNumber) => {
+        const value = this.cellToString(row.getCell(colNumber).value);
+        if (value !== "") {
+          raw[key] = value;
+          hasAny = true;
+        }
+      });
+      if (!hasAny) return;
+
+      const detailNotes = Object.fromEntries(
+        ([
+          "planningRequirementDetail",
+          "gpaEnglishDetail",
+          "researchDetail",
+          "innovationProjectDetail",
+          "competitionDetail",
+          "paperDetail",
+          "patentSoftwareDetail",
+          "otherServiceDetail",
+          "giftedServiceDetail",
+        ] as const)
+          .map((key) => [COLUMN_HEADERS[key], this.blankToUndefined(raw[key])])
+          .filter((entry): entry is [string, string] => Boolean(entry[1])),
+      );
 
       rows.push({
         row: rowNumber,
-        name: v(0) ?? "",
-        gender: v(1) ?? "",
-        enrollmentYear: Number(v(2)),
-        graduationYear: Number(v(3)),
-        school: v(4),
-        major: v(5),
-        counselorJobNo: v(6),
-        plannerJobNo: v(7),
-        servicePlatform: v(8) ?? "",
-        source: v(9) ?? "",
-        serviceStatusLabel: v(10) ?? "",
-        phone: v(11),
-        email: v(12),
-        totalPublicCredits: v(13),
-        totalPrivateCredits: v(14),
-        remainingPublicCredits: v(15),
-        remainingPrivateCredits: v(16),
-        note: v(17),
+        name: raw.name ?? "",
+        gender: raw.gender ?? "",
+        enrollmentYear: this.parseOptionalYear(raw.enrollmentYear),
+        graduationYear: this.parseOptionalYear(raw.graduationYear),
+        school: this.blankToUndefined(raw.school),
+        major: this.blankToUndefined(raw.major),
+        counselorJobNo: this.blankToUndefined(raw.counselorJobNo),
+        plannerJobNo: this.blankToUndefined(raw.plannerJobNo),
+        servicePlatform: raw.servicePlatform ?? "",
+        source: raw.source ?? "",
+        serviceStatusLabel: raw.serviceStatusLabel ?? "",
+        phone: this.blankToUndefined(raw.phone),
+        email: this.blankToUndefined(raw.email),
+        totalPublicCredits: this.blankToUndefined(raw.totalPublicCredits),
+        totalPrivateCredits: this.blankToUndefined(raw.totalPrivateCredits),
+        remainingPublicCredits: this.blankToUndefined(raw.remainingPublicCredits),
+        remainingPrivateCredits: this.blankToUndefined(raw.remainingPrivateCredits),
+        serviceChecklistUrl: this.blankToUndefined(raw.serviceChecklistUrl),
+        overallPlanUrl: this.blankToUndefined(raw.overallPlanUrl),
+        policyText: this.blankToUndefined(raw.policyText),
+        detailNotes: Object.keys(detailNotes).length > 0 ? detailNotes : undefined,
+        note: this.blankToUndefined(raw.note),
       });
     });
     return { rows, headerErrors };
@@ -166,22 +300,22 @@ export class StudentsImportService {
     const errs: ImportError[] = [];
     const push = (field: string, message: string) => errs.push({ row: r.row, field, message });
 
-    if (!r.name) push("姓名", "必填");
+    if (!r.name) push("学生姓名", "必填");
     if (!GENDER.includes(r.gender as typeof GENDER[number])) push("性别", `非法值 "${r.gender}"`);
 
-    if (!Number.isInteger(r.enrollmentYear) || r.enrollmentYear < 2000 || r.enrollmentYear > 2100) {
+    if (r.enrollmentYear !== null && (!Number.isInteger(r.enrollmentYear) || r.enrollmentYear < 2000 || r.enrollmentYear > 2100)) {
       push("入学年份", `非法值 "${r.enrollmentYear}"`);
     }
-    if (!Number.isInteger(r.graduationYear) || r.graduationYear < 2000 || r.graduationYear > 2100) {
+    if (r.graduationYear !== null && (!Number.isInteger(r.graduationYear) || r.graduationYear < 2000 || r.graduationYear > 2100)) {
       push("毕业年份", `非法值 "${r.graduationYear}"`);
-    } else if (r.graduationYear < r.enrollmentYear) {
+    } else if (r.enrollmentYear !== null && r.graduationYear !== null && r.graduationYear < r.enrollmentYear) {
       push("毕业年份", `必须不早于入学年份 ${r.enrollmentYear}`);
-    } else if (r.graduationYear > r.enrollmentYear + 10) {
+    } else if (r.enrollmentYear !== null && r.graduationYear !== null && r.graduationYear > r.enrollmentYear + 10) {
       push("毕业年份", `学制过长（>10 年）：${r.enrollmentYear}-${r.graduationYear}`);
     }
 
     if (!SERVICE_PLATFORM.includes(r.servicePlatform as typeof SERVICE_PLATFORM[number])) {
-      push("服务平台", `非法值 "${r.servicePlatform}"`);
+      push("服务群所在平台", `非法值 "${r.servicePlatform}"`);
     }
     if (!STUDENT_SOURCE.includes(r.source as typeof STUDENT_SOURCE[number])) {
       push("学生来源", `非法值 "${r.source}"`);
@@ -260,12 +394,15 @@ export class StudentsImportService {
       return { created: 0, errors };
     }
 
-    // Group rows by enrollmentYear and allocate sequence blocks.
+    // Group rows by enrollmentYear when present; otherwise use current year
+    // only for studentNo allocation while keeping the stored field empty.
     const byYear = new Map<number, ParsedRow[]>();
+    const fallbackYear = new Date().getFullYear();
     for (const r of rows) {
-      const arr = byYear.get(r.enrollmentYear) ?? [];
+      const sequenceYear = r.enrollmentYear ?? fallbackYear;
+      const arr = byYear.get(sequenceYear) ?? [];
       arr.push(r);
-      byYear.set(r.enrollmentYear, arr);
+      byYear.set(sequenceYear, arr);
     }
     const rowToSeq = new Map<number, number>();
     for (const [year, group] of byYear.entries()) {
@@ -275,7 +412,8 @@ export class StudentsImportService {
 
     const dataRows: Prisma.StudentCreateManyInput[] = rows.map((r) => {
       const seq = rowToSeq.get(r.row)!;
-      const studentNo = formatStudentNo(r.enrollmentYear, seq);
+      const sequenceYear = r.enrollmentYear ?? fallbackYear;
+      const studentNo = formatStudentNo(sequenceYear, seq);
       return {
         studentNo,
         name: r.name,
@@ -291,6 +429,10 @@ export class StudentsImportService {
         servicePlatform: r.servicePlatform,
         source: r.source,
         serviceStatus: SERVICE_STATUS_BY_LABEL[r.serviceStatusLabel]!,
+        serviceChecklistUrl: r.serviceChecklistUrl || null,
+        overallPlanUrl: r.overallPlanUrl || null,
+        policyText: r.policyText || null,
+        detailNotes: r.detailNotes === undefined ? Prisma.JsonNull : r.detailNotes,
         totalPublicCredits: r.totalPublicCredits ? new Prisma.Decimal(r.totalPublicCredits) : null,
         totalPrivateCredits: r.totalPrivateCredits ? new Prisma.Decimal(r.totalPrivateCredits) : null,
         remainingPublicCredits: r.remainingPublicCredits ? new Prisma.Decimal(r.remainingPublicCredits) : null,

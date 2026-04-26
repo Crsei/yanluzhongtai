@@ -2,6 +2,8 @@ import { Injectable, BadRequestException } from "@nestjs/common";
 import { Prisma } from "@prisma/client";
 import * as ExcelJS from "exceljs";
 import {
+  COURSE_SECTION_CODE_BY_LABEL,
+  COURSE_SECTION_LABELS,
   TEACHING_TYPE,
   type TeachingType,
 } from "../../common/dictionaries";
@@ -25,32 +27,67 @@ import type {
 } from "./courses.types";
 
 const COLUMNS = [
+  "name",
+  "studentNos",
+  "outlineVersionName",
+  "sectionName",
+  "secondaryCategoryName",
   "sectionCode",
   "categorySequenceNo",
-  "name",
   "plannedAt",
   "actualTeacherJobNo",
   "actualTeachingType",
   "durationMinutes",
-  "studentNos",
+  "replayUrl",
+  "videoUrl",
+  "resourceUrl",
   "note",
 ] as const;
 
 type Col = (typeof COLUMNS)[number];
 
 const COLUMN_HEADERS: Record<Col, string> = {
+  name: "课程名称",
+  studentNos: "上课学生",
+  outlineVersionName: "来自课程大纲",
+  sectionName: "课程所属板块",
+  secondaryCategoryName: "二级课程类别",
   sectionCode: "板块代码",
   categorySequenceNo: "类别序号",
-  name: "课程名称",
-  plannedAt: "计划授课时间(YYYY-MM-DD HH:mm)",
-  actualTeacherJobNo: "实际授课老师工号",
+  plannedAt: "计划授课时间",
+  actualTeacherJobNo: "实际授课老师",
   actualTeachingType: "实际授课方式",
-  durationMinutes: "授课时长(分钟)",
-  studentNos: "选课学号(分号分隔)",
+  durationMinutes: "授课时长",
+  replayUrl: "直播回放链接",
+  videoUrl: "录播视频链接",
+  resourceUrl: "外部资源链接",
   note: "备注",
 };
 
-const REQUIRED_COLUMNS: Col[] = ["sectionCode", "categorySequenceNo", "name"];
+const COLUMN_HEADER_ALIASES: Record<Col, readonly string[]> = {
+  name: ["课程名称"],
+  studentNos: ["上课学生", "选课学号(分号分隔)", "选课学号"],
+  outlineVersionName: ["来自课程大纲"],
+  sectionName: ["课程所属板块", "板块名称"],
+  secondaryCategoryName: ["二级课程类别", "二级课程类别名称"],
+  sectionCode: ["板块代码"],
+  categorySequenceNo: ["类别序号"],
+  plannedAt: ["计划授课时间", "计划授课时间(YYYY-MM-DD HH:mm)"],
+  actualTeacherJobNo: ["实际授课老师", "实际授课老师工号"],
+  actualTeachingType: ["实际授课方式"],
+  durationMinutes: ["授课时长", "授课时长(分钟)"],
+  replayUrl: ["直播回放链接"],
+  videoUrl: ["录播视频链接"],
+  resourceUrl: ["外部资源链接"],
+  note: ["备注"],
+};
+
+const REQUIRED_COLUMNS: Col[] = ["name"];
+
+const COURSE_SECTION_IMPORT_ALIASES: Record<string, string> = {
+  论文辅导: "LW",
+  作品集: "ZP",
+};
 
 type ValidatedRow = {
   rowNumber: number;
@@ -62,6 +99,9 @@ type ValidatedRow = {
   actualTeachingType: TeachingType | null;
   durationMinutes: number | null;
   studentIds: string[];
+  replayUrl: string | null;
+  videoUrl: string | null;
+  resourceUrl: string | null;
   note: string | null;
   outlineItemId: string;
   outlineVersionId: string;
@@ -84,14 +124,18 @@ export class CoursesImportService {
     const sheet = workbook.addWorksheet("课程导入");
     sheet.columns = COLUMNS.map((k) => ({ header: COLUMN_HEADERS[k], key: k, width: 22 }));
     sheet.addRow({
-      sectionCode: "GP",
-      categorySequenceNo: "01",
       name: "微积分一对一-26级-春季-01",
+      studentNos: "260001;260002",
+      outlineVersionName: "26A",
+      sectionName: "GPA提升",
+      secondaryCategoryName: "微积分一对一",
       plannedAt: "2026-05-10 18:00",
       actualTeacherJobNo: "26001",
       actualTeachingType: "1v1",
       durationMinutes: 90,
-      studentNos: "260001;260002",
+      replayUrl: "",
+      videoUrl: "",
+      resourceUrl: "",
       note: "",
     });
     sheet.getRow(1).font = { bold: true };
@@ -148,6 +192,9 @@ export class CoursesImportService {
             actualTeachingType: row.actualTeachingType,
             durationMinutes: row.durationMinutes,
             creditHours: creditHours === null ? null : new Prisma.Decimal(creditHours),
+            replayUrl: row.replayUrl,
+            videoUrl: row.videoUrl,
+            resourceUrl: row.resourceUrl,
             note: row.note,
           },
         });
@@ -178,6 +225,19 @@ export class CoursesImportService {
 
   // ---------------------------------------------------------------- parse ----
 
+  private cellToString(value: ExcelJS.CellValue): string {
+    if (value == null) return "";
+    if (value instanceof Date) return value.toISOString();
+    if (typeof value === "object" && "text" in value) return String(value.text ?? "").trim();
+    if (typeof value === "object" && "result" in value) return String(value.result ?? "").trim();
+    return String(value).trim();
+  }
+
+  private blankToUndefined(value?: string): string | undefined {
+    if (!value || value === "——") return undefined;
+    return value;
+  }
+
   private async parse(
     buffer: Buffer,
   ): Promise<{
@@ -194,13 +254,19 @@ export class CoursesImportService {
     const headerRow = sheet.getRow(1);
     const headerMap = new Map<number, Col>();
     headerRow.eachCell((cell, colNumber) => {
-      const text = String(cell.value ?? "").trim();
-      const matched = COLUMNS.find((k) => COLUMN_HEADERS[k] === text);
+      const text = this.cellToString(cell.value);
+      const matched = COLUMNS.find((k) => COLUMN_HEADER_ALIASES[k].includes(text));
       if (matched) headerMap.set(colNumber, matched);
     });
 
     const present = new Set(headerMap.values());
+    const hasOutlineMatchColumns =
+      (present.has("sectionCode") && present.has("categorySequenceNo")) ||
+      (present.has("sectionName") && present.has("secondaryCategoryName"));
     const missing = REQUIRED_COLUMNS.filter((k) => !present.has(k));
+    if (!hasOutlineMatchColumns) {
+      missing.push("sectionName", "secondaryCategoryName");
+    }
     if (missing.length > 0) {
       return {
         rows: [],
@@ -220,9 +286,9 @@ export class CoursesImportService {
       const raw: Partial<Record<Col, string>> = {};
       let hasAny = false;
       headerMap.forEach((key, colNumber) => {
-        const value = row.getCell(colNumber).value;
-        if (value !== null && value !== undefined && String(value).trim() !== "") {
-          raw[key] = String(value).trim();
+        const value = this.blankToUndefined(this.cellToString(row.getCell(colNumber).value));
+        if (value !== undefined) {
+          raw[key] = value;
           hasAny = true;
         }
       });
@@ -250,32 +316,47 @@ export class CoursesImportService {
     const itemByKey = new Map(
       activeOutline.items.map((i) => [`${i.sectionCode}|${i.sequenceNo}`, i]),
     );
+    const itemBySectionAndName = new Map(
+      activeOutline.items.map((i) => [`${i.sectionCode}|${i.secondaryCategoryName}`, i]),
+    );
 
     // Preload teachers & students for bulk check
-    const teacherJobNos = new Set<string>();
-    const studentNos = new Set<string>();
+    const teacherInputs = new Set<string>();
+    const studentInputs = new Set<string>();
     for (const { raw } of rows) {
-      if (raw.actualTeacherJobNo) teacherJobNos.add(raw.actualTeacherJobNo);
+      if (raw.actualTeacherJobNo) teacherInputs.add(raw.actualTeacherJobNo);
       if (raw.studentNos) {
-        for (const no of raw.studentNos.split(/[;,、]/).map((s) => s.trim()).filter(Boolean)) {
-          studentNos.add(no);
+        for (const no of raw.studentNos.split(/[;,，；、\n]/).map((s) => s.trim()).filter(Boolean)) {
+          studentInputs.add(no);
         }
       }
     }
-    const teachers = teacherJobNos.size
+    const teachers = teacherInputs.size
       ? await this.prisma.employee.findMany({
-          where: { jobNo: { in: [...teacherJobNos] } },
-          select: { jobNo: true, employmentStatus: true },
+          where: {
+            OR: [
+              { jobNo: { in: [...teacherInputs] } },
+              { name: { in: [...teacherInputs] } },
+            ],
+          },
+          select: { jobNo: true, name: true, employmentStatus: true },
         })
       : [];
-    const teacherMap = new Map(teachers.map((t) => [t.jobNo, t]));
-    const students = studentNos.size
+    const teacherByJobNo = new Map(teachers.map((t) => [t.jobNo, t]));
+    const teacherByName = new Map(teachers.map((t) => [t.name, t]));
+    const students = studentInputs.size
       ? await this.prisma.student.findMany({
-          where: { studentNo: { in: [...studentNos] } },
-          select: { id: true, studentNo: true },
+          where: {
+            OR: [
+              { studentNo: { in: [...studentInputs] } },
+              { name: { in: [...studentInputs] } },
+            ],
+          },
+          select: { id: true, studentNo: true, name: true },
         })
       : [];
     const studentByNo = new Map(students.map((s) => [s.studentNo, s]));
+    const studentByName = new Map(students.map((s) => [s.name, s]));
 
     for (const { rowNumber, raw } of rows) {
       const rowErrors: CourseImportRowError[] = [];
@@ -284,13 +365,33 @@ export class CoursesImportService {
         if (!raw[key]) rowErrors.push({ row: rowNumber, field: COLUMN_HEADERS[key], message: "必填" });
       }
 
-      const tt = raw.sectionCode ? raw.sectionCode.toUpperCase() : "";
+      const tt = raw.sectionCode
+        ? raw.sectionCode.toUpperCase()
+        : raw.sectionName
+          ? (COURSE_SECTION_CODE_BY_LABEL[raw.sectionName] ?? COURSE_SECTION_IMPORT_ALIASES[raw.sectionName] ?? "")
+          : "";
       if (tt && !/^[A-Z]{1,2}$/.test(tt)) {
-        rowErrors.push({ row: rowNumber, field: "板块代码", message: "需为 1-2 位字母" });
+        rowErrors.push({ row: rowNumber, field: COLUMN_HEADERS.sectionCode, message: "需为 1-2 位字母" });
       }
       const section = tt ? sectionByCode.get(tt) : undefined;
       if (tt && !section) {
-        rowErrors.push({ row: rowNumber, field: "板块代码", message: `大纲中无板块 ${tt}` });
+        rowErrors.push({
+          row: rowNumber,
+          field: raw.sectionName ? COLUMN_HEADERS.sectionName : COLUMN_HEADERS.sectionCode,
+          message: `大纲中无板块 ${raw.sectionName ?? tt}`,
+        });
+      }
+      if (
+        raw.sectionName &&
+        tt &&
+        COURSE_SECTION_LABELS[tt as keyof typeof COURSE_SECTION_LABELS] !== raw.sectionName &&
+        COURSE_SECTION_IMPORT_ALIASES[raw.sectionName] !== tt
+      ) {
+        rowErrors.push({
+          row: rowNumber,
+          field: COLUMN_HEADERS.sectionName,
+          message: `板块 ${tt} 的名称应为 "${COURSE_SECTION_LABELS[tt as keyof typeof COURSE_SECTION_LABELS]}"`,
+        });
       }
 
       let kk = "";
@@ -298,16 +399,21 @@ export class CoursesImportService {
         try {
           kk = normalizeKk(raw.categorySequenceNo);
         } catch (e) {
-          rowErrors.push({ row: rowNumber, field: "类别序号", message: (e as Error).message });
+          rowErrors.push({ row: rowNumber, field: COLUMN_HEADERS.categorySequenceNo, message: (e as Error).message });
         }
       }
 
-      const item = tt && kk ? itemByKey.get(`${tt}|${kk}`) : undefined;
-      if (tt && kk && !item) {
+      const item = tt && kk
+        ? itemByKey.get(`${tt}|${kk}`)
+        : tt && raw.secondaryCategoryName
+          ? itemBySectionAndName.get(`${tt}|${raw.secondaryCategoryName}`)
+          : undefined;
+      if (item && !kk) kk = item.sequenceNo;
+      if (tt && (kk || raw.secondaryCategoryName) && !item) {
         rowErrors.push({
           row: rowNumber,
-          field: "类别序号",
-          message: `大纲中无 ${tt}${kk} 条目`,
+          field: raw.secondaryCategoryName ? COLUMN_HEADERS.secondaryCategoryName : COLUMN_HEADERS.categorySequenceNo,
+          message: `大纲中无 ${raw.secondaryCategoryName ?? `${tt}${kk}`} 条目`,
         });
       }
 
@@ -315,7 +421,7 @@ export class CoursesImportService {
       if (raw.plannedAt) {
         const d = new Date(raw.plannedAt.replace(" ", "T"));
         if (Number.isNaN(d.getTime())) {
-          rowErrors.push({ row: rowNumber, field: "计划授课时间", message: "日期格式无效" });
+          rowErrors.push({ row: rowNumber, field: COLUMN_HEADERS.plannedAt, message: "日期格式无效" });
         } else plannedAt = d;
       }
 
@@ -332,37 +438,37 @@ export class CoursesImportService {
 
       let actualTeacherJobNo: string | null = null;
       if (raw.actualTeacherJobNo) {
-        const t = teacherMap.get(raw.actualTeacherJobNo);
+        const t = teacherByJobNo.get(raw.actualTeacherJobNo) ?? teacherByName.get(raw.actualTeacherJobNo);
         if (!t) {
           rowErrors.push({
             row: rowNumber,
-            field: "实际授课老师工号",
+            field: COLUMN_HEADERS.actualTeacherJobNo,
             message: `员工 ${raw.actualTeacherJobNo} 不存在`,
           });
         } else if (t.employmentStatus === "RESIGNED") {
           rowErrors.push({
             row: rowNumber,
-            field: "实际授课老师工号",
+            field: COLUMN_HEADERS.actualTeacherJobNo,
             message: `员工 ${raw.actualTeacherJobNo} 已离职`,
           });
-        } else actualTeacherJobNo = raw.actualTeacherJobNo;
+        } else actualTeacherJobNo = t.jobNo;
       }
 
       let durationMinutes: number | null = null;
       if (raw.durationMinutes) {
         const n = Number(raw.durationMinutes);
-        if (!Number.isFinite(n) || n < 0 || !Number.isInteger(n)) {
-          rowErrors.push({ row: rowNumber, field: "授课时长(分钟)", message: "需为非负整数" });
-        } else durationMinutes = n;
+        if (!Number.isFinite(n) || n < 0) {
+          rowErrors.push({ row: rowNumber, field: COLUMN_HEADERS.durationMinutes, message: "需为非负数" });
+        } else durationMinutes = Math.round(n);
       }
 
       const studentIds: string[] = [];
       if (raw.studentNos) {
-        const nos = raw.studentNos.split(/[;,、]/).map((s) => s.trim()).filter(Boolean);
+        const nos = raw.studentNos.split(/[;,，；、\n]/).map((s) => s.trim()).filter(Boolean);
         for (const no of nos) {
-          const s = studentByNo.get(no);
+          const s = studentByNo.get(no) ?? studentByName.get(no);
           if (!s) {
-            rowErrors.push({ row: rowNumber, field: "选课学号", message: `学生 ${no} 不存在` });
+            rowErrors.push({ row: rowNumber, field: COLUMN_HEADERS.studentNos, message: `学生 ${no} 不存在` });
           } else studentIds.push(s.id);
         }
       }
@@ -382,6 +488,9 @@ export class CoursesImportService {
         actualTeachingType,
         durationMinutes,
         studentIds,
+        replayUrl: raw.replayUrl ?? null,
+        videoUrl: raw.videoUrl ?? null,
+        resourceUrl: raw.resourceUrl ?? null,
         note: raw.note ?? null,
         outlineItemId: item!.id,
         outlineVersionId: item!.outlineVersionId,

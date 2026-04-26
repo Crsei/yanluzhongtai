@@ -176,9 +176,9 @@ export function EmployeeFormModal({ open, mode, employee, onClose, onModeChange 
           </Col>
           <Col span={12}>
             <Form.Item
-              label="具体工作职责"
+              label="具体工作职能"
               name="jobTitle"
-              rules={[{ required: true, message: "请输入工作职责" }, { max: 100 }]}
+              rules={[{ max: 100 }]}
             >
               <Input placeholder="例：考研规划师" />
             </Form.Item>
