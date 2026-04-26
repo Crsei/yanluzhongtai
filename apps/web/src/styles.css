@@ -26,10 +26,25 @@ body {
   background: #08192f;
 }
 
+.app-sider {
+  position: sticky !important;
+  top: 0;
+  align-self: flex-start;
+  height: 100vh;
+  overflow: hidden;
+}
+
 .sidebar-inner {
   display: flex;
-  min-height: 100vh;
+  height: 100vh;
+  min-height: 0;
   flex-direction: column;
+}
+
+.sidebar-inner .ant-menu {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
 }
 
 .brand-block {
@@ -58,6 +73,7 @@ body {
 
 .user-panel {
   margin-top: auto;
+  flex-shrink: 0;
   padding: 16px 20px 24px;
   border-top: 1px solid rgba(255, 255, 255, 0.08);
   color: #fff;
@@ -175,6 +191,7 @@ body {
   display: flex;
   align-items: center;
   gap: 4px;
+  flex-shrink: 0;
   width: 100%;
   margin-top: auto;
   padding: 18px 20px 24px;
