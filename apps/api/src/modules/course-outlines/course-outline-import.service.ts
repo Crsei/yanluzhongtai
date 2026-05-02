@@ -1,6 +1,7 @@
 import { Injectable, NotFoundException } from "@nestjs/common";
 import * as ExcelJS from "exceljs";
 import {
+  COURSE_SECTION_CODE_BY_LABEL,
   COURSE_SECTION_CODES,
   COURSE_SECTION_LABELS,
   TEACHING_TYPE,
@@ -35,17 +36,22 @@ const COLUMN_HEADERS: Record<Col, string> = {
   sequenceNo: "序列号",
   secondaryCategoryName: "二级课程类别名称",
   suggestedTeachingType: "建议授课方式",
-  plannedTeacherJobNo: "计划授课老师工号",
+  plannedTeacherJobNo: "计划授课老师",
   lessonPlanUrl: "教案排期链接",
 };
 
-const REQUIRED_COLUMNS: Col[] = [
-  "sectionCode",
-  "sectionName",
-  "sequenceNo",
-  "secondaryCategoryName",
-  "suggestedTeachingType",
-];
+const COLUMN_HEADER_ALIASES: Record<Col, readonly string[]> = {
+  sectionCode: ["板块代码"],
+  sectionName: ["板块名称"],
+  sectionDisplayOrder: ["板块排序"],
+  sequenceNo: ["序列号"],
+  secondaryCategoryName: ["二级课程类别名称", "二级课程类别"],
+  suggestedTeachingType: ["建议授课方式"],
+  plannedTeacherJobNo: ["计划授课老师", "计划授课老师工号"],
+  lessonPlanUrl: ["教案排期链接"],
+};
+
+const REQUIRED_COLUMNS: Col[] = [];
 
 type ParsedRow = {
   rowNumber: number;
@@ -57,9 +63,9 @@ type ValidatedRow = {
   sectionCode: string;
   sectionName: string;
   sectionDisplayOrder: number | null;
-  sequenceNo: string;
-  secondaryCategoryName: string;
-  suggestedTeachingType: TeachingType;
+  sequenceNo: string | null;
+  secondaryCategoryName: string | null;
+  suggestedTeachingType: string | null;
   plannedTeacherJobNo: string | null;
   lessonPlanUrl: string | null;
 };
@@ -89,7 +95,7 @@ export class CourseOutlineImportService {
       sequenceNo: "01",
       secondaryCategoryName: "微积分一对一",
       suggestedTeachingType: "1v1",
-      plannedTeacherJobNo: "26001",
+      plannedTeacherJobNo: "张三",
       lessonPlanUrl: "https://example.com/plan/gp-01",
     });
 
@@ -204,52 +210,67 @@ export class CourseOutlineImportService {
 
   // ------------------------------- internals ------------------------------- //
 
+  private cellToString(value: ExcelJS.CellValue): string {
+    if (value == null) return "";
+    if (typeof value === "object" && "text" in value) return String(value.text ?? "").trim();
+    if (typeof value === "object" && "result" in value) return String(value.result ?? "").trim();
+    return String(value).trim();
+  }
+
+  private parseSectionFromSheetName(sheetName: string): Pick<ParsedRow["raw"], "sectionCode" | "sectionName"> {
+    const matched = sheetName.match(/^(.+?)[(（]([A-Z]{2})[)）]$/);
+    if (!matched) return {};
+    return {
+      sectionName: matched[1].trim(),
+      sectionCode: matched[2].trim(),
+    };
+  }
+
   private async parse(buffer: Buffer): Promise<{ rows: ParsedRow[]; errors: ImportRowError[] }> {
     const workbook = new ExcelJS.Workbook();
     await workbook.xlsx.load(buffer as unknown as ArrayBuffer);
-    const sheet = workbook.worksheets[0];
-    if (!sheet) {
+    if (workbook.worksheets.length === 0) {
       return { rows: [], errors: [{ row: 0, field: "header", message: "未找到任何工作表" }] };
     }
 
-    const headerRow = sheet.getRow(1);
-    const headerMap = new Map<number, Col>();
-    headerRow.eachCell((cell, colNumber) => {
-      const headerText = String(cell.value ?? "").trim();
-      const matched = COLUMNS.find((k) => COLUMN_HEADERS[k] === headerText);
-      if (matched) headerMap.set(colNumber, matched);
-    });
-
-    const present = new Set(headerMap.values());
-    const missing = REQUIRED_COLUMNS.filter((k) => !present.has(k));
-    if (missing.length > 0) {
-      return {
-        rows: [],
-        errors: [
-          {
-            row: 1,
-            field: "header",
-            message: `缺少列：${missing.map((k) => COLUMN_HEADERS[k]).join("、")}`,
-          },
-        ],
-      };
-    }
-
     const rows: ParsedRow[] = [];
-    for (let r = 2; r <= sheet.rowCount; r++) {
-      const row = sheet.getRow(r);
-      const raw: ParsedRow["raw"] = {};
-      let hasAny = false;
-      headerMap.forEach((key, colNumber) => {
-        const value = row.getCell(colNumber).value;
-        if (value !== null && value !== undefined && String(value).trim() !== "") {
-          raw[key] = String(value).trim();
-          hasAny = true;
-        }
+    const errors: ImportRowError[] = [];
+    for (const sheet of workbook.worksheets) {
+      const headerRow = sheet.getRow(1);
+      const headerMap = new Map<number, Col>();
+      headerRow.eachCell((cell, colNumber) => {
+        const headerText = this.cellToString(cell.value);
+        const matched = COLUMNS.find((k) => COLUMN_HEADER_ALIASES[k].includes(headerText));
+        if (matched) headerMap.set(colNumber, matched);
       });
-      if (hasAny) rows.push({ rowNumber: r, raw });
+
+      const sheetSection = this.parseSectionFromSheetName(sheet.name);
+      const present = new Set(headerMap.values());
+      const missing = REQUIRED_COLUMNS.filter((k) => !present.has(k));
+      if (missing.length > 0) {
+        errors.push({
+          row: 1,
+          field: "header",
+          message: `${sheet.name} 缺少列：${missing.map((k) => COLUMN_HEADERS[k]).join("、")}`,
+        });
+        continue;
+      }
+
+      for (let r = 2; r <= sheet.rowCount; r++) {
+        const row = sheet.getRow(r);
+        const raw: ParsedRow["raw"] = { ...sheetSection };
+        let hasAny = false;
+        headerMap.forEach((key, colNumber) => {
+          const value = this.cellToString(row.getCell(colNumber).value);
+          if (value !== "") {
+            raw[key] = value;
+            hasAny = true;
+          }
+        });
+        if (hasAny) rows.push({ rowNumber: r, raw });
+      }
     }
-    return { rows, errors: [] };
+    return { rows, errors };
   }
 
   private async validate(
@@ -258,17 +279,27 @@ export class CourseOutlineImportService {
     const errors: ImportRowError[] = [];
     const valid: ValidatedRow[] = [];
 
-    const teacherJobNos = new Set<string>();
+    const teacherInputs = new Set<string>();
     for (const { raw } of rows) {
-      if (raw.plannedTeacherJobNo) teacherJobNos.add(raw.plannedTeacherJobNo);
+      if (raw.plannedTeacherJobNo) {
+        for (const item of raw.plannedTeacherJobNo.split(/[;,，；、]/).map((s) => s.trim()).filter(Boolean)) {
+          teacherInputs.add(item);
+        }
+      }
     }
-    const teachers = teacherJobNos.size
+    const teachers = teacherInputs.size
       ? await this.prisma.employee.findMany({
-          where: { jobNo: { in: [...teacherJobNos] } },
-          select: { jobNo: true, employmentStatus: true },
+          where: {
+            OR: [
+              { jobNo: { in: [...teacherInputs] } },
+              { name: { in: [...teacherInputs] } },
+            ],
+          },
+          select: { jobNo: true, name: true, employmentStatus: true },
         })
       : [];
-    const teacherMap = new Map(teachers.map((t) => [t.jobNo, t]));
+    const teacherByJobNo = new Map(teachers.map((t) => [t.jobNo, t]));
+    const teacherByName = new Map(teachers.map((t) => [t.name, t]));
 
     const sectionNameByCode = new Map<string, string>();
     const seenKeys = new Set<string>();
@@ -276,11 +307,7 @@ export class CourseOutlineImportService {
     for (const { rowNumber, raw } of rows) {
       const rowErrors: ImportRowError[] = [];
 
-      for (const key of REQUIRED_COLUMNS) {
-        if (!raw[key]) rowErrors.push({ row: rowNumber, field: COLUMN_HEADERS[key], message: "必填" });
-      }
-
-      const sectionCode = raw.sectionCode ?? "";
+      const sectionCode = raw.sectionCode ?? (raw.sectionName ? COURSE_SECTION_CODE_BY_LABEL[raw.sectionName] ?? "" : "");
       if (sectionCode && !(COURSE_SECTION_CODES as readonly string[]).includes(sectionCode)) {
         // spec §2.3.3: 板块代码必须在 12 个预定义枚举内。
         rowErrors.push({
@@ -363,20 +390,25 @@ export class CourseOutlineImportService {
         });
       }
 
+      let plannedTeacherJobNo: string | null = null;
       if (raw.plannedTeacherJobNo) {
-        const t = teacherMap.get(raw.plannedTeacherJobNo);
-        if (!t) {
-          rowErrors.push({
-            row: rowNumber,
-            field: "计划授课老师工号",
-            message: `员工 ${raw.plannedTeacherJobNo} 不存在`,
-          });
-        } else if (t.employmentStatus === "RESIGNED") {
-          rowErrors.push({
-            row: rowNumber,
-            field: "计划授课老师工号",
-            message: `员工 ${raw.plannedTeacherJobNo} 已离职`,
-          });
+        for (const item of raw.plannedTeacherJobNo.split(/[;,，；、]/).map((s) => s.trim()).filter(Boolean)) {
+          const t = teacherByJobNo.get(item) ?? teacherByName.get(item);
+          if (!t) {
+            rowErrors.push({
+              row: rowNumber,
+              field: "计划授课老师",
+              message: `员工 ${item} 不存在`,
+            });
+          } else if (t.employmentStatus === "RESIGNED") {
+            rowErrors.push({
+              row: rowNumber,
+              field: "计划授课老师",
+              message: `员工 ${item} 已离职`,
+            });
+          } else if (!plannedTeacherJobNo) {
+            plannedTeacherJobNo = t.jobNo;
+          }
         }
       }
 
@@ -407,10 +439,10 @@ export class CourseOutlineImportService {
         sectionCode,
         sectionName,
         sectionDisplayOrder,
-        sequenceNo,
-        secondaryCategoryName: raw.secondaryCategoryName!,
-        suggestedTeachingType: raw.suggestedTeachingType as TeachingType,
-        plannedTeacherJobNo: raw.plannedTeacherJobNo ?? null,
+        sequenceNo: sequenceNo || null,
+        secondaryCategoryName: raw.secondaryCategoryName ?? null,
+        suggestedTeachingType: raw.suggestedTeachingType ?? null,
+        plannedTeacherJobNo,
         lessonPlanUrl: raw.lessonPlanUrl ?? null,
       });
     }

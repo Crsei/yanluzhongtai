@@ -99,7 +99,7 @@ export function CourseOutlinePage() {
     confirmDeleteItems(
       targets.map((t) => ({
         id: t.id,
-        secondaryCategoryName: t.secondaryCategoryName,
+        secondaryCategoryName: t.secondaryCategoryName ?? "",
       })),
       async () => {
         await mutations.deleteItems.mutateAsync(selectedIds);

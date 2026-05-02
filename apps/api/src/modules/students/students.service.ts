@@ -136,10 +136,25 @@ export class StudentsService {
   }
 
   async create(dto: CreateStudentDto, operatorId: string): Promise<Student> {
-    const seq = await this.idSequence.allocate("student", dto.enrollmentYear);
-    const studentNo = formatStudentNo(dto.enrollmentYear, seq);
+    const sequenceYear = dto.enrollmentYear ?? new Date().getFullYear();
+    const seq = await this.idSequence.allocate("student", sequenceYear);
+    const studentNo = formatStudentNo(sequenceYear, seq);
     const created = await this.prisma.student.create({
-      data: { ...dto, studentNo, detailNotes: (dto.detailNotes ?? null) as Prisma.InputJsonValue },
+      data: {
+        ...dto,
+        studentNo,
+        name: dto.name ?? null,
+        gender: dto.gender ?? null,
+        servicePlatform: dto.servicePlatform ?? null,
+        source: dto.source ?? null,
+        serviceStatus: dto.serviceStatus ?? null,
+        serviceChecklistKeys: dto.serviceChecklistKeys ?? [],
+        policyKeys: dto.policyKeys ?? [],
+        scheduleKeys: dto.scheduleKeys ?? [],
+        transcriptKeys: dto.transcriptKeys ?? [],
+        attachmentKeys: dto.attachmentKeys ?? [],
+        detailNotes: (dto.detailNotes ?? null) as Prisma.InputJsonValue,
+      },
     });
     await this.auditLogs.record({
       operatorId,

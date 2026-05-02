@@ -70,15 +70,15 @@ export class CourseOutlineItemsService {
         throw new BadRequestException("必须提供 sectionCode 或 newSection");
       }
 
-      const sequenceNo = dto.sequenceNo.padStart(2, "0");
+      const sequenceNo = dto.sequenceNo?.padStart(2, "0") ?? null;
       try {
         return await tx.courseOutlineItem.create({
           data: {
             outlineVersionId: versionId,
             sectionCode: section.code,
             sequenceNo,
-            secondaryCategoryName: dto.secondaryCategoryName,
-            suggestedTeachingType: dto.suggestedTeachingType,
+            secondaryCategoryName: dto.secondaryCategoryName ?? null,
+            suggestedTeachingType: dto.suggestedTeachingType ?? null,
             plannedTeacherJobNo: dto.plannedTeacherJobNo ?? null,
             lessonPlanUrl: dto.lessonPlanUrl ?? null,
           },
@@ -126,9 +126,9 @@ export class CourseOutlineItemsService {
 
     const data: Prisma.CourseOutlineItemUpdateInput = {};
     if (dto.sectionCode !== undefined) data.sectionCode = dto.sectionCode;
-    if (dto.sequenceNo !== undefined) data.sequenceNo = dto.sequenceNo.padStart(2, "0");
-    if (dto.secondaryCategoryName !== undefined) data.secondaryCategoryName = dto.secondaryCategoryName;
-    if (dto.suggestedTeachingType !== undefined) data.suggestedTeachingType = dto.suggestedTeachingType;
+    if (dto.sequenceNo !== undefined) data.sequenceNo = dto.sequenceNo ? dto.sequenceNo.padStart(2, "0") : null;
+    if (dto.secondaryCategoryName !== undefined) data.secondaryCategoryName = dto.secondaryCategoryName || null;
+    if (dto.suggestedTeachingType !== undefined) data.suggestedTeachingType = dto.suggestedTeachingType || null;
     if (dto.plannedTeacherJobNo !== undefined) {
       data.plannedTeacherJobNo = dto.plannedTeacherJobNo || null;
     }

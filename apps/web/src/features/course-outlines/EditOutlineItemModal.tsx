@@ -23,9 +23,9 @@ type Props = {
 
 type FormValues = {
   sectionCode: string;
-  sequenceNo: number;
-  secondaryCategoryName: string;
-  suggestedTeachingType: string;
+  sequenceNo?: number | null;
+  secondaryCategoryName?: string | null;
+  suggestedTeachingType?: string | null;
   plannedTeacherJobNo?: string | null;
   lessonPlanUrl?: string;
 };
@@ -44,9 +44,9 @@ export function EditOutlineItemModal({
     if (open && item) {
       form.setFieldsValue({
         sectionCode: item.sectionCode,
-        sequenceNo: Number(item.sequenceNo),
-        secondaryCategoryName: item.secondaryCategoryName,
-        suggestedTeachingType: item.suggestedTeachingType,
+        sequenceNo: item.sequenceNo ? Number(item.sequenceNo) : null,
+        secondaryCategoryName: item.secondaryCategoryName ?? undefined,
+        suggestedTeachingType: item.suggestedTeachingType ?? undefined,
         plannedTeacherJobNo: item.plannedTeacherJobNo ?? undefined,
         lessonPlanUrl: item.lessonPlanUrl ?? undefined,
       });
@@ -64,9 +64,9 @@ export function EditOutlineItemModal({
     const v = await form.validateFields();
     const body: UpdateItemBody = {
       sectionCode: v.sectionCode,
-      sequenceNo: String(v.sequenceNo).padStart(2, "0"),
-      secondaryCategoryName: v.secondaryCategoryName.trim(),
-      suggestedTeachingType: v.suggestedTeachingType,
+      sequenceNo: v.sequenceNo == null ? null : String(v.sequenceNo).padStart(2, "0"),
+      secondaryCategoryName: v.secondaryCategoryName?.trim() || null,
+      suggestedTeachingType: v.suggestedTeachingType ?? null,
       plannedTeacherJobNo: v.plannedTeacherJobNo ?? null,
       lessonPlanUrl: v.lessonPlanUrl?.trim() || null,
     };

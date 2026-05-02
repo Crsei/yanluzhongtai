@@ -203,7 +203,7 @@ export class PayrollService {
 
     return {
       employeeJobNo: teacherJobNo,
-      employeeName: emp.name,
+      employeeName: emp.name ?? "",
       period,
       hourlyRate: rate,
       deliveredHours,
@@ -229,7 +229,7 @@ export class PayrollService {
     return rows.map((r) => ({
       id: r.id,
       courseNo: r.courseNo,
-      name: r.name,
+      name: r.name ?? "",
       plannedAt: r.plannedAt ? r.plannedAt.toISOString() : null,
       durationMinutes: r.durationMinutes,
       creditHours: computeCreditHours(r.durationMinutes),

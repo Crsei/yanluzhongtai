@@ -74,14 +74,26 @@ export const SERVICE_STATUS_BY_LABEL: Record<string, ServiceStatus> =
     Object.entries(SERVICE_STATUS_LABELS).map(([code, label]) => [label, code as ServiceStatus]),
   );
 
-export const SERVICE_PLATFORM = ["研录保研", "研录考研", "高途", "其他"] as const;
+export const SERVICE_PLATFORM = [
+  "企业微信",
+  "飞书",
+  "微信",
+  "研录保研",
+  "研录考研",
+  "高途",
+  "其他",
+] as const;
 export type ServicePlatform = (typeof SERVICE_PLATFORM)[number];
 
 export const STUDENT_SOURCE = [
   "自有流量",
+  "自营（保研）",
+  "自营（考研/单项）",
   "研录考研",
   "高途",
+  "高途合作",
   "转介绍",
+  "陈崔-渠道合作",
   "其他",
 ] as const;
 export type StudentSource = (typeof STUDENT_SOURCE)[number];
@@ -122,7 +134,16 @@ export type StorageFolder = (typeof STORAGE_FOLDERS)[number];
 // ---------------------------------------------------------------------------
 
 /** 建议 / 实际授课方式 — shared between Phase 3 大纲 and Phase 4 课程详情。 */
-export const TEACHING_TYPE = ["公共课", "1v1", "小班课", "录播", "其他"] as const;
+export const TEACHING_TYPE = [
+  "公共课",
+  "公共课直播",
+  "1v1",
+  "小班课",
+  "录播",
+  "分发录播",
+  "外包",
+  "其他",
+] as const;
 export type TeachingType = (typeof TEACHING_TYPE)[number];
 
 /**

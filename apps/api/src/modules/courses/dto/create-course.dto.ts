@@ -14,13 +14,15 @@ import { TEACHING_TYPE, type TeachingType } from "../../../common/dictionaries";
 
 export class CreateCourseDto {
   /** Outline item (TT + KK source of truth). */
+  @IsOptional()
   @IsString()
-  outlineItemId!: string;
+  outlineItemId?: string | null;
 
   /** Course record display name (defaults to the item's secondaryCategoryName on form but still required). */
+  @IsOptional()
   @IsString()
   @MaxLength(120)
-  name!: string;
+  name?: string | null;
 
   @IsOptional()
   @IsDateString()

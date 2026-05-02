@@ -54,10 +54,10 @@ model User {
 model Employee {
   id               String           @id @default(cuid())
   jobNo            String           @unique
-  name             String
-  gender           String
-  employmentStatus EmploymentStatus @default(FULL_TIME)
-  jobTitle         String
+  name             String?
+  gender           String?
+  employmentStatus EmploymentStatus?
+  jobTitle         String?
   hireDate         DateTime?
   phone            String?
   bankCardNo       String?
@@ -75,19 +75,19 @@ model Employee {
 model Student {
   id                       String        @id @default(cuid())
   studentNo                String        @unique
-  name                     String
-  gender                   String
-  enrollmentYear           Int
-  graduationYear           Int
+  name                     String?
+  gender                   String?
+  enrollmentYear           Int?
+  graduationYear           Int?
   school                   String?
   major                    String?
   counselorJobNo           String?
   plannerJobNo             String?
   phone                    String?
   email                    String?
-  servicePlatform          String
-  source                   String
-  serviceStatus            ServiceStatus @default(NOT_STARTED)
+  servicePlatform          String?
+  source                   String?
+  serviceStatus            ServiceStatus?
   totalPublicCredits       Decimal?      @db.Decimal(8, 2)
   totalPrivateCredits      Decimal?      @db.Decimal(8, 2)
   remainingPublicCredits   Decimal?      @db.Decimal(8, 2)
@@ -139,9 +139,9 @@ model CourseOutlineItem {
   id                    String               @id @default(cuid())
   outlineVersionId      String
   sectionCode           String
-  sequenceNo            String
-  secondaryCategoryName String
-  suggestedTeachingType String
+  sequenceNo            String?
+  secondaryCategoryName String?
+  suggestedTeachingType String?
   plannedTeacherJobNo   String?
   lessonPlanUrl         String?
   outlineVersion        CourseOutlineVersion @relation(fields: [outlineVersionId], references: [id], onDelete: Cascade)
@@ -153,16 +153,16 @@ model CourseOutlineItem {
 model Course {
   id                    String               @id @default(cuid())
   courseNo              String               @unique
-  name                  String
+  name                  String?
   outlineVersionId      String?
   outlineItemId         String?
-  sectionCode           String
-  sectionName           String
-  categorySequenceNo    String
-  secondaryCategoryName String
+  sectionCode           String?
+  sectionName           String?
+  categorySequenceNo    String?
+  secondaryCategoryName String?
   suggestedTeachingType String?
   plannedAt             DateTime?
-  courseYear            Int
+  courseYear            Int?
   actualTeacherJobNo    String?
   actualTeachingType    String?
   durationMinutes       Int?

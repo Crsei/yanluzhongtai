@@ -8,10 +8,12 @@
  * "not-yet-enrolled" rows (e.g. 2026 enrollees queried in 2026-04).
  */
 export function calculateGrade(
-  enrollmentYear: number,
-  graduationYear: number,
+  enrollmentYear: number | null,
+  graduationYear: number | null,
   now: Date = new Date(),
 ): string | null {
+  if (enrollmentYear == null || graduationYear == null) return null;
+
   const currentYear = now.getFullYear();
   const currentMonth = now.getMonth() + 1; // 1..12
 
@@ -41,6 +43,7 @@ export function calculateGrade(
  */
 export const GRADE_TEXT_CASE_SQL = `
   CASE
+    WHEN "enrollmentYear" IS NULL OR "graduationYear" IS NULL THEN NULL
     WHEN EXTRACT(YEAR FROM CURRENT_DATE)::int > "graduationYear" THEN '已毕业'
     WHEN EXTRACT(YEAR FROM CURRENT_DATE)::int = "graduationYear" AND EXTRACT(MONTH FROM CURRENT_DATE) >= 7 THEN '已毕业'
     WHEN (CASE WHEN EXTRACT(MONTH FROM CURRENT_DATE) >= 9 THEN EXTRACT(YEAR FROM CURRENT_DATE)::int - "enrollmentYear" + 1 ELSE EXTRACT(YEAR FROM CURRENT_DATE)::int - "enrollmentYear" END) < 1 THEN NULL
@@ -58,6 +61,7 @@ export const GRADE_TEXT_CASE_SQL = `
  */
 export const GRADE_SORT_SQL = `
   CASE
+    WHEN "enrollmentYear" IS NULL OR "graduationYear" IS NULL THEN 999
     WHEN EXTRACT(YEAR FROM CURRENT_DATE)::int > "graduationYear" THEN 5
     WHEN EXTRACT(YEAR FROM CURRENT_DATE)::int = "graduationYear" AND EXTRACT(MONTH FROM CURRENT_DATE) >= 7 THEN 5
     WHEN (CASE WHEN EXTRACT(MONTH FROM CURRENT_DATE) >= 9 THEN EXTRACT(YEAR FROM CURRENT_DATE)::int - "enrollmentYear" + 1 ELSE EXTRACT(YEAR FROM CURRENT_DATE)::int - "enrollmentYear" END) >= 5 THEN 0

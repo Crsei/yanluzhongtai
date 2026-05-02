@@ -107,7 +107,7 @@ export function CourseFormModal({ open, mode, course, onClose }: Props) {
       return;
     }
     if (!course) return;
-    setSectionCode(course.sectionCode);
+    setSectionCode(course.sectionCode ?? undefined);
     setCategoryItemId(course.outlineItemId ?? undefined);
     setStudents(course.students);
     form.setFieldsValue({
@@ -124,7 +124,7 @@ export function CourseFormModal({ open, mode, course, onClose }: Props) {
   }, [open, mode, course, form]);
 
   const onFinish = async (values: {
-    name: string;
+    name?: string | null;
     plannedAt?: Dayjs | null;
     actualTeacherJobNo?: string | null;
     actualTeachingType?: string | null;
@@ -134,10 +134,9 @@ export function CourseFormModal({ open, mode, course, onClose }: Props) {
     resourceUrl?: string | null;
     note?: string | null;
   }) => {
-    if (!categoryItemId) return;
     const payload: CreateCourseBody | UpdateCourseBody = {
-      outlineItemId: categoryItemId,
-      name: values.name,
+      outlineItemId: categoryItemId ?? null,
+      name: values.name ?? null,
       plannedAt: values.plannedAt ? values.plannedAt.toISOString() : null,
       actualTeacherJobNo: values.actualTeacherJobNo ?? null,
       actualTeachingType:
@@ -175,7 +174,6 @@ export function CourseFormModal({ open, mode, course, onClose }: Props) {
             <Button
               type="primary"
               loading={create.isPending || update.isPending}
-              disabled={!categoryItemId}
               onClick={() => form.submit()}
             >
               保存
@@ -216,12 +214,11 @@ export function CourseFormModal({ open, mode, course, onClose }: Props) {
             <Form.Item
               label="课程名称"
               name="name"
-              rules={[{ required: true, message: "必填" }]}
             >
               <Input maxLength={120} />
             </Form.Item>
 
-            <Form.Item label="课程所属板块" required>
+            <Form.Item label="课程所属板块">
               <Select
                 placeholder="请选择板块"
                 value={sectionCode}
@@ -236,7 +233,7 @@ export function CourseFormModal({ open, mode, course, onClose }: Props) {
               />
             </Form.Item>
 
-            <Form.Item label="二级课程类别" required>
+            <Form.Item label="二级课程类别">
               <Select
                 placeholder={sectionCode ? "请选择类别" : "请先选择板块"}
                 disabled={!sectionCode}
@@ -298,7 +295,7 @@ export function CourseFormModal({ open, mode, course, onClose }: Props) {
                 <Input
                   readOnly
                   value={students
-                    .map((s) => `${s.name}(${s.studentNo})`)
+                    .map((s) => `${s.name ?? "未命名"}(${s.studentNo})`)
                     .join(", ")}
                   placeholder="尚未选择学生"
                 />

@@ -203,24 +203,28 @@ export class CoursesService {
   }
 
   async create(dto: CreateCourseDto, operatorId: string): Promise<CourseDetail> {
-    const item = await this.prisma.courseOutlineItem.findUnique({
-      where: { id: dto.outlineItemId },
-      include: { outlineVersion: true },
-    });
-    if (!item) throw new NotFoundException("课程大纲条目不存在");
+    const item = dto.outlineItemId
+      ? await this.prisma.courseOutlineItem.findUnique({
+          where: { id: dto.outlineItemId },
+          include: { outlineVersion: true },
+        })
+      : null;
+    if (dto.outlineItemId && !item) throw new NotFoundException("课程大纲条目不存在");
 
-    const section = await this.prisma.courseSection.findUnique({
-      where: {
-        outlineVersionId_code: {
-          outlineVersionId: item.outlineVersionId,
-          code: item.sectionCode,
-        },
-      },
-    });
-    if (!section) throw new BadRequestException("大纲条目所属板块缺失,请先修复大纲");
+    const section = item
+      ? await this.prisma.courseSection.findUnique({
+          where: {
+            outlineVersionId_code: {
+              outlineVersionId: item.outlineVersionId,
+              code: item.sectionCode,
+            },
+          },
+        })
+      : null;
+    if (item && !section) throw new BadRequestException("大纲条目所属板块缺失,请先修复大纲");
 
-    const tt = normalizeTt(item.sectionCode);
-    const kk = normalizeKk(item.sequenceNo);
+    const tt = item ? normalizeTt(item.sectionCode) : "XX";
+    const kk = item?.sequenceNo ? normalizeKk(item.sequenceNo) : "99";
     const plannedAt = dto.plannedAt ? new Date(dto.plannedAt) : null;
     const { yy, year } = deriveYy(plannedAt);
     const seq = await this.idSequence.allocate(composeCourseSeqKind(tt, kk), year);
@@ -242,14 +246,14 @@ export class CoursesService {
       const row = await tx.course.create({
         data: {
           courseNo,
-          name: dto.name,
-          outlineVersionId: item.outlineVersionId,
-          outlineItemId: item.id,
-          sectionCode: tt,
-          sectionName: section.name,
-          categorySequenceNo: kk,
-          secondaryCategoryName: item.secondaryCategoryName,
-          suggestedTeachingType: item.suggestedTeachingType,
+          name: dto.name ?? item?.secondaryCategoryName ?? null,
+          outlineVersionId: item?.outlineVersionId ?? null,
+          outlineItemId: item?.id ?? null,
+          sectionCode: item ? tt : null,
+          sectionName: section?.name ?? null,
+          categorySequenceNo: item?.sequenceNo ? kk : null,
+          secondaryCategoryName: item?.secondaryCategoryName ?? null,
+          suggestedTeachingType: item?.suggestedTeachingType ?? null,
           plannedAt,
           courseYear: year,
           actualTeacherJobNo: dto.actualTeacherJobNo ?? null,
@@ -322,9 +326,9 @@ export class CoursesService {
         outlineItemId: item.id,
         sectionCode: normalizeTt(item.sectionCode),
         sectionName: section.name,
-        categorySequenceNo: normalizeKk(item.sequenceNo),
-        secondaryCategoryName: item.secondaryCategoryName,
-        suggestedTeachingType: item.suggestedTeachingType,
+        categorySequenceNo: item.sequenceNo ? normalizeKk(item.sequenceNo) : null,
+        secondaryCategoryName: item.secondaryCategoryName ?? null,
+        suggestedTeachingType: item.suggestedTeachingType ?? null,
       };
     }
 

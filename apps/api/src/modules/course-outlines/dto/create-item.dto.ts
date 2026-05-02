@@ -35,16 +35,19 @@ export class CreateItemDto {
    * Accepts 1–99 as a 1-2 digit string. Service pads to two digits before
    * persisting.
    */
+  @IsOptional()
   @IsString()
   @Matches(/^\d{1,2}$/, { message: "序列号需为 1-2 位数字" })
-  sequenceNo!: string;
+  sequenceNo?: string;
 
+  @IsOptional()
   @IsString()
   @MaxLength(100)
-  secondaryCategoryName!: string;
+  secondaryCategoryName?: string | null;
 
+  @IsOptional()
   @IsIn(TEACHING_TYPE as unknown as string[])
-  suggestedTeachingType!: TeachingType;
+  suggestedTeachingType?: TeachingType | null;
 
   @IsOptional()
   @IsString()
