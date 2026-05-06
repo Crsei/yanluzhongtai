@@ -5,11 +5,14 @@
  * one auto row + zero or more manual rows.
  */
 
+import type { PayrollTeachingType } from "../../common/payroll/teaching-type";
+
 export type PayrollAutoRow = {
   kind: "auto";
   employeeJobNo: string;
   employeeName: string;
   period: string;
+  teachingType: PayrollTeachingType;
   hourlyRate: number | null;
   deliveredHours: number;
   totalCourseFee: number | null;
@@ -26,6 +29,7 @@ export type PayrollManualRow = {
   employeeJobNo: string;
   employeeName: string;
   period: string;
+  teachingType: null;
   hourlyRate: null;
   deliveredHours: 0;
   totalCourseFee: 0;
@@ -47,6 +51,7 @@ export type PayrollRowState = {
   employeeJobNo: string;
   employeeName: string;
   period: string;
+  teachingType: PayrollTeachingType;
   hourlyRate: number | null;
   deliveredHours: number;
   payable: number | null;

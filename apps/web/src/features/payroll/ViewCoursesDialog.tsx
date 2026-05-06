@@ -1,13 +1,14 @@
 import { Empty, Modal, Table } from "antd";
 import { useQuery } from "@tanstack/react-query";
 import { payrollApi } from "../../services/payroll";
-import type { PayrollCourseItem } from "./types";
+import type { PayrollCourseItem, PayrollTeachingType } from "./types";
 
 type Props = {
   open: boolean;
   teacherJobNo: string;
   teacherName: string;
   period: string;
+  teachingType: PayrollTeachingType;
   onClose: () => void;
 };
 
@@ -21,11 +22,13 @@ export function ViewCoursesDialog({
   teacherJobNo,
   teacherName,
   period,
+  teachingType,
   onClose,
 }: Props) {
   const q = useQuery({
-    queryKey: ["payroll", "courses", teacherJobNo, period],
-    queryFn: () => payrollApi.coursesForTeacherPeriod(teacherJobNo, period),
+    queryKey: ["payroll", "courses", teacherJobNo, period, teachingType],
+    queryFn: () =>
+      payrollApi.coursesForTeacherPeriod(teacherJobNo, period, teachingType),
     enabled: open && Boolean(teacherJobNo) && Boolean(period),
   });
 
@@ -60,7 +63,7 @@ export function ViewCoursesDialog({
   return (
     <Modal
       open={open}
-      title={`${teacherName} · ${period} 课程`}
+      title={`${teacherName} · ${period} · ${teachingType} 课程`}
       width={900}
       footer={null}
       onCancel={onClose}

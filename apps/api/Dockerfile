@@ -1,6 +1,6 @@
 FROM node:20-alpine
 
-RUN apk add --no-cache openssl
+RUN apk add --no-cache openssl python3 make g++
 RUN corepack enable
 WORKDIR /app
 
@@ -19,4 +19,3 @@ WORKDIR /app/apps/api
 EXPOSE 3000
 
 CMD ["sh", "-c", "pnpm prisma:generate && node dist/main.js"]
-

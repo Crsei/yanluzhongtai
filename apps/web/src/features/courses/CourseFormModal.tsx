@@ -61,6 +61,7 @@ export function CourseFormModal({ open, mode, course, onClose }: Props) {
   const [categoryItemId, setCategoryItemId] = useState<string | undefined>(
     undefined,
   );
+  const [categoryError, setCategoryError] = useState<string | null>(null);
   const [pickerOpen, setPickerOpen] = useState(false);
   const [students, setStudents] = useState<PickedStudent[]>([]);
   const [form] = Form.useForm();
@@ -103,12 +104,14 @@ export function CourseFormModal({ open, mode, course, onClose }: Props) {
       form.resetFields();
       setSectionCode(undefined);
       setCategoryItemId(undefined);
+      setCategoryError(null);
       setStudents([]);
       return;
     }
     if (!course) return;
     setSectionCode(course.sectionCode ?? undefined);
     setCategoryItemId(course.outlineItemId ?? undefined);
+    setCategoryError(null);
     setStudents(course.students);
     form.setFieldsValue({
       name: course.name,
@@ -134,6 +137,13 @@ export function CourseFormModal({ open, mode, course, onClose }: Props) {
     resourceUrl?: string | null;
     note?: string | null;
   }) => {
+    if (!sectionCode || !categoryItemId) {
+      setCategoryError(
+        !sectionCode ? "请选择课程所属板块" : "请选择二级课程类别",
+      );
+      return;
+    }
+
     const payload: CreateCourseBody | UpdateCourseBody = {
       outlineItemId: categoryItemId ?? null,
       name: values.name ?? null,
@@ -157,6 +167,13 @@ export function CourseFormModal({ open, mode, course, onClose }: Props) {
     }
     onClose();
   };
+
+  const sectionError =
+    categoryError && !sectionCode ? "请选择课程所属板块" : null;
+  const categoryItemError =
+    categoryError && sectionCode && !categoryItemId
+      ? "请选择二级课程类别"
+      : null;
 
   return (
     <Modal
@@ -201,6 +218,7 @@ export function CourseFormModal({ open, mode, course, onClose }: Props) {
             layout="vertical"
             onFinish={onFinish}
             disabled={readOnly}
+            requiredMark={!readOnly}
             style={{
               display: "grid",
               gridTemplateColumns: "1fr 1fr",
@@ -214,17 +232,27 @@ export function CourseFormModal({ open, mode, course, onClose }: Props) {
             <Form.Item
               label="课程名称"
               name="name"
+              rules={[
+                { required: true, message: "请输入课程名称" },
+                { max: 120 },
+              ]}
             >
               <Input maxLength={120} />
             </Form.Item>
 
-            <Form.Item label="课程所属板块">
+            <Form.Item
+              label="课程所属板块"
+              required
+              validateStatus={sectionError ? "error" : undefined}
+              help={sectionError ?? undefined}
+            >
               <Select
                 placeholder="请选择板块"
                 value={sectionCode}
                 onChange={(v) => {
                   setSectionCode(v);
                   setCategoryItemId(undefined);
+                  setCategoryError(null);
                 }}
                 options={sections.map((s) => ({
                   value: s.code,
@@ -233,13 +261,19 @@ export function CourseFormModal({ open, mode, course, onClose }: Props) {
               />
             </Form.Item>
 
-            <Form.Item label="二级课程类别">
+            <Form.Item
+              label="二级课程类别"
+              required
+              validateStatus={categoryItemError ? "error" : undefined}
+              help={categoryItemError ?? undefined}
+            >
               <Select
                 placeholder={sectionCode ? "请选择类别" : "请先选择板块"}
                 disabled={!sectionCode}
                 value={categoryItemId}
                 onChange={(v) => {
                   setCategoryItemId(v);
+                  setCategoryError(null);
                   const matched = activeOutline?.items.find((i) => i.id === v);
                   if (matched && !form.getFieldValue("name")) {
                     form.setFieldsValue({ name: matched.secondaryCategoryName });

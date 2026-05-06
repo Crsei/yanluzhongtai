@@ -5,6 +5,7 @@ import type {
   PayrollListResponse,
   PayrollQueryParams,
   PayrollRowState,
+  PayrollTeachingType,
   SettlePayrollBody,
 } from "../features/payroll/types";
 
@@ -26,13 +27,21 @@ function toQuery(params: PayrollQueryParams): string {
 export const payrollApi = {
   list: (params: PayrollQueryParams) =>
     api.get<PayrollListResponse>(`/payroll${toQuery(params)}`),
-  rowState: (jobNo: string, period: string) =>
+  rowState: (
+    jobNo: string,
+    period: string,
+    teachingType: PayrollTeachingType,
+  ) =>
     api.get<PayrollRowState>(
-      `/payroll/row/${encodeURIComponent(jobNo)}/${encodeURIComponent(period)}`,
+      `/payroll/row/${encodeURIComponent(jobNo)}/${encodeURIComponent(period)}?teachingType=${encodeURIComponent(teachingType)}`,
     ),
-  coursesForTeacherPeriod: (teacherJobNo: string, period: string) =>
+  coursesForTeacherPeriod: (
+    teacherJobNo: string,
+    period: string,
+    teachingType: PayrollTeachingType,
+  ) =>
     api.get<PayrollCourseItem[]>(
-      `/payroll/courses?teacherJobNo=${encodeURIComponent(teacherJobNo)}&period=${encodeURIComponent(period)}`,
+      `/payroll/courses?teacherJobNo=${encodeURIComponent(teacherJobNo)}&period=${encodeURIComponent(period)}&teachingType=${encodeURIComponent(teachingType)}`,
     ),
   settle: (body: SettlePayrollBody) =>
     api.post<unknown>(`/payroll/settlements`, body),

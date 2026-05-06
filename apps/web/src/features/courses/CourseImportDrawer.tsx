@@ -55,7 +55,9 @@ export function CourseImportDrawer({ open, onClose }: Props) {
       onSuccess?.({ key });
     } catch (err) {
       onError?.(err as Error);
-      message.error("上传或预校验失败");
+      message.error(
+        err instanceof Error ? err.message : "上传或预校验失败",
+      );
     } finally {
       setUploading(false);
     }
@@ -93,7 +95,11 @@ export function CourseImportDrawer({ open, onClose }: Props) {
       extra={
         <Button
           icon={<DownloadOutlined />}
-          onClick={() => coursesApi.downloadTemplate()}
+          onClick={() =>
+            coursesApi.downloadTemplate().catch((err) =>
+              message.error(err instanceof Error ? err.message : "下载失败"),
+            )
+          }
         >
           下载模板
         </Button>

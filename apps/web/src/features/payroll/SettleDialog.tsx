@@ -10,12 +10,14 @@ import { useQuery } from "@tanstack/react-query";
 import { useEffect } from "react";
 import { payrollApi } from "../../services/payroll";
 import { usePayrollMutations } from "./hooks/usePayrollMutations";
+import type { PayrollTeachingType } from "./types";
 
 type Props = {
   open: boolean;
   teacherJobNo: string;
   teacherName: string;
   period: string;
+  teachingType: PayrollTeachingType;
   onClose: () => void;
 };
 
@@ -29,14 +31,15 @@ export function SettleDialog({
   teacherJobNo,
   teacherName,
   period,
+  teachingType,
   onClose,
 }: Props) {
   const [form] = Form.useForm<FormValues>();
   const { settle } = usePayrollMutations();
 
   const stateQ = useQuery({
-    queryKey: ["payroll", "row", teacherJobNo, period],
-    queryFn: () => payrollApi.rowState(teacherJobNo, period),
+    queryKey: ["payroll", "row", teacherJobNo, period, teachingType],
+    queryFn: () => payrollApi.rowState(teacherJobNo, period, teachingType),
     enabled: open && Boolean(teacherJobNo) && Boolean(period),
   });
 
@@ -65,6 +68,7 @@ export function SettleDialog({
     await settle.mutateAsync({
       employeeJobNo: teacherJobNo,
       settlementPeriod: period,
+      teachingType,
       hourlyRate: String(rate),
       paidAmount: String(values.paidAmount),
       extraLabor: "0",
@@ -96,6 +100,7 @@ export function SettleDialog({
           <Descriptions column={1} size="small" style={{ marginBottom: 16 }}>
             <Descriptions.Item label="老师">{teacherName}</Descriptions.Item>
             <Descriptions.Item label="所属年月">{period}</Descriptions.Item>
+            <Descriptions.Item label="授课方式">{teachingType}</Descriptions.Item>
             <Descriptions.Item label="已授课时">
               {state.deliveredHours.toFixed(2)}
             </Descriptions.Item>
@@ -114,7 +119,7 @@ export function SettleDialog({
               style={{ marginBottom: 12 }}
               type="info"
               showIcon
-              message={`该月单位课时费已确定为 ${state.hourlyRate} 元/课时,不得修改`}
+              message={`该月 ${teachingType} 单位课时费已确定为 ${state.hourlyRate} 元/课时,不得修改`}
             />
           ) : (
             <Alert

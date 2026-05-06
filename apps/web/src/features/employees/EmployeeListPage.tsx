@@ -63,7 +63,9 @@ export function EmployeeListPage() {
       setModalMode(mode);
       setModalOpen(true);
     } catch (err) {
-      message.error("无法加载员工详情");
+      message.error(
+        err instanceof Error ? err.message : "无法加载员工详情",
+      );
     }
   };
 

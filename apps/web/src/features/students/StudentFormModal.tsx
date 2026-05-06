@@ -97,7 +97,12 @@ export function StudentFormModal({ open, mode, initial, onClose, onModeChange }:
       styles={{ body: { maxHeight: "70vh", overflowY: "auto" } }}
       destroyOnClose
     >
-      <Form form={form} layout="vertical" disabled={disabled}>
+      <Form
+        form={form}
+        layout="vertical"
+        disabled={disabled}
+        requiredMark={!disabled}
+      >
         <SectionTitle>基础档案</SectionTitle>
         <Row gutter={16}>
           <Col span={12}>
@@ -106,12 +111,23 @@ export function StudentFormModal({ open, mode, initial, onClose, onModeChange }:
             </Form.Item>
           </Col>
           <Col span={12}>
-            <Form.Item label="学生姓名" name="name" rules={[{ max: 50 }]}>
+            <Form.Item
+              label="学生姓名"
+              name="name"
+              rules={[
+                { required: true, message: "请输入学生姓名" },
+                { max: 50 },
+              ]}
+            >
               <Input placeholder="请输入学生姓名" />
             </Form.Item>
           </Col>
           <Col span={12}>
-            <Form.Item label="性别" name="gender">
+            <Form.Item
+              label="性别"
+              name="gender"
+              rules={[{ required: true, message: "请选择性别" }]}
+            >
               <Select options={[{ value: "男", label: "男" }, { value: "女", label: "女" }]} />
             </Form.Item>
           </Col>
@@ -134,7 +150,18 @@ export function StudentFormModal({ open, mode, initial, onClose, onModeChange }:
             <Form.Item
               label="入学年份"
               name="enrollmentYear"
-              rules={[{ type: "integer", min: 2000, max: 2100 }]}
+              required
+              rules={[
+                ...(mode === "create"
+                  ? [{ required: true, message: "请输入入学年份" }]
+                  : []),
+                {
+                  type: "integer",
+                  min: 2000,
+                  max: 2100,
+                  message: "入学年份需为 2000-2100 之间的整数",
+                },
+              ]}
               tooltip={mode !== "create" ? "入学年份创建后不可修改，如需修正请删除后重建" : undefined}
             >
               <InputNumber
@@ -149,7 +176,15 @@ export function StudentFormModal({ open, mode, initial, onClose, onModeChange }:
             <Form.Item
               label="毕业年份"
               name="graduationYear"
-              rules={[{ type: "integer", min: 2000, max: 2100 }]}
+              rules={[
+                { required: true, message: "请输入毕业年份" },
+                {
+                  type: "integer",
+                  min: 2000,
+                  max: 2100,
+                  message: "毕业年份需为 2000-2100 之间的整数",
+                },
+              ]}
             >
               <InputNumber min={2000} max={2100} style={{ width: "100%" }} />
             </Form.Item>

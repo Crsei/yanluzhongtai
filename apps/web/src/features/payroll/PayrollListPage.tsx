@@ -24,6 +24,7 @@ import type {
   PayrollRangeMode,
   PayrollRow,
   PayrollQueryParams,
+  PayrollTeachingType,
 } from "./types";
 
 function formatPeriodFromDayjs(d: Dayjs): string {
@@ -98,6 +99,11 @@ function MoneyCell({
 export function PayrollListPage() {
   const [searchParams, setSearchParams] = useSearchParams();
   const { params, mode } = useMemo(() => readParams(searchParams), [searchParams]);
+  const [rangeMode, setRangeMode] = useState<PayrollRangeMode>(mode);
+
+  useEffect(() => {
+    setRangeMode(mode);
+  }, [mode]);
 
   const [keyword, setKeyword] = useState(params.keyword ?? "");
   useEffect(() => {
@@ -112,14 +118,17 @@ export function PayrollListPage() {
     teacherJobNo: string;
     teacherName: string;
     period: string;
+    teachingType: PayrollTeachingType;
   } | null>(null);
   const [viewCoursesFor, setViewCoursesFor] = useState<{
     teacherJobNo: string;
     teacherName: string;
     period: string;
+    teachingType: PayrollTeachingType;
   } | null>(null);
 
   const applyMode = (next: PayrollRangeMode) => {
+    setRangeMode(next);
     if (next === "current") {
       writeParams(
         { ...params, from: currentPeriod(), to: currentPeriod() },
@@ -131,7 +140,7 @@ export function PayrollListPage() {
         setSearchParams,
       );
     }
-    // custom: leave params alone; the RangePicker below writes them
+    // custom: keep current params so the RangePicker can open and then write them.
   };
 
   const applyCustomRange = (range: [Dayjs | null, Dayjs | null] | null) => {
@@ -199,6 +208,7 @@ export function PayrollListPage() {
                     teacherJobNo: r.employeeJobNo,
                     teacherName: r.employeeName,
                     period: r.period,
+                    teachingType: r.teachingType,
                   })
                 }
               >
@@ -213,6 +223,7 @@ export function PayrollListPage() {
                     teacherJobNo: r.employeeJobNo,
                     teacherName: r.employeeName,
                     period: r.period,
+                    teachingType: r.teachingType,
                   })
                 }
               >
@@ -236,6 +247,12 @@ export function PayrollListPage() {
     { title: "工号", dataIndex: "employeeJobNo", width: 100 },
     { title: "老师姓名", dataIndex: "employeeName", width: 140 },
     { title: "所属年月", dataIndex: "period", width: 100 },
+    {
+      title: "授课方式",
+      dataIndex: "teachingType",
+      width: 100,
+      render: (v: PayrollRow["teachingType"]) => v ?? "—",
+    },
     {
       title: "单位课时费",
       dataIndex: "hourlyRate",
@@ -282,7 +299,7 @@ export function PayrollListPage() {
 
   const rowKey = (r: PayrollRow) =>
     r.kind === "auto"
-      ? `auto:${r.employeeJobNo}:${r.period}`
+      ? `auto:${r.employeeJobNo}:${r.period}:${r.teachingType}`
       : `manual:${r.id}`;
 
   return (
@@ -303,7 +320,7 @@ export function PayrollListPage() {
             enterButton={<SearchOutlined />}
           />
           <Radio.Group
-            value={mode}
+            value={rangeMode}
             onChange={(e) => applyMode(e.target.value as PayrollRangeMode)}
             optionType="button"
             buttonStyle="solid"
@@ -313,7 +330,7 @@ export function PayrollListPage() {
               { label: "自定义", value: "custom" },
             ]}
           />
-          {mode === "custom" ? (
+          {rangeMode === "custom" ? (
             <DatePicker.RangePicker
               picker="month"
               format="YYYY-MM"
@@ -345,7 +362,7 @@ export function PayrollListPage() {
         dataSource={listQ.data?.items ?? []}
         columns={columns}
         loading={listQ.isLoading}
-        scroll={{ x: 1400 }}
+        scroll={{ x: 1500 }}
         pagination={{ defaultPageSize: 50, showSizeChanger: true }}
       />
 
@@ -359,6 +376,7 @@ export function PayrollListPage() {
           teacherJobNo={settleFor.teacherJobNo}
           teacherName={settleFor.teacherName}
           period={settleFor.period}
+          teachingType={settleFor.teachingType}
           onClose={() => setSettleFor(null)}
         />
       ) : null}
@@ -368,6 +386,7 @@ export function PayrollListPage() {
           teacherJobNo={viewCoursesFor.teacherJobNo}
           teacherName={viewCoursesFor.teacherName}
           period={viewCoursesFor.period}
+          teachingType={viewCoursesFor.teachingType}
           onClose={() => setViewCoursesFor(null)}
         />
       ) : null}

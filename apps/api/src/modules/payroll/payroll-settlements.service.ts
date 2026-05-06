@@ -2,9 +2,10 @@ import {
   BadRequestException,
   Injectable,
 } from "@nestjs/common";
-import { PayrollSettlement } from "@prisma/client";
+import { PayrollSettlement, Prisma } from "@prisma/client";
 import { periodBounds } from "../../common/payroll/period";
 import { computeCreditHours } from "../../common/course-no/course-status";
+import type { PayrollTeachingType } from "../../common/payroll/teaching-type";
 import { PrismaService } from "../../prisma/prisma.service";
 import { AuditLogsService } from "../audit-logs/audit-logs.service";
 import type { AuthUser } from "../auth/auth.types";
@@ -33,6 +34,7 @@ export class PayrollSettlementsService {
         actualTeacherJobNo: dto.employeeJobNo,
         durationMinutes: { not: null },
         plannedAt: { gte: bounds.start, lt: bounds.end },
+        ...this.courseTypeWhere(dto.teachingType),
       },
       select: { durationMinutes: true },
     });
@@ -41,11 +43,12 @@ export class PayrollSettlementsService {
       0,
     );
 
-    // 2. Enforce the "one rate per (teacher, period)" invariant (spec §9.2).
+    // 2. Enforce one rate per (teacher, period, teachingType).
     const history = await this.prisma.payrollSettlement.findMany({
       where: {
         employeeJobNo: dto.employeeJobNo,
         settlementPeriod: dto.settlementPeriod,
+        ...this.settlementTypeWhere(dto.teachingType),
       },
       select: { hourlyRate: true, subtotalPaid: true },
     });
@@ -58,7 +61,7 @@ export class PayrollSettlementsService {
       const existingRate = Number(history[0].hourlyRate);
       if (Math.abs(newRate - existingRate) > FLOAT_EPS) {
         throw new BadRequestException(
-          `该月单位课时费已为 ${existingRate} 元,不得更改`,
+          `该月 ${dto.teachingType} 单位课时费已为 ${existingRate} 元,不得更改`,
         );
       }
     }
@@ -93,6 +96,7 @@ export class PayrollSettlementsService {
         operatorPhone: operator.phone,
         employeeJobNo: dto.employeeJobNo,
         settlementPeriod: dto.settlementPeriod,
+        teachingType: dto.teachingType,
         hourlyRate: newRate,
         deliveredHours,
         extraLabor,
@@ -113,10 +117,30 @@ export class PayrollSettlementsService {
     return created;
   }
 
+  private courseTypeWhere(teachingType: PayrollTeachingType): Prisma.CourseWhereInput {
+    return teachingType === "1v1"
+      ? { actualTeachingType: "1v1" }
+      : {
+          OR: [
+            { actualTeachingType: null },
+            { actualTeachingType: { not: "1v1" } },
+          ],
+        };
+  }
+
+  private settlementTypeWhere(
+    teachingType: PayrollTeachingType,
+  ): Prisma.PayrollSettlementWhereInput {
+    return teachingType === "1v1"
+      ? { teachingType }
+      : { OR: [{ teachingType }, { teachingType: null }] };
+  }
+
   private snapshot(s: PayrollSettlement): Record<string, unknown> {
     return {
       employeeJobNo: s.employeeJobNo,
       settlementPeriod: s.settlementPeriod,
+      teachingType: s.teachingType,
       hourlyRate: s.hourlyRate.toString(),
       deliveredHours: s.deliveredHours.toString(),
       extraLabor: s.extraLabor.toString(),

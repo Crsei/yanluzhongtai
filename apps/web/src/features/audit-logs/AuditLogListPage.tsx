@@ -52,11 +52,13 @@ export function AuditLogListPage() {
     {
       title: "前值",
       dataIndex: "beforeValue",
+      width: 260,
       ellipsis: true,
     },
     {
       title: "后值",
       dataIndex: "afterValue",
+      width: 260,
       ellipsis: true,
     },
   ];
@@ -118,6 +120,7 @@ export function AuditLogListPage() {
         columns={columns}
         dataSource={data?.items ?? []}
         loading={isLoading}
+        scroll={{ x: 1440 }}
         pagination={{
           current: page,
           pageSize,

@@ -39,8 +39,8 @@ export function StudentImportDrawer({ open, onClose }: Props) {
   const handleTemplate = async () => {
     try {
       await studentsApi.downloadTemplate();
-    } catch {
-      message.error("模板下载失败");
+    } catch (err) {
+      message.error(err instanceof Error ? err.message : "模板下载失败");
     }
   };
 
@@ -51,8 +51,8 @@ export function StudentImportDrawer({ open, onClose }: Props) {
       setFileKey(key);
       const r = await studentsApi.importDryRun(key);
       setReport(r);
-    } catch {
-      message.error("文件解析失败");
+    } catch (err) {
+      message.error(err instanceof Error ? err.message : "文件解析失败");
       reset();
     } finally {
       setLoading(false);
@@ -76,8 +76,8 @@ export function StudentImportDrawer({ open, onClose }: Props) {
             : { totalRows: 0, validRows: 0, errors: result.errors },
         );
       }
-    } catch {
-      message.error("导入失败");
+    } catch (err) {
+      message.error(err instanceof Error ? err.message : "导入失败");
     } finally {
       setLoading(false);
     }

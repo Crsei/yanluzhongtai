@@ -138,7 +138,12 @@ export function EmployeeFormModal({ open, mode, employee, onClose, onModeChange 
       bodyStyle={{ maxHeight: "70vh", overflowY: "auto" }}
       footer={footer}
     >
-      <Form<FormValues> form={form} layout="vertical" disabled={readOnly}>
+      <Form<FormValues>
+        form={form}
+        layout="vertical"
+        disabled={readOnly}
+        requiredMark={!readOnly}
+      >
         <Row gutter={16}>
           <Col span={12}>
             <Form.Item label="工号">
@@ -149,7 +154,10 @@ export function EmployeeFormModal({ open, mode, employee, onClose, onModeChange 
             <Form.Item
               label="员工姓名"
               name="name"
-              rules={[{ max: 50 }]}
+              rules={[
+                { required: true, message: "请输入员工姓名" },
+                { max: 50 },
+              ]}
             >
               <Input placeholder="例：张三" />
             </Form.Item>
@@ -158,6 +166,7 @@ export function EmployeeFormModal({ open, mode, employee, onClose, onModeChange 
             <Form.Item
               label="性别"
               name="gender"
+              rules={[{ required: true, message: "请选择性别" }]}
             >
               <Select options={GENDER_OPTIONS} />
             </Form.Item>
@@ -166,15 +175,19 @@ export function EmployeeFormModal({ open, mode, employee, onClose, onModeChange 
             <Form.Item
               label="雇佣状态"
               name="employmentStatus"
+              rules={[{ required: true, message: "请选择雇佣状态" }]}
             >
               <Select options={EMPLOYMENT_STATUS_OPTIONS} />
             </Form.Item>
           </Col>
           <Col span={12}>
             <Form.Item
-              label="具体工作职能"
+              label="具体工作职责"
               name="jobTitle"
-              rules={[{ max: 100 }]}
+              rules={[
+                { required: true, message: "请输入具体工作职责" },
+                { max: 100 },
+              ]}
             >
               <Input placeholder="例：考研规划师" />
             </Form.Item>

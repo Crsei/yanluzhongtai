@@ -196,6 +196,7 @@ model PayrollSettlement {
   settledAt           DateTime @default(now())
   employeeJobNo       String
   settlementPeriod    String
+  teachingType        String?
   hourlyRate          Decimal  @db.Decimal(10, 2)
   deliveredHours      Decimal  @db.Decimal(10, 2)
   extraLabor          Decimal  @db.Decimal(10, 2)
@@ -204,6 +205,7 @@ model PayrollSettlement {
   subtotalPaid        Decimal  @db.Decimal(10, 2)
 
   @@index([employeeJobNo, settlementPeriod])
+  @@index([employeeJobNo, settlementPeriod, teachingType])
 }
 
 model PayrollManualRecord {

@@ -13,6 +13,7 @@ import { UserRole } from "@prisma/client";
 import { CurrentUser } from "../auth/decorators/current-user.decorator";
 import { Roles } from "../auth/decorators/roles.decorator";
 import type { AuthUser } from "../auth/auth.types";
+import { normalizePayrollTeachingType } from "../../common/payroll/teaching-type";
 import { CreateManualRecordDto } from "./dto/create-manual-record.dto";
 import { QueryPayrollDto } from "./dto/query-payroll.dto";
 import { SettlePayrollDto } from "./dto/settle-payroll.dto";
@@ -38,16 +39,26 @@ export class PayrollController {
   rowState(
     @Param("jobNo") jobNo: string,
     @Param("period") period: string,
+    @Query("teachingType") teachingType?: string,
   ) {
-    return this.payroll.getRowState(jobNo, period);
+    return this.payroll.getRowState(
+      jobNo,
+      period,
+      normalizePayrollTeachingType(teachingType),
+    );
   }
 
   @Get("courses")
   coursesForTeacherPeriod(
     @Query("teacherJobNo") teacherJobNo: string,
     @Query("period") period: string,
+    @Query("teachingType") teachingType?: string,
   ) {
-    return this.payroll.listCoursesForTeacherPeriod(teacherJobNo, period);
+    return this.payroll.listCoursesForTeacherPeriod(
+      teacherJobNo,
+      period,
+      normalizePayrollTeachingType(teachingType),
+    );
   }
 
   @Post("settlements")

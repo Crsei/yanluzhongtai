@@ -1,5 +1,5 @@
 import { Injectable, NotFoundException } from "@nestjs/common";
-import { PayrollManualRecord } from "@prisma/client";
+import { PayrollManualRecord, Prisma } from "@prisma/client";
 import {
   computeCreditHours,
 } from "../../common/course-no/course-status";
@@ -8,6 +8,10 @@ import {
   periodBounds,
   periodRangeToList,
 } from "../../common/payroll/period";
+import {
+  normalizePayrollTeachingType,
+  type PayrollTeachingType,
+} from "../../common/payroll/teaching-type";
 import { PrismaService } from "../../prisma/prisma.service";
 import { QueryPayrollDto } from "./dto/query-payroll.dto";
 import type {
@@ -22,12 +26,14 @@ import type {
 type AutoAggregate = {
   jobNo: string;
   period: string;
+  teachingType: PayrollTeachingType;
   hours: number;
 };
 
 type SettlementAggregate = {
   jobNo: string;
   period: string;
+  teachingType: PayrollTeachingType;
   rate: number;
   sumPaid: number;
   settlementIds: string[];
@@ -35,6 +41,33 @@ type SettlementAggregate = {
 
 function round2(value: number): number {
   return Math.round(value * 100) / 100;
+}
+
+function aggregateKey(
+  jobNo: string,
+  period: string,
+  teachingType: PayrollTeachingType,
+): string {
+  return `${jobNo}::${period}::${teachingType}`;
+}
+
+function courseTypeWhere(teachingType: PayrollTeachingType): Prisma.CourseWhereInput {
+  return teachingType === "1v1"
+    ? { actualTeachingType: "1v1" }
+    : {
+        OR: [
+          { actualTeachingType: null },
+          { actualTeachingType: { not: "1v1" } },
+        ],
+      };
+}
+
+function settlementTypeWhere(
+  teachingType: PayrollTeachingType,
+): Prisma.PayrollSettlementWhereInput {
+  return teachingType === "1v1"
+    ? { teachingType }
+    : { OR: [{ teachingType }, { teachingType: null }] };
 }
 
 @Injectable()
@@ -63,9 +96,9 @@ export class PayrollService {
       : [];
     const empMap = new Map(employees.map((e) => [e.jobNo, e.name]));
 
-    // Auto rows: one per (teacher, period) we actually saw course hours for,
-    // plus any (teacher, period) that has historical settlements even if no
-    // courses fell in this window (keeps paid history visible).
+    // Auto rows: one per (teacher, period, teachingType) we actually saw
+    // course hours for, plus any split that has historical settlements even
+    // if no courses fell in this window (keeps paid history visible).
     const autoKeys = new Set<string>(autoMap.keys());
     settlementMap.forEach((_, key) => autoKeys.add(key));
 
@@ -73,11 +106,11 @@ export class PayrollService {
     for (const key of autoKeys) {
       const hours = autoMap.get(key);
       const s = settlementMap.get(key);
-      const [jobNo, period] = (hours?.jobNo && hours?.period)
-        ? [hours.jobNo, hours.period]
+      const [jobNo, period, teachingType] = (hours?.jobNo && hours?.period)
+        ? [hours.jobNo, hours.period, hours.teachingType]
         : s
-          ? [s.jobNo, s.period]
-          : ["", ""];
+          ? [s.jobNo, s.period, s.teachingType]
+          : ["", "", "公共" as PayrollTeachingType];
       if (!jobNo) continue;
       const deliveredHours = round2(hours?.hours ?? 0);
       const rate = s?.rate ?? null;
@@ -88,6 +121,7 @@ export class PayrollService {
         employeeName:
           empMap.get(jobNo) ?? `(工号 ${jobNo} 已不存在)`,
         period,
+        teachingType,
         hourlyRate: rate,
         deliveredHours,
         totalCourseFee: totalFee,
@@ -110,6 +144,7 @@ export class PayrollService {
           empMap.get(m.employeeJobNo) ??
           `(工号 ${m.employeeJobNo} 已不存在)`,
         period: m.settlementPeriod,
+        teachingType: null,
         hourlyRate: null,
         deliveredHours: 0,
         totalCourseFee: 0,
@@ -150,6 +185,11 @@ export class PayrollService {
         if (byName !== 0) return byName;
         if (a.kind !== b.kind) return a.kind === "auto" ? -1 : 1;
         if (a.period !== b.period) return a.period.localeCompare(b.period);
+        if (a.kind === "auto" && b.kind === "auto") {
+          return a.teachingType.localeCompare(b.teachingType, "zh-Hans-CN", {
+            sensitivity: "base",
+          });
+        }
         if (a.kind === "manual" && b.kind === "manual") {
           return a.createdAt.localeCompare(b.createdAt);
         }
@@ -162,6 +202,7 @@ export class PayrollService {
   async getRowState(
     teacherJobNo: string,
     period: string,
+    teachingType: PayrollTeachingType,
   ): Promise<PayrollRowState> {
     const emp = await this.prisma.employee.findUnique({
       where: { jobNo: teacherJobNo },
@@ -178,11 +219,16 @@ export class PayrollService {
           actualTeacherJobNo: teacherJobNo,
           durationMinutes: { not: null },
           plannedAt: { gte: bounds.start, lt: bounds.end },
+          ...courseTypeWhere(teachingType),
         },
         select: { durationMinutes: true },
       }),
       this.prisma.payrollSettlement.findMany({
-        where: { employeeJobNo: teacherJobNo, settlementPeriod: period },
+        where: {
+          employeeJobNo: teacherJobNo,
+          settlementPeriod: period,
+          ...settlementTypeWhere(teachingType),
+        },
         select: { hourlyRate: true, subtotalPaid: true },
       }),
     ]);
@@ -205,6 +251,7 @@ export class PayrollService {
       employeeJobNo: teacherJobNo,
       employeeName: emp.name ?? "",
       period,
+      teachingType,
       hourlyRate: rate,
       deliveredHours,
       payable,
@@ -215,6 +262,7 @@ export class PayrollService {
   async listCoursesForTeacherPeriod(
     teacherJobNo: string,
     period: string,
+    teachingType: PayrollTeachingType,
   ): Promise<PayrollCourseItem[]> {
     const bounds = periodBounds(period);
     const rows = await this.prisma.course.findMany({
@@ -222,6 +270,7 @@ export class PayrollService {
         actualTeacherJobNo: teacherJobNo,
         durationMinutes: { not: null },
         plannedAt: { gte: bounds.start, lt: bounds.end },
+        ...courseTypeWhere(teachingType),
       },
       orderBy: [{ plannedAt: "asc" }],
       include: { _count: { select: { enrollments: true } } },
@@ -255,6 +304,7 @@ export class PayrollService {
         actualTeacherJobNo: true,
         plannedAt: true,
         durationMinutes: true,
+        actualTeachingType: true,
       },
     });
 
@@ -266,10 +316,12 @@ export class PayrollService {
       const m = c.plannedAt.getUTCMonth() + 1;
       const p = formatPeriod(y, m);
       if (!periodSet.has(p)) continue;
-      const key = `${c.actualTeacherJobNo}::${p}`;
+      const teachingType = normalizePayrollTeachingType(c.actualTeachingType);
+      const key = aggregateKey(c.actualTeacherJobNo, p, teachingType);
       const prev = map.get(key) ?? {
         jobNo: c.actualTeacherJobNo,
         period: p,
+        teachingType,
         hours: 0,
       };
       prev.hours += computeCreditHours(c.durationMinutes) ?? 0;
@@ -288,10 +340,12 @@ export class PayrollService {
     });
     const map = new Map<string, SettlementAggregate>();
     for (const s of rows) {
-      const key = `${s.employeeJobNo}::${s.settlementPeriod}`;
+      const teachingType = normalizePayrollTeachingType(s.teachingType);
+      const key = aggregateKey(s.employeeJobNo, s.settlementPeriod, teachingType);
       const cur = map.get(key) ?? {
         jobNo: s.employeeJobNo,
         period: s.settlementPeriod,
+        teachingType,
         rate: Number(s.hourlyRate),
         sumPaid: 0,
         settlementIds: [] as string[],

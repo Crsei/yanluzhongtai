@@ -1,8 +1,11 @@
+export type PayrollTeachingType = "1v1" | "公共";
+
 export type PayrollAutoRow = {
   kind: "auto";
   employeeJobNo: string;
   employeeName: string;
   period: string;
+  teachingType: PayrollTeachingType;
   hourlyRate: number | null;
   deliveredHours: number;
   totalCourseFee: number | null;
@@ -19,6 +22,7 @@ export type PayrollManualRow = {
   employeeJobNo: string;
   employeeName: string;
   period: string;
+  teachingType: null;
   hourlyRate: null;
   deliveredHours: 0;
   totalCourseFee: 0;
@@ -40,6 +44,7 @@ export type PayrollRowState = {
   employeeJobNo: string;
   employeeName: string;
   period: string;
+  teachingType: PayrollTeachingType;
   hourlyRate: number | null;
   deliveredHours: number;
   payable: number | null;
@@ -67,6 +72,7 @@ export type PayrollQueryParams = {
 export type SettlePayrollBody = {
   employeeJobNo: string;
   settlementPeriod: string;
+  teachingType: PayrollTeachingType;
   hourlyRate: string;
   paidAmount: string;
   extraLabor: string;

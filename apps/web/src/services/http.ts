@@ -25,6 +25,21 @@ type RefreshResponse = {
 const baseUrl = (import.meta.env.VITE_API_BASE_URL ?? "/api").replace(/\/$/, "");
 let refreshPromise: Promise<boolean> | null = null;
 
+function readServerMessage(body: unknown): string | null {
+  if (!body || typeof body !== "object") return null;
+  const message = (body as { message?: unknown }).message;
+  if (Array.isArray(message)) {
+    return message.map(String).filter(Boolean).join("；") || null;
+  }
+  if (message != null) return String(message);
+  const error = (body as { error?: unknown }).error;
+  return error != null ? String(error) : null;
+}
+
+function getFetchErrorMessage(err: unknown): string {
+  return err instanceof Error ? err.message : "请检查网络连接或后端服务状态";
+}
+
 async function tryRefreshAccessToken(): Promise<boolean> {
   if (refreshPromise) {
     return refreshPromise;
@@ -88,14 +103,23 @@ async function http<T>(path: string, init: HttpInit = {}): Promise<T> {
       body: body === undefined ? undefined : JSON.stringify(body),
     });
 
-  let res = await send(auth ? useAuthStore.getState().accessToken : null);
+  let res: Response;
+  try {
+    res = await send(auth ? useAuthStore.getState().accessToken : null);
+  } catch (err) {
+    throw new HttpError(0, `网络请求失败：${getFetchErrorMessage(err)}`);
+  }
 
   if (res.status === 401 && handle401 && auth) {
     const refreshed = await tryRefreshAccessToken();
     if (!refreshed) {
       throw new HttpError(401, "未登录或登录已过期");
     }
-    res = await send(useAuthStore.getState().accessToken);
+    try {
+      res = await send(useAuthStore.getState().accessToken);
+    } catch (err) {
+      throw new HttpError(0, `网络请求失败：${getFetchErrorMessage(err)}`);
+    }
     if (res.status === 401) {
       useAuthStore.getState().clearSession();
       throw new HttpError(401, "未登录或登录已过期");
@@ -124,13 +148,8 @@ async function http<T>(path: string, init: HttpInit = {}): Promise<T> {
 
   if (!res.ok) {
     const errorBody = await res.json().catch(() => null);
-    const message =
-      (errorBody && typeof errorBody === "object" && "message" in errorBody
-        ? Array.isArray((errorBody as { message: unknown }).message)
-          ? ((errorBody as { message: string[] }).message[0] ?? res.statusText)
-          : String((errorBody as { message: unknown }).message)
-        : null) ?? res.statusText;
-    throw new HttpError(res.status, message);
+    const message = readServerMessage(errorBody) ?? res.statusText;
+    throw new HttpError(res.status, `请求失败（${res.status}）：${message}`);
   }
 
   if (res.status === 204) {
@@ -152,14 +171,25 @@ export async function downloadAuthed(path: string, filename: string): Promise<vo
       headers: token ? { Authorization: `Bearer ${token}` } : {},
     });
 
-  let res = await send(useAuthStore.getState().accessToken);
+  let res: Response;
+  try {
+    res = await send(useAuthStore.getState().accessToken);
+  } catch (err) {
+    throw new HttpError(0, `网络请求失败：${getFetchErrorMessage(err)}`);
+  }
   if (res.status === 401) {
     const refreshed = await tryRefreshAccessToken();
     if (!refreshed) throw new HttpError(401, "未登录或登录已过期");
-    res = await send(useAuthStore.getState().accessToken);
+    try {
+      res = await send(useAuthStore.getState().accessToken);
+    } catch (err) {
+      throw new HttpError(0, `网络请求失败：${getFetchErrorMessage(err)}`);
+    }
   }
   if (!res.ok) {
-    throw new HttpError(res.status, res.statusText);
+    const errorBody = await res.json().catch(() => null);
+    const message = readServerMessage(errorBody) ?? res.statusText;
+    throw new HttpError(res.status, `请求失败（${res.status}）：${message}`);
   }
 
   const blob = await res.blob();
