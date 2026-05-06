@@ -37,3 +37,5 @@ tmp/
 # Phase 6: QuickLink DOWNLOAD 目标文件（实际二进制不进仓库）
 apps/web/public/templates/*.rar
 apps/web/public/templates/*.zip
+
+res/

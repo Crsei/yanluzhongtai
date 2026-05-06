@@ -13,6 +13,7 @@ import {
 } from "antd";
 import { useState } from "react";
 import { Outlet, useLocation, useNavigate } from "react-router-dom";
+import { ABOUT_CONFIG } from "../constants/about";
 import { navigationItems } from "../config/navigation";
 import { ROLE_LABELS } from "../features/auth/types";
 import { useAuthStore } from "../stores/authStore";
@@ -136,14 +137,9 @@ export function AppShell() {
       )}
       <Layout>
         <Header className="app-header">
-          <div>
-            <Typography.Title level={4} style={{ margin: 0 }}>
-              教学管理中台脚手架
-            </Typography.Title>
-            <Typography.Text type="secondary">
-              当前为第一版工程壳，已对齐 spec 的信息架构和模块边界。
-            </Typography.Text>
-          </div>
+          <Typography.Title level={4} style={{ margin: 0 }}>
+            {ABOUT_CONFIG.platformName}
+          </Typography.Title>
         </Header>
         <Content className="app-content">
           <Outlet />

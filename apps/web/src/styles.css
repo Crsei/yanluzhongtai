@@ -622,11 +622,19 @@ body {
   width: 72px;
   height: 72px;
   border-radius: 16px;
-  background: #1d8cff;
-  color: #fff;
-  font-size: 20px;
-  font-weight: 700;
+  padding: 0;
+  background: transparent;
+  border: 0;
+  box-shadow: 0 12px 28px rgba(15, 23, 42, 0.08);
+  overflow: hidden;
   margin-bottom: 20px;
+}
+
+.about-logo-image {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
 }
 
 .about-platform-name {

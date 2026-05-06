@@ -4,6 +4,8 @@ import { useNavigate } from "react-router-dom";
 import { ABOUT_CONFIG } from "../../constants/about";
 import { useAuthStore } from "../../stores/authStore";
 
+const aboutLogoSrc = "/assets/logo.png";
+
 export function AboutPage() {
   const navigate = useNavigate();
   const user = useAuthStore((state) => state.user);
@@ -11,7 +13,15 @@ export function AboutPage() {
 
   return (
     <div className="about-page">
-      <div className="about-logo">研录</div>
+      <div className="about-logo" aria-hidden="true">
+        <img
+          src={aboutLogoSrc}
+          alt=""
+          className="about-logo-image"
+          loading="eager"
+          decoding="async"
+        />
+      </div>
       <Typography.Title level={2} className="about-platform-name">
         {ABOUT_CONFIG.platformName}
       </Typography.Title>
