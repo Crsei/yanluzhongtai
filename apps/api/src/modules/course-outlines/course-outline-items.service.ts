@@ -53,6 +53,7 @@ export class CourseOutlineItemsService {
             outlineVersionId: versionId,
             code: dto.newSection.code,
             name: dto.newSection.name,
+            resourceUrl: dto.newSection.resourceUrl ?? null,
             displayOrder: dto.newSection.displayOrder ?? 0,
           },
         });

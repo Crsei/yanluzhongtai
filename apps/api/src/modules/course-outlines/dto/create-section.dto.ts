@@ -1,4 +1,4 @@
-import { IsIn, IsInt, IsOptional, IsString, MaxLength, Min } from "class-validator";
+import { IsIn, IsInt, IsOptional, IsString, IsUrl, MaxLength, Min } from "class-validator";
 import { COURSE_SECTION_CODES, CourseSectionCode } from "../../../common/dictionaries";
 
 /**
@@ -16,6 +16,10 @@ export class CreateSectionDto {
   @IsString()
   @MaxLength(50)
   name!: string;
+
+  @IsOptional()
+  @IsUrl({}, { message: "板块资源链接需为合法 URL" })
+  resourceUrl?: string | null;
 
   @IsOptional()
   @IsInt()

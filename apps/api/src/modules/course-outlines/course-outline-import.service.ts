@@ -19,6 +19,7 @@ import type {
 const COLUMNS = [
   "sectionCode",
   "sectionName",
+  "sectionResourceUrl",
   "sectionDisplayOrder",
   "sequenceNo",
   "secondaryCategoryName",
@@ -32,6 +33,7 @@ type Col = (typeof COLUMNS)[number];
 const COLUMN_HEADERS: Record<Col, string> = {
   sectionCode: "板块代码",
   sectionName: "板块名称",
+  sectionResourceUrl: "板块资源链接",
   sectionDisplayOrder: "板块排序",
   sequenceNo: "序列号",
   secondaryCategoryName: "二级课程类别名称",
@@ -43,6 +45,7 @@ const COLUMN_HEADERS: Record<Col, string> = {
 const COLUMN_HEADER_ALIASES: Record<Col, readonly string[]> = {
   sectionCode: ["板块代码"],
   sectionName: ["板块名称"],
+  sectionResourceUrl: ["板块资源链接", "板块链接"],
   sectionDisplayOrder: ["板块排序"],
   sequenceNo: ["序列号"],
   secondaryCategoryName: ["二级课程类别名称", "二级课程类别"],
@@ -62,6 +65,7 @@ type ValidatedRow = {
   rowNumber: number;
   sectionCode: string;
   sectionName: string;
+  sectionResourceUrl: string | null;
   sectionDisplayOrder: number | null;
   sequenceNo: string | null;
   secondaryCategoryName: string | null;
@@ -91,6 +95,7 @@ export class CourseOutlineImportService {
     sheet.addRow({
       sectionCode: "GP",
       sectionName: "GPA提升",
+      sectionResourceUrl: "https://example.com/resource/gp",
       sectionDisplayOrder: 1,
       sequenceNo: "01",
       secondaryCategoryName: "微积分一对一",
@@ -152,16 +157,20 @@ export class CourseOutlineImportService {
     // Build deduped section list preserving first-seen order.
     const sectionsByCode = new Map<
       string,
-      { name: string; displayOrder: number }
+      { name: string; resourceUrl: string | null; displayOrder: number }
     >();
     let nextAutoOrder = 1;
     for (const row of validated.rows) {
-      if (!sectionsByCode.has(row.sectionCode)) {
+      const existing = sectionsByCode.get(row.sectionCode);
+      if (!existing) {
         sectionsByCode.set(row.sectionCode, {
           name: row.sectionName,
+          resourceUrl: row.sectionResourceUrl,
           displayOrder: row.sectionDisplayOrder ?? nextAutoOrder,
         });
         nextAutoOrder += 1;
+      } else if (!existing.resourceUrl && row.sectionResourceUrl) {
+        existing.resourceUrl = row.sectionResourceUrl;
       }
     }
 
@@ -169,6 +178,7 @@ export class CourseOutlineImportService {
       outlineVersionId: versionId,
       code,
       name: meta.name,
+      resourceUrl: meta.resourceUrl,
       displayOrder: meta.displayOrder,
     }));
 
@@ -416,6 +426,10 @@ export class CourseOutlineImportService {
         rowErrors.push({ row: rowNumber, field: "教案排期链接", message: "URL 需以 http(s):// 开头" });
       }
 
+      if (raw.sectionResourceUrl && !/^https?:\/\//i.test(raw.sectionResourceUrl)) {
+        rowErrors.push({ row: rowNumber, field: "板块资源链接", message: "URL 需以 http(s):// 开头" });
+      }
+
       if (sectionCode && sequenceNo) {
         const key = `${sectionCode}|${sequenceNo}`;
         if (seenKeys.has(key)) {
@@ -438,6 +452,7 @@ export class CourseOutlineImportService {
         rowNumber,
         sectionCode,
         sectionName,
+        sectionResourceUrl: raw.sectionResourceUrl ?? null,
         sectionDisplayOrder,
         sequenceNo: sequenceNo || null,
         secondaryCategoryName: raw.secondaryCategoryName ?? null,

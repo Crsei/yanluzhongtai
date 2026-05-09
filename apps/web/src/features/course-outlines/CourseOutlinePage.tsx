@@ -3,6 +3,7 @@ import {
   DownloadOutlined,
   EditOutlined,
   ImportOutlined,
+  LinkOutlined,
   PlusOutlined,
 } from "@ant-design/icons";
 import {
@@ -13,6 +14,7 @@ import {
   Space,
   Table,
   Tag,
+  Tooltip,
   Typography,
   message,
 } from "antd";
@@ -296,7 +298,22 @@ export function CourseOutlinePage() {
         sections.map((section) => (
           <Card
             key={section.id}
-            title={`${section.name} (${section.code})`}
+            title={
+              <Space size={8}>
+                <span>{`${section.name} (${section.code})`}</span>
+                {section.resourceUrl ? (
+                  <Tooltip title="打开板块资源">
+                    <Button
+                      type="link"
+                      size="small"
+                      icon={<LinkOutlined />}
+                      href={section.resourceUrl}
+                      target="_blank"
+                    />
+                  </Tooltip>
+                ) : null}
+              </Space>
+            }
             className="course-outline-section-card"
           >
             <Table<CourseOutlineItem>

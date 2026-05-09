@@ -24,6 +24,7 @@ export type CourseSection = {
   outlineVersionId: string;
   code: string;
   name: string;
+  resourceUrl: string | null;
   displayOrder: number;
 };
 
@@ -54,7 +55,12 @@ export type VersionDetail = {
 
 export type CreateItemBody = {
   sectionCode?: string;
-  newSection?: { code: string; name: string; displayOrder?: number };
+  newSection?: {
+    code: string;
+    name: string;
+    resourceUrl?: string | null;
+    displayOrder?: number;
+  };
   sequenceNo?: string | null;
   secondaryCategoryName?: string | null;
   suggestedTeachingType?: string | null;

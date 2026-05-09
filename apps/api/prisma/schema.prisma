@@ -129,6 +129,7 @@ model CourseSection {
   outlineVersionId String
   code             String
   name             String
+  resourceUrl      String?
   displayOrder     Int    @default(0)
   outlineVersion   CourseOutlineVersion @relation(fields: [outlineVersionId], references: [id], onDelete: Cascade)
 

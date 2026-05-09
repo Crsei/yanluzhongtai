@@ -11,6 +11,7 @@ import {
   Select,
   Space,
   Typography,
+  message,
 } from "antd";
 import { useEffect, useMemo, useState } from "react";
 import {
@@ -30,7 +31,12 @@ type Props = {
   onClose: () => void;
 };
 
-type InlineSection = { code: string; name: string; displayOrder: number | undefined };
+type InlineSection = {
+  code: string;
+  name: string;
+  resourceUrl?: string | null;
+  displayOrder: number | undefined;
+};
 
 type FormValues = {
   sectionCode: string;
@@ -49,6 +55,7 @@ export function AddOutlineItemModal({ open, versionId, sections, onClose }: Prop
   const [inlineDraft, setInlineDraft] = useState<InlineSection>({
     code: "",
     name: "",
+    resourceUrl: null,
     displayOrder: undefined,
   });
 
@@ -58,7 +65,12 @@ export function AddOutlineItemModal({ open, versionId, sections, onClose }: Prop
       form.setFieldsValue({ sequenceNo: 1, suggestedTeachingType: "1v1" });
       setInline(null);
       setShowInlineForm(false);
-      setInlineDraft({ code: "", name: "", displayOrder: undefined });
+      setInlineDraft({
+        code: "",
+        name: "",
+        resourceUrl: null,
+        displayOrder: undefined,
+      });
     }
   }, [open, form]);
 
@@ -83,7 +95,17 @@ export function AddOutlineItemModal({ open, versionId, sections, onClose }: Prop
     if (!(code in COURSE_SECTION_LABELS)) return;
     if (!name) return;
     if (sections.some((s) => s.code === code)) return;
-    const next = { code, name, displayOrder: inlineDraft.displayOrder };
+    const resourceUrl = inlineDraft.resourceUrl?.trim() || null;
+    if (resourceUrl && !/^https?:\/\/.+/i.test(resourceUrl)) {
+      message.warning("板块资源链接需以 http(s):// 开头");
+      return;
+    }
+    const next = {
+      code,
+      name,
+      resourceUrl,
+      displayOrder: inlineDraft.displayOrder,
+    };
     setInline(next);
     setShowInlineForm(false);
     form.setFieldsValue({ sectionCode: code });
@@ -102,6 +124,7 @@ export function AddOutlineItemModal({ open, versionId, sections, onClose }: Prop
       body.newSection = {
         code: inline.code,
         name: inline.name,
+        resourceUrl: inline.resourceUrl ?? null,
         displayOrder: inline.displayOrder,
       };
     } else {
@@ -190,6 +213,18 @@ export function AddOutlineItemModal({ open, versionId, sections, onClose }: Prop
                         setInlineDraft((d) => ({
                           ...d,
                           displayOrder: v ?? undefined,
+                        }))
+                      }
+                    />
+                  </Col>
+                  <Col span={24} style={{ marginTop: 8 }}>
+                    <Input
+                      placeholder="板块资源链接 https://..."
+                      value={inlineDraft.resourceUrl ?? ""}
+                      onChange={(e) =>
+                        setInlineDraft((d) => ({
+                          ...d,
+                          resourceUrl: e.target.value,
                         }))
                       }
                     />

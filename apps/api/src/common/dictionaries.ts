@@ -141,6 +141,7 @@ export const TEACHING_TYPE = [
   "小班课",
   "录播",
   "分发录播",
+  "推送资源",
   "外包",
   "其他",
 ] as const;
