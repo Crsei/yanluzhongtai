@@ -14,6 +14,7 @@ STASH_UNTRACKED="${STASH_UNTRACKED:-1}"
 RUN_PRISMA_PUSH="${RUN_PRISMA_PUSH:-1}"
 RUN_HEALTHCHECK="${RUN_HEALTHCHECK:-1}"
 HEALTHCHECK_URL="${HEALTHCHECK_URL:-http://127.0.0.1/api/health}"
+COMPOSE_CMD=()
 
 log() {
   printf '[deploy] %s\n' "$*"
@@ -29,13 +30,21 @@ require_command() {
 }
 
 compose() {
-  if docker compose version >/dev/null 2>&1; then
-    docker compose -f "$COMPOSE_FILE" "$@"
-  elif command -v docker-compose >/dev/null 2>&1; then
-    docker-compose -f "$COMPOSE_FILE" "$@"
-  else
-    fail "missing Docker Compose. Install 'docker compose' or 'docker-compose'."
+  "${COMPOSE_CMD[@]}" -f "$COMPOSE_FILE" "$@"
+}
+
+require_compose_command() {
+  if command -v docker >/dev/null 2>&1 && docker compose version >/dev/null 2>&1; then
+    COMPOSE_CMD=(docker compose)
+    return
   fi
+
+  if command -v docker-compose >/dev/null 2>&1; then
+    COMPOSE_CMD=(docker-compose)
+    return
+  fi
+
+  fail "missing Docker Compose. Install 'docker compose' or 'docker-compose'."
 }
 
 stash_local_changes() {
@@ -100,6 +109,7 @@ healthcheck() {
 main() {
   require_command git
   require_command docker
+  require_compose_command
 
   cd "$PROJECT_DIR"
   [ -f "$COMPOSE_FILE" ] || fail "compose file not found: $PROJECT_DIR/$COMPOSE_FILE"
