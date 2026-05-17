@@ -1,6 +1,9 @@
 FROM node:20-alpine
 
-RUN apk add --no-cache openssl python3 make g++
+ARG ALPINE_MIRROR=https://mirrors.cloud.tencent.com/alpine
+
+RUN sed -i "s#https://dl-cdn.alpinelinux.org/alpine#${ALPINE_MIRROR}#g" /etc/apk/repositories \
+  && apk add --no-cache openssl python3 make g++
 RUN corepack enable
 WORKDIR /app
 
