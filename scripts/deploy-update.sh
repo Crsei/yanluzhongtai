@@ -14,6 +14,9 @@ STASH_UNTRACKED="${STASH_UNTRACKED:-1}"
 RUN_PRISMA_PUSH="${RUN_PRISMA_PUSH:-1}"
 RUN_HEALTHCHECK="${RUN_HEALTHCHECK:-1}"
 HEALTHCHECK_URL="${HEALTHCHECK_URL:-http://127.0.0.1/api/health}"
+CONFIGURE_DOCKER_MIRROR="${CONFIGURE_DOCKER_MIRROR:-1}"
+DOCKER_DAEMON_CONFIG="${DOCKER_DAEMON_CONFIG:-/etc/docker/daemon.json}"
+DOCKER_REGISTRY_MIRROR="${DOCKER_REGISTRY_MIRROR:-https://mirror.ccs.tencentyun.com}"
 COMPOSE_CMD=()
 
 log() {
@@ -45,6 +48,89 @@ require_compose_command() {
   fi
 
   fail "missing Docker Compose. Install 'docker compose' or 'docker-compose'."
+}
+
+restart_docker() {
+  log "restarting Docker daemon"
+  if command -v systemctl >/dev/null 2>&1; then
+    systemctl restart docker
+  elif command -v service >/dev/null 2>&1; then
+    service docker restart
+  else
+    fail "cannot restart Docker automatically; restart Docker manually and rerun this script."
+  fi
+}
+
+configure_docker_mirror() {
+  if [ "$CONFIGURE_DOCKER_MIRROR" != "1" ]; then
+    log "Docker registry mirror configuration skipped"
+    return
+  fi
+
+  if [ "$(id -u)" -ne 0 ]; then
+    fail "Docker registry mirror configuration requires root. Rerun with sudo or set CONFIGURE_DOCKER_MIRROR=0."
+  fi
+
+  local config_dir result
+  config_dir="$(dirname "$DOCKER_DAEMON_CONFIG")"
+  mkdir -p "$config_dir"
+
+  if [ ! -s "$DOCKER_DAEMON_CONFIG" ]; then
+    log "configuring Docker registry mirror: $DOCKER_REGISTRY_MIRROR"
+    cat >"$DOCKER_DAEMON_CONFIG" <<EOF
+{
+  "registry-mirrors": [
+    "$DOCKER_REGISTRY_MIRROR"
+  ]
+}
+EOF
+    restart_docker
+    return
+  fi
+
+  require_command python3
+  cp "$DOCKER_DAEMON_CONFIG" "$DOCKER_DAEMON_CONFIG.bak.$(date -u +%Y%m%dT%H%M%SZ)"
+
+  result="$(
+    python3 - "$DOCKER_DAEMON_CONFIG" "$DOCKER_REGISTRY_MIRROR" <<'PY'
+import json
+import pathlib
+import sys
+
+path = pathlib.Path(sys.argv[1])
+mirror = sys.argv[2]
+
+try:
+    data = json.loads(path.read_text(encoding="utf-8") or "{}")
+except json.JSONDecodeError as exc:
+    print(f"invalid Docker daemon JSON: {exc}", file=sys.stderr)
+    sys.exit(1)
+
+if not isinstance(data, dict):
+    print("Docker daemon config must be a JSON object", file=sys.stderr)
+    sys.exit(1)
+
+mirrors = data.get("registry-mirrors", [])
+if not isinstance(mirrors, list):
+    print('Docker daemon config field "registry-mirrors" must be an array', file=sys.stderr)
+    sys.exit(1)
+
+if mirror in mirrors:
+    print("unchanged")
+    sys.exit(0)
+
+data["registry-mirrors"] = [mirror] + [item for item in mirrors if item != mirror]
+path.write_text(json.dumps(data, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
+print("changed")
+PY
+  )"
+
+  if [ "$result" = "changed" ]; then
+    log "configured Docker registry mirror: $DOCKER_REGISTRY_MIRROR"
+    restart_docker
+  else
+    log "Docker registry mirror already configured: $DOCKER_REGISTRY_MIRROR"
+  fi
 }
 
 stash_local_changes() {
@@ -109,6 +195,7 @@ healthcheck() {
 main() {
   require_command git
   require_command docker
+  configure_docker_mirror
   require_compose_command
 
   cd "$PROJECT_DIR"
