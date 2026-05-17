@@ -17,6 +17,9 @@ HEALTHCHECK_URL="${HEALTHCHECK_URL:-http://127.0.0.1/api/health}"
 CONFIGURE_DOCKER_MIRROR="${CONFIGURE_DOCKER_MIRROR:-1}"
 DOCKER_DAEMON_CONFIG="${DOCKER_DAEMON_CONFIG:-/etc/docker/daemon.json}"
 DOCKER_REGISTRY_MIRROR="${DOCKER_REGISTRY_MIRROR:-https://mirror.ccs.tencentyun.com}"
+GIT_HTTP_VERSION="${GIT_HTTP_VERSION:-HTTP/1.1}"
+GIT_RETRIES="${GIT_RETRIES:-3}"
+GIT_RETRY_DELAY="${GIT_RETRY_DELAY:-5}"
 COMPOSE_CMD=()
 
 log() {
@@ -30,6 +33,25 @@ fail() {
 
 require_command() {
   command -v "$1" >/dev/null 2>&1 || fail "missing required command: $1"
+}
+
+git_network() {
+  local attempt
+  attempt=1
+
+  while [ "$attempt" -le "$GIT_RETRIES" ]; do
+    if git -c http.version="$GIT_HTTP_VERSION" "$@"; then
+      return
+    fi
+
+    if [ "$attempt" -eq "$GIT_RETRIES" ]; then
+      fail "git $* failed after $GIT_RETRIES attempts"
+    fi
+
+    log "git $* failed; retrying in ${GIT_RETRY_DELAY}s ($attempt/$GIT_RETRIES)"
+    sleep "$GIT_RETRY_DELAY"
+    attempt=$((attempt + 1))
+  done
 }
 
 compose() {
@@ -209,13 +231,13 @@ main() {
   git config --global --add safe.directory "$PROJECT_DIR" >/dev/null 2>&1 || true
 
   log "fetching latest code"
-  git fetch "$REMOTE" "$BRANCH"
+  git_network fetch "$REMOTE" "$BRANCH"
 
   stash_local_changes
   checkout_branch
 
   log "pulling latest code"
-  git pull --ff-only "$REMOTE" "$BRANCH"
+  git_network pull --ff-only "$REMOTE" "$BRANCH"
 
   log "building api and web images"
   compose build api web
