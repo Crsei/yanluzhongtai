@@ -7,7 +7,6 @@ import {
   IsEmail,
   IsIn,
   IsInt,
-  IsObject,
   IsOptional,
   IsString,
   Matches,
@@ -135,8 +134,7 @@ export class CreateStudentDto {
   @MaxLength(20000)
   policyText?: string;
 
-  @IsOptional()
-  @IsObject()
+  @IsOptional()
   detailNotes?: unknown;
 
   @IsOptional()

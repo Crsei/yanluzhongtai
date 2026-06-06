@@ -12,6 +12,8 @@ const requiredKeys = [
   "MINIO_ACCESS_KEY",
   "MINIO_SECRET_KEY",
   "MINIO_BUCKET",
+  // MINIO_PUBLIC_ENDPOINT is optional — only needed when the browser cannot
+  // reach MINIO_ENDPOINT (e.g. Docker internal hostname like "minio:9000").
 ];
 
 export function validateEnvironment(config: EnvRecord) {

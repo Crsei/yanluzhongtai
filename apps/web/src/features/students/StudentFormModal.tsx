@@ -55,15 +55,18 @@ export function StudentFormModal({ open, mode, initial, onClose, onModeChange }:
 
   const disabled = mode === "view";
 
-  const handleOk = async () => {
-    const values = await form.validateFields();
-    if (mode === "create") {
-      await createMutation.mutateAsync(values as never);
-    } else if (mode === "edit" && initial) {
-      const { enrollmentYear: _ignored, ...body } = values;
-      await updateMutation.mutateAsync({ id: initial.id, body: body as never });
-    }
-    onClose();
+  const handleOk = async () => {
+    const values = await form.validateFields();
+    if (Array.isArray(values.detailNotes) && values.detailNotes.length === 0) {
+      delete values.detailNotes;
+    }
+    if (mode === "create") {
+      await createMutation.mutateAsync(values as never);
+    } else if (mode === "edit" && initial) {
+      const { enrollmentYear: _ignored, ...body } = values;
+      await updateMutation.mutateAsync({ id: initial.id, body: body as never });
+    }
+    onClose();
   };
 
   const title =
