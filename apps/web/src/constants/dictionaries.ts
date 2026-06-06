@@ -24,11 +24,19 @@ export const EMPLOYEE_SOURCE_OPTIONS = EMPLOYEE_SOURCE.map((value) => ({
 }));
 
 export const EMPLOYEE_SERVING_FOR = [
+
   "研录保研",
+
   "研录考研",
+
+  "星途志愿",
+
   "高途",
+
   "内部管理",
+
   "其他",
+
 ] as const;
 export type EmployeeServingFor = (typeof EMPLOYEE_SERVING_FOR)[number];
 export const EMPLOYEE_SERVING_FOR_OPTIONS = EMPLOYEE_SERVING_FOR.map((value) => ({
@@ -118,16 +126,13 @@ export const GRADE_OPTIONS = GRADE_VALUES.map((v) => ({ value: v, label: v }));
 // Phase 3: Course outline dictionaries
 // ---------------------------------------------------------------------------
 
-export const TEACHING_TYPE = [
-  "公共课",
-  "公共课直播",
-  "1v1",
-  "小班课",
-  "录播",
-  "分发录播",
-  "推送资源",
-  "外包",
-  "其他",
+export const TEACHING_TYPE = [
+  "公共课直播",
+  "1v1",
+  "分发录播",
+  "推送资源",
+  "外包",
+  "其他",
 ] as const;
 export type TeachingType = (typeof TEACHING_TYPE)[number];
 export const TEACHING_TYPE_OPTIONS = TEACHING_TYPE.map((value) => ({

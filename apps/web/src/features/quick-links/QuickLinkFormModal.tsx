@@ -110,7 +110,7 @@ export function QuickLinkFormModal(props: Props) {
             maxTagCount={1}
           />
         </Form.Item>
-        <Form.Item name="kind" label="类型" rules={[{ required: true }]}>
+        <Form.Item name="kind" label="类型" rules={[{ required: true, message: "请选择类型" }]}>
           <Select options={KIND_OPTIONS} />
         </Form.Item>
         <Form.Item

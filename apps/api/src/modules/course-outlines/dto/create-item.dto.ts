@@ -1,29 +1,25 @@
-import { Type } from "class-transformer";
-import {
-  IsIn,
-  IsOptional,
-  IsString,
-  IsUrl,
-  Matches,
-  MaxLength,
-  ValidateIf,
-  ValidateNested,
-} from "class-validator";
-import {
-  COURSE_SECTION_CODES,
-  TEACHING_TYPE,
-  TeachingType,
-} from "../../../common/dictionaries";
-import { CreateSectionDto } from "./create-section.dto";
-
-export class CreateItemDto {
-  /** One of sectionCode / newSection must be provided. */
-  @ValidateIf((o: CreateItemDto) => !o.newSection)
-  @IsString()
-  @IsIn(COURSE_SECTION_CODES, {
-    // spec §2.3.3: 12 个预定义板块代码
-    message: `板块代码仅支持 ${COURSE_SECTION_CODES.join("/")}`,
-  })
+import { Type } from "class-transformer";
+import {
+  IsIn,
+  IsOptional,
+  IsString,
+  IsUrl,
+  Matches,
+  MaxLength,
+  ValidateIf,
+  ValidateNested,
+} from "class-validator";
+import {
+  TEACHING_TYPE,
+  TeachingType,
+} from "../../../common/dictionaries";
+import { CreateSectionDto } from "./create-section.dto";
+
+export class CreateItemDto {
+  /** One of sectionCode / newSection must be provided. */
+  @ValidateIf((o: CreateItemDto) => !o.newSection)
+  @IsString()
+  @MaxLength(10)
   sectionCode?: string;
 
   @ValidateIf((o: CreateItemDto) => !o.sectionCode)

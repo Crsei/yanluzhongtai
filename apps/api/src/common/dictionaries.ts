@@ -29,11 +29,19 @@ export const EMPLOYEE_SOURCE = ["研录", "招聘/临时", "渠道合作", "其�
 export type EmployeeSource = (typeof EMPLOYEE_SOURCE)[number];
 
 export const EMPLOYEE_SERVING_FOR = [
+
   "研录保研",
+
   "研录考研",
+
+  "星途志愿",
+
   "高途",
+
   "内部管理",
+
   "其他",
+
 ] as const;
 export type EmployeeServingFor = (typeof EMPLOYEE_SERVING_FOR)[number];
 
@@ -134,16 +142,13 @@ export type StorageFolder = (typeof STORAGE_FOLDERS)[number];
 // ---------------------------------------------------------------------------
 
 /** 建议 / 实际授课方式 — shared between Phase 3 大纲 and Phase 4 课程详情。 */
-export const TEACHING_TYPE = [
-  "公共课",
-  "公共课直播",
-  "1v1",
-  "小班课",
-  "录播",
-  "分发录播",
-  "推送资源",
-  "外包",
-  "其他",
+export const TEACHING_TYPE = [
+  "公共课直播",
+  "1v1",
+  "分发录播",
+  "推送资源",
+  "外包",
+  "其他",
 ] as const;
 export type TeachingType = (typeof TEACHING_TYPE)[number];
 

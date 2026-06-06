@@ -1,24 +1,15 @@
-import { PlusOutlined } from "@ant-design/icons";
 import {
-  Button,
   Col,
-  Divider,
   Form,
   Input,
   InputNumber,
   Modal,
   Row,
   Select,
-  Space,
-  Typography,
-  message,
 } from "antd";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect } from "react";
 import {
-  COURSE_SECTION_LABELS,
-  NEW_SECTION_CODE_OPTIONS,
   TEACHING_TYPE_OPTIONS,
-  type CourseSectionCode,
 } from "../../constants/dictionaries";
 import { EmployeePicker } from "../../components/EmployeePicker";
 import { useOutlineMutations } from "./hooks/useOutlineMutations";
@@ -31,15 +22,9 @@ type Props = {
   onClose: () => void;
 };
 
-type InlineSection = {
-  code: string;
-  name: string;
-  resourceUrl?: string | null;
-  displayOrder: number | undefined;
-};
-
 type FormValues = {
   sectionCode: string;
+  sectionName: string;
   sequenceNo: number;
   secondaryCategoryName: string;
   suggestedTeachingType: string;
@@ -50,69 +35,18 @@ type FormValues = {
 export function AddOutlineItemModal({ open, versionId, sections, onClose }: Props) {
   const [form] = Form.useForm<FormValues>();
   const mutations = useOutlineMutations(versionId);
-  const [inline, setInline] = useState<InlineSection | null>(null);
-  const [showInlineForm, setShowInlineForm] = useState(false);
-  const [inlineDraft, setInlineDraft] = useState<InlineSection>({
-    code: "",
-    name: "",
-    resourceUrl: null,
-    displayOrder: undefined,
-  });
 
   useEffect(() => {
     if (open) {
       form.resetFields();
       form.setFieldsValue({ sequenceNo: 1, suggestedTeachingType: "1v1" });
-      setInline(null);
-      setShowInlineForm(false);
-      setInlineDraft({
-        code: "",
-        name: "",
-        resourceUrl: null,
-        displayOrder: undefined,
-      });
     }
   }, [open, form]);
 
-  const sectionOptions = useMemo(() => {
-    const base = sections.map((s) => ({
-      value: s.code,
-      label: `${s.name} (${s.code})`,
-    }));
-    if (inline) {
-      base.push({
-        value: inline.code,
-        label: `${inline.name} (${inline.code}) — 新建`,
-      });
-    }
-    return base;
-  }, [sections, inline]);
-
-  const saveInline = () => {
-    const code = inlineDraft.code.trim().toUpperCase();
-    const name = inlineDraft.name.trim();
-    // spec §2.3.3: 板块代码必须在 12 个预定义枚举中(且已由上方 Select 保证)。
-    if (!(code in COURSE_SECTION_LABELS)) return;
-    if (!name) return;
-    if (sections.some((s) => s.code === code)) return;
-    const resourceUrl = inlineDraft.resourceUrl?.trim() || null;
-    if (resourceUrl && !/^https?:\/\/.+/i.test(resourceUrl)) {
-      message.warning("板块资源链接需以 http(s):// 开头");
-      return;
-    }
-    const next = {
-      code,
-      name,
-      resourceUrl,
-      displayOrder: inlineDraft.displayOrder,
-    };
-    setInline(next);
-    setShowInlineForm(false);
-    form.setFieldsValue({ sectionCode: code });
-  };
-
   const handleSubmit = async () => {
     const values = await form.validateFields();
+    const code = values.sectionCode.trim().toUpperCase();
+    const name = values.sectionName.trim();
     const body: CreateItemBody = {
       sequenceNo: String(values.sequenceNo).padStart(2, "0"),
       secondaryCategoryName: values.secondaryCategoryName.trim(),
@@ -120,15 +54,10 @@ export function AddOutlineItemModal({ open, versionId, sections, onClose }: Prop
       plannedTeacherJobNo: values.plannedTeacherJobNo ?? null,
       lessonPlanUrl: values.lessonPlanUrl?.trim() || null,
     };
-    if (inline && values.sectionCode === inline.code) {
-      body.newSection = {
-        code: inline.code,
-        name: inline.name,
-        resourceUrl: inline.resourceUrl ?? null,
-        displayOrder: inline.displayOrder,
-      };
+    if (sections.some((s) => s.code === code)) {
+      body.sectionCode = code;
     } else {
-      body.sectionCode = values.sectionCode;
+      body.newSection = { code, name };
     }
     await mutations.addItem.mutateAsync({ versionId, body });
     onClose();
@@ -148,97 +77,30 @@ export function AddOutlineItemModal({ open, versionId, sections, onClose }: Prop
     >
       <Form<FormValues> form={form} layout="vertical">
         <Row gutter={16}>
-          <Col span={24}>
+          <Col span={12}>
             <Form.Item
-              label="板块"
+              label="板块缩写"
               name="sectionCode"
-              rules={[{ required: true, message: "请选择板块" }]}
+              rules={[
+                { required: true, message: "请填写板块缩写" },
+                { max: 10, message: "板块缩写不超过 10 个字符" },
+              ]}
             >
-              <Select
-                options={sectionOptions}
-                placeholder="选择已有板块或新建"
-                dropdownRender={(menu) => (
-                  <>
-                    {menu}
-                    <Divider style={{ margin: "4px 0" }} />
-                    <div style={{ padding: "0 8px 8px" }}>
-                      <Button
-                        type="link"
-                        icon={<PlusOutlined />}
-                        onClick={() => setShowInlineForm(true)}
-                      >
-                        + 新建板块
-                      </Button>
-                    </div>
-                  </>
-                )}
-              />
+              <Input placeholder="例: XX" />
             </Form.Item>
           </Col>
-
-          {showInlineForm ? (
-            <Col span={24}>
-              <div style={{ background: "#fafafa", padding: 12, borderRadius: 8 }}>
-                <Typography.Text type="secondary">
-                  新建板块(随本次条目一起保存)
-                </Typography.Text>
-                <Row gutter={12} style={{ marginTop: 8 }}>
-                  <Col span={18}>
-                    {/* spec §2.3.3: 板块代码与名称来自 12 个预定义枚举,禁止自由输入。 */}
-                    <Select<CourseSectionCode>
-                      placeholder="选择板块代码与名称"
-                      style={{ width: "100%" }}
-                      options={NEW_SECTION_CODE_OPTIONS}
-                      value={
-                        (inlineDraft.code || undefined) as
-                          | CourseSectionCode
-                          | undefined
-                      }
-                      onChange={(code) =>
-                        setInlineDraft((d) => ({
-                          ...d,
-                          code,
-                          name: COURSE_SECTION_LABELS[code],
-                        }))
-                      }
-                    />
-                  </Col>
-                  <Col span={6}>
-                    <InputNumber
-                      placeholder="排序"
-                      min={0}
-                      style={{ width: "100%" }}
-                      value={inlineDraft.displayOrder ?? null}
-                      onChange={(v) =>
-                        setInlineDraft((d) => ({
-                          ...d,
-                          displayOrder: v ?? undefined,
-                        }))
-                      }
-                    />
-                  </Col>
-                  <Col span={24} style={{ marginTop: 8 }}>
-                    <Input
-                      placeholder="板块资源链接 https://..."
-                      value={inlineDraft.resourceUrl ?? ""}
-                      onChange={(e) =>
-                        setInlineDraft((d) => ({
-                          ...d,
-                          resourceUrl: e.target.value,
-                        }))
-                      }
-                    />
-                  </Col>
-                </Row>
-                <Space style={{ marginTop: 8 }}>
-                  <Button onClick={() => setShowInlineForm(false)}>取消</Button>
-                  <Button type="primary" onClick={saveInline}>
-                    保存板块
-                  </Button>
-                </Space>
-              </div>
-            </Col>
-          ) : null}
+          <Col span={12}>
+            <Form.Item
+              label="板块名称"
+              name="sectionName"
+              rules={[
+                { required: true, message: "请填写板块名称" },
+                { max: 50, message: "板块名称不超过 50 个字符" },
+              ]}
+            >
+              <Input placeholder="例: 信息素养" />
+            </Form.Item>
+          </Col>
 
           <Col span={12}>
             <Form.Item

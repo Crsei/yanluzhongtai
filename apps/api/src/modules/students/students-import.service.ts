@@ -117,8 +117,7 @@ const COLUMN_HEADER_ALIASES: Record<Col, readonly string[]> = {
   note: ["备注"],
 };
 
-const REQUIRED_COLUMNS: Col[] = [
-];
+const REQUIRED_COLUMNS: Col[] = ["name", "gender", "enrollmentYear", "graduationYear"];
 
 type ParsedRow = {
   row: number; // 1-based row in spreadsheet (header = row 1)
@@ -292,10 +291,16 @@ export class StudentsImportService {
   }
 
   private async validateRow(r: ParsedRow): Promise<ImportError[]> {
-    const errs: ImportError[] = [];
-    const push = (field: string, message: string) => errs.push({ row: r.row, field, message });
-
-    if (r.gender && !GENDER.includes(r.gender as typeof GENDER[number])) push("性别", `非法值 "${r.gender}"`);
+    const errs: ImportError[] = [];
+    const push = (field: string, message: string) => errs.push({ row: r.row, field, message });
+
+    // Required field check
+    if (!r.name) push("学生姓名", "必填");
+    if (!r.gender) push("性别", "必填");
+    if (r.enrollmentYear == null) push("入学年份", "必填");
+    if (r.graduationYear == null) push("毕业年份", "必填");
+
+    if (r.gender && !GENDER.includes(r.gender as typeof GENDER[number])) push("性别", `非法值 "${r.gender}"，仅支持 ${GENDER.join("/")}`);
 
     if (r.enrollmentYear !== null && (!Number.isInteger(r.enrollmentYear) || r.enrollmentYear < 2000 || r.enrollmentYear > 2100)) {
       push("入学年份", `非法值 "${r.enrollmentYear}"`);

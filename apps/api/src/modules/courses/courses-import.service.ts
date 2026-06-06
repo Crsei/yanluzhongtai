@@ -418,7 +418,7 @@ export class CoursesImportService {
       if (raw.plannedAt) {
         const d = new Date(raw.plannedAt.replace(" ", "T"));
         if (Number.isNaN(d.getTime())) {
-          rowErrors.push({ row: rowNumber, field: COLUMN_HEADERS.plannedAt, message: "日期格式无效" });
+          rowErrors.push({ row: rowNumber, field: COLUMN_HEADERS.plannedAt, message: "日期格式无效，需为 YYYY-MM-DD HH:mm" });
         } else plannedAt = d;
       }
 

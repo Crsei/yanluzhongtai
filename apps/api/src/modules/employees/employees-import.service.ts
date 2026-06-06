@@ -55,7 +55,7 @@ const COLUMN_HEADER_ALIASES: Record<Col, readonly string[]> = {
   resumeText: ["文字版简历", "简历(文字)"],
 };
 
-const REQUIRED_COLUMNS: Col[] = [];
+const REQUIRED_COLUMNS: Col[] = ["name", "gender", "employmentStatus", "jobTitle"];
 
 const EMPLOYMENT_STATUS_BY_LABEL = Object.fromEntries(
   Object.entries(EMPLOYMENT_STATUS_LABELS).map(([code, label]) => [label, code]),
@@ -254,9 +254,21 @@ export class EmployeesImportService {
     const validated: ValidatedRow[] = [];
     const errors: ImportRowError[] = [];
 
-    for (const { rowNumber, raw } of rows) {
-      const rowErrors: ImportRowError[] = [];
-
+    for (const { rowNumber, raw } of rows) {
+      const rowErrors: ImportRowError[] = [];
+
+      // Required field check
+      for (const key of REQUIRED_COLUMNS) {
+        if (!raw[key]) {
+          rowErrors.push({ row: rowNumber, field: COLUMN_HEADERS[key], message: "必填" });
+        }
+      }
+
+      if (rowErrors.length > 0) {
+        errors.push(...rowErrors);
+        continue;
+      }
+
       if (raw.gender && !(GENDER as readonly string[]).includes(raw.gender)) {
         rowErrors.push({ row: rowNumber, field: "性别", message: `非法值，仅支持 ${GENDER.join("/")}` });
       }
@@ -274,14 +286,14 @@ export class EmployeesImportService {
         rowErrors.push({ row: rowNumber, field: "员工来源", message: `非法值，仅支持 ${EMPLOYEE_SOURCE.join("/")}` });
       }
       if (raw.phone && !/^1[3-9]\d{9}$/.test(raw.phone)) {
-        rowErrors.push({ row: rowNumber, field: "电话", message: "格式不正确" });
+        rowErrors.push({ row: rowNumber, field: "电话", message: "格式不正确，需为 11 位手机号" });
       }
 
       let hireDate: Date | null = null;
       if (raw.hireDate) {
         const parsed = new Date(raw.hireDate);
         if (Number.isNaN(parsed.getTime())) {
-          rowErrors.push({ row: rowNumber, field: "入职日期", message: "无法解析为日期" });
+          rowErrors.push({ row: rowNumber, field: "入职日期", message: "日期格式无效，需为 YYYY-MM-DD" });
         } else {
           hireDate = parsed;
         }

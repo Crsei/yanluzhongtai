@@ -153,7 +153,7 @@ export function StudentFormModal({ open, mode, initial, onClose, onModeChange }:
             <Form.Item
               label="入学年份"
               name="enrollmentYear"
-              required
+              required={mode === "create"}
               rules={[
                 ...(mode === "create"
                   ? [{ required: true, message: "请输入入学年份" }]

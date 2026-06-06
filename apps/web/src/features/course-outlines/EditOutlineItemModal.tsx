@@ -32,8 +32,8 @@ type FormValues = {
 
 export function EditOutlineItemModal({
   open,
-  versionId,
-  sections,
+  versionId,
+  sections: _sections,
   item,
   onClose,
 }: Props) {
@@ -55,10 +55,7 @@ export function EditOutlineItemModal({
 
   if (!item) return null;
 
-  const sectionOptions = sections.map((s) => ({
-    value: s.code,
-    label: `${s.name} (${s.code})`,
-  }));
+
 
   const handleSubmit = async () => {
     const v = await form.validateFields();
@@ -90,11 +87,23 @@ export function EditOutlineItemModal({
         <Row gutter={16}>
           <Col span={24}>
             <Form.Item
-              label="板块"
+
+              label="板块缩写"
+
               name="sectionCode"
-              rules={[{ required: true, message: "请选择板块" }]}
+
+              rules={[
+
+                { required: true, message: "请填写板块缩写" },
+
+                { max: 10, message: "板块缩写不超过 10 个字符" },
+
+              ]}
+
             >
-              <Select options={sectionOptions} />
+
+              <Input placeholder="例: XX" />
+
             </Form.Item>
           </Col>
           <Col span={12}>
