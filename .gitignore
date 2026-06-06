@@ -39,3 +39,4 @@ apps/web/public/templates/*.rar
 apps/web/public/templates/*.zip
 
 res/
+.alma-snapshots

@@ -1,9 +1,17 @@
 import {
+
   DeleteOutlined,
+
   EditOutlined,
+
+  ExportOutlined,
+
   EyeOutlined,
+
   ImportOutlined,
+
   PlusOutlined,
+
 } from "@ant-design/icons";
 import {
   Button,
@@ -84,6 +92,17 @@ export function EmployeeListPage() {
     );
   };
 
+  const handleExportExcel = async () => {
+    try {
+      await employeesApi.exportExcel();
+      message.success("导出成功");
+    } catch (err) {
+      message.error(
+        err instanceof Error ? err.message : "导出失败",
+      );
+    }
+  };
+
   const columns = [
     { title: "工号", dataIndex: "jobNo", key: "jobNo", width: 100 },
     { title: "姓名", dataIndex: "name", key: "name", width: 120 },
@@ -142,7 +161,15 @@ export function EmployeeListPage() {
                 删除员工
               </Button>
               <Button icon={<ImportOutlined />} onClick={() => setImportOpen(true)}>
+
                 从 Excel 导入
+
+              </Button>
+
+              <Button icon={<ExportOutlined />} onClick={handleExportExcel}>
+
+                导出Excel
+
               </Button>
             </>
           )}

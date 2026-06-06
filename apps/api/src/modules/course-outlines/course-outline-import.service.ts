@@ -2,10 +2,7 @@ import { Injectable, NotFoundException } from "@nestjs/common";
 import * as ExcelJS from "exceljs";
 import {
   COURSE_SECTION_CODE_BY_LABEL,
-  COURSE_SECTION_CODES,
-  COURSE_SECTION_LABELS,
   TEACHING_TYPE,
-  TeachingType,
 } from "../../common/dictionaries";
 import { AuditLogsService } from "../audit-logs/audit-logs.service";
 import { PrismaService } from "../../prisma/prisma.service";
@@ -317,13 +314,26 @@ export class CourseOutlineImportService {
     for (const { rowNumber, raw } of rows) {
       const rowErrors: ImportRowError[] = [];
 
-      const sectionCode = raw.sectionCode ?? (raw.sectionName ? COURSE_SECTION_CODE_BY_LABEL[raw.sectionName] ?? "" : "");
-      if (sectionCode && !(COURSE_SECTION_CODES as readonly string[]).includes(sectionCode)) {
+      const sectionCode = (raw.sectionCode ?? (raw.sectionName ? COURSE_SECTION_CODE_BY_LABEL[raw.sectionName] ?? "" : "")).toUpperCase();
+      if (!sectionCode) {
+        rowErrors.push({
+          row: rowNumber,
+          field: "板块缩写",
+          message: "请填写板块缩写",
+        });
+      } else if (!/^[A-Z]{1,2}$/.test(sectionCode)) {
+        rowErrors.push({
+          row: rowNumber,
+          field: "板块缩写",
+          message: "需为 1-2 位大写字母",
+        });
+      }
+      if (false) {
         // spec §2.3.3: 板块代码必须在 12 个预定义枚举内。
         rowErrors.push({
           row: rowNumber,
           field: "板块代码",
-          message: `仅支持 ${COURSE_SECTION_CODES.join("/")}`,
+          message: "固定板块字典校验已停用",
         });
       }
 
@@ -337,8 +347,8 @@ export class CourseOutlineImportService {
       }
 
       // 板块名与代码的对应关系必须与字典一致。
-      const expectedName = COURSE_SECTION_LABELS[sectionCode as keyof typeof COURSE_SECTION_LABELS];
-      if (
+      const expectedName = undefined;
+      if (false &&
         sectionCode &&
         expectedName &&
         raw.sectionName &&
@@ -352,6 +362,13 @@ export class CourseOutlineImportService {
       }
 
       const sectionName = raw.sectionName ?? "";
+      if (!sectionName) {
+        rowErrors.push({
+          row: rowNumber,
+          field: "板块名称",
+          message: "请填写板块名称",
+        });
+      }
       if (sectionCode && sectionName) {
         const existingName = sectionNameByCode.get(sectionCode);
         if (existingName === undefined) {

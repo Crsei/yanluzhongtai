@@ -11,13 +11,14 @@ import {
 } from "antd";
 import type { Dayjs } from "dayjs";
 import dayjs from "dayjs";
-import { PlusOutlined, SearchOutlined } from "@ant-design/icons";
+import { ExportOutlined, PlusOutlined, SearchOutlined } from "@ant-design/icons";
 import { useEffect, useMemo, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import { AddManualRecordDialog } from "./AddManualRecordDialog";
 import { confirmDeleteManualRecord } from "./DeleteManualRecordConfirm";
 import { SettleDialog } from "./SettleDialog";
 import { ViewCoursesDialog } from "./ViewCoursesDialog";
+import { payrollApi } from "../../services/payroll";
 import { usePayroll } from "./hooks/usePayroll";
 import { usePayrollMutations } from "./hooks/usePayrollMutations";
 import type {
@@ -182,6 +183,10 @@ export function PayrollListPage() {
       employeeName: row.employeeName,
       onConfirm: () => deleteManual.mutateAsync(row.id),
     });
+  };
+
+  const handleExportExcel = async () => {
+    await payrollApi.exportExcel(params);
   };
 
   const columns = [
@@ -352,6 +357,13 @@ export function PayrollListPage() {
           </Space>
         </Space>
         <div style={{ flex: 1 }} />
+        <Button
+          icon={<ExportOutlined />}
+          onClick={handleExportExcel}
+          style={{ marginRight: 8 }}
+        >
+          导出Excel
+        </Button>
         <Button type="primary" icon={<PlusOutlined />} onClick={askAddManual}>
           手动添加记录
         </Button>

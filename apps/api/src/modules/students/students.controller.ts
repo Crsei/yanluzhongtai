@@ -36,9 +36,52 @@ export class StudentsController {
     return this.students.list(query);
   }
 
+  @Roles(UserRole.SUPER_ADMIN, UserRole.ADMIN)
+
+  @Get("export")
+
+  async exportExcel(@Res() res: Response) {
+
+    try {
+
+      const buf = await this.imports.exportAll();
+
+      res.setHeader(
+
+        "Content-Type",
+
+        "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+
+      );
+
+      const today = new Date().toISOString().slice(0, 10);
+
+      res.setHeader(
+
+        "Content-Disposition",
+
+        `attachment; filename="student-export-${today}.xlsx"`,
+
+      );
+
+      res.send(buf);
+
+    } catch (err) {
+
+      res.status(500).json({ message: "导出失败" });
+
+    }
+
+  }
+
+
+
   @Get(":id")
+
   findOne(@Param("id") id: string) {
+
     return this.students.findOne(id);
+
   }
 
   @Roles(UserRole.SUPER_ADMIN, UserRole.ADMIN)

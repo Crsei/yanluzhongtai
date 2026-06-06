@@ -117,5 +117,13 @@ export const studentsApi = {
   importCommit: (fileKey: string) =>
     api.post<ImportCommitResult>("/students/import/commit", { fileKey }),
   downloadTemplate: () =>
+
     downloadAuthed("/students/import/template", "学生导入模板.xlsx"),
+
+
+
+  exportExcel: () =>
+
+    downloadAuthed("/students/export", "学生信息导出.xlsx"),
+
 };

@@ -1,18 +1,36 @@
 // apps/api/src/modules/students/students-import.service.ts
 import { Injectable } from "@nestjs/common";
+
 import { Prisma } from "@prisma/client";
+
 import ExcelJS from "exceljs";
+
 import { IdSequenceService } from "../../common/id-sequence/id-sequence.service";
+
 import {
+
   GENDER,
+
   SERVICE_PLATFORM,
+
   SERVICE_STATUS_BY_LABEL,
+
+  SERVICE_STATUS_LABELS,
+
   STUDENT_SOURCE,
+
 } from "../../common/dictionaries";
+
+import { buildExportWorkbook, type ExportColumn } from "../../common/export/export-utils";
+
 import { AuditLogsService } from "../audit-logs/audit-logs.service";
+
 import { PrismaService } from "../../prisma/prisma.service";
+
 import { StorageService } from "../storage/storage.service";
+
 import type { ImportError, ImportReport, ImportCommitResult } from "./students.types";
+
 import { formatStudentNo } from "./utils/grade";
 
 /** Column order must match `generateTemplate` below. */
@@ -154,6 +172,99 @@ export class StudentsImportService {
     private readonly auditLogs: AuditLogsService,
   ) {}
 
+  private static readonly EXPORT_COLUMNS: ExportColumn[] = [
+    { header: "学生姓名", key: "name" },
+    { header: "性别", key: "gender" },
+    { header: "入学年份", key: "enrollmentYear" },
+    { header: "毕业年份", key: "graduationYear" },
+    { header: "所在院校", key: "school" },
+    { header: "所在专业", key: "major" },
+    { header: "电话号码", key: "phone" },
+    { header: "服务群所在平台", key: "servicePlatform" },
+    { header: "学生来源", key: "source" },
+    { header: "服务状态", key: "serviceStatus" },
+    { header: "学管老师工号", key: "counselorJobNo" },
+    { header: "规划师工号", key: "plannerJobNo" },
+    { header: "邮箱", key: "email" },
+    { header: "公共课总课时", key: "totalPublicCredits" },
+    { header: "1v1总课时", key: "totalPrivateCredits" },
+    { header: "公共课剩余", key: "remainingPublicCredits" },
+    { header: "1v1剩余", key: "remainingPrivateCredits" },
+    { header: "服务清单（下载链接）", key: "serviceChecklistKeys" },
+    { header: "课表（下载链接）", key: "scheduleKeys" },
+    { header: "成绩单（下载链接）", key: "transcriptKeys" },
+    { header: "附件（下载链接）", key: "attachmentKeys" },
+    { header: "备注", key: "note" },
+  ];
+
+  /** Export all Student records as an Excel workbook buffer. */
+  async exportAll(): Promise<Buffer> {
+    const students = await this.prisma.student.findMany({
+      orderBy: { studentNo: "asc" },
+    });
+
+    const rows = await Promise.all(
+      students.map(async (stu) => {
+        const [signedChecklists, signedSchedules, signedTranscripts, signedAttachments] =
+          await Promise.all([
+            stu.serviceChecklistKeys.length > 0
+              ? Promise.all(
+                  stu.serviceChecklistKeys.map((key) => this.storage.signDownload(key, 3600)),
+                )
+              : Promise.resolve([] as string[]),
+            stu.scheduleKeys.length > 0
+              ? Promise.all(
+                  stu.scheduleKeys.map((key) => this.storage.signDownload(key, 3600)),
+                )
+              : Promise.resolve([] as string[]),
+            stu.transcriptKeys.length > 0
+              ? Promise.all(
+                  stu.transcriptKeys.map((key) => this.storage.signDownload(key, 3600)),
+                )
+              : Promise.resolve([] as string[]),
+            stu.attachmentKeys.length > 0
+              ? Promise.all(
+                  stu.attachmentKeys.map((key) => this.storage.signDownload(key, 3600)),
+                )
+              : Promise.resolve([] as string[]),
+          ]);
+
+        return {
+          name: stu.name ?? "",
+          gender: stu.gender ?? "",
+          enrollmentYear: stu.enrollmentYear ?? "",
+          graduationYear: stu.graduationYear ?? "",
+          school: stu.school ?? "",
+          major: stu.major ?? "",
+          phone: stu.phone ?? "",
+          servicePlatform: stu.servicePlatform ?? "",
+          source: stu.source ?? "",
+          serviceStatus: stu.serviceStatus
+            ? SERVICE_STATUS_LABELS[stu.serviceStatus]
+            : "",
+          counselorJobNo: stu.counselorJobNo ?? "",
+          plannerJobNo: stu.plannerJobNo ?? "",
+          email: stu.email ?? "",
+          totalPublicCredits:
+            stu.totalPublicCredits != null ? Number(stu.totalPublicCredits) : "",
+          totalPrivateCredits:
+            stu.totalPrivateCredits != null ? Number(stu.totalPrivateCredits) : "",
+          remainingPublicCredits:
+            stu.remainingPublicCredits != null ? Number(stu.remainingPublicCredits) : "",
+          remainingPrivateCredits:
+            stu.remainingPrivateCredits != null ? Number(stu.remainingPrivateCredits) : "",
+          serviceChecklistKeys: signedChecklists.join("；"),
+          scheduleKeys: signedSchedules.join("；"),
+          transcriptKeys: signedTranscripts.join("；"),
+          attachmentKeys: signedAttachments.join("；"),
+          note: stu.note ?? "",
+        };
+      }),
+    );
+
+    return buildExportWorkbook(StudentsImportService.EXPORT_COLUMNS, rows);
+  }
+
   async generateTemplate(): Promise<Buffer> {
     const wb = new ExcelJS.Workbook();
     const ws = wb.addWorksheet("学生导入");
@@ -291,15 +402,24 @@ export class StudentsImportService {
   }
 
   private async validateRow(r: ParsedRow): Promise<ImportError[]> {
-    const errs: ImportError[] = [];
-    const push = (field: string, message: string) => errs.push({ row: r.row, field, message });
-
-    // Required field check
-    if (!r.name) push("学生姓名", "必填");
-    if (!r.gender) push("性别", "必填");
-    if (r.enrollmentYear == null) push("入学年份", "必填");
-    if (r.graduationYear == null) push("毕业年份", "必填");
-
+    const errs: ImportError[] = [];
+
+    const push = (field: string, message: string) => errs.push({ row: r.row, field, message });
+
+
+
+    // Required field check
+
+    if (!r.name) push("学生姓名", "必填");
+
+    if (!r.gender) push("性别", "必填");
+
+    if (r.enrollmentYear == null) push("入学年份", "必填");
+
+    if (r.graduationYear == null) push("毕业年份", "必填");
+
+
+
     if (r.gender && !GENDER.includes(r.gender as typeof GENDER[number])) push("性别", `非法值 "${r.gender}"，仅支持 ${GENDER.join("/")}`);
 
     if (r.enrollmentYear !== null && (!Number.isInteger(r.enrollmentYear) || r.enrollmentYear < 2000 || r.enrollmentYear > 2100)) {

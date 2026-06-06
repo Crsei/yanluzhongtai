@@ -45,4 +45,7 @@ export const coursesApi = {
     api.post<CourseImportReport>("/courses/import/dry-run", { fileKey }),
   importCommit: (fileKey: string) =>
     api.post<CourseImportCommitResult>("/courses/import/commit", { fileKey }),
+
+  exportExcel: () =>
+    downloadAuthed("/courses/export", "课程记录导出.xlsx"),
 };

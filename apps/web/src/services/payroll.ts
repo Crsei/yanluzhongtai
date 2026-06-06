@@ -1,4 +1,4 @@
-import { api } from "./http";
+import { api, downloadAuthed } from "./http";
 import type {
   CreateManualRecordBody,
   PayrollCourseItem,
@@ -27,6 +27,8 @@ function toQuery(params: PayrollQueryParams): string {
 export const payrollApi = {
   list: (params: PayrollQueryParams) =>
     api.get<PayrollListResponse>(`/payroll${toQuery(params)}`),
+  exportExcel: (params: PayrollQueryParams) =>
+    downloadAuthed(`/payroll/export${toQuery(params)}`, "薪资结算记录导出.xlsx"),
   rowState: (
     jobNo: string,
     period: string,

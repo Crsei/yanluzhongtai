@@ -16,6 +16,7 @@ export class UpdateItemDto {
   @IsOptional()
   @IsString()
   @MaxLength(10)
+  @Matches(/^[A-Z]{1,2}$/, { message: "板块缩写需为 1-2 位大写字母" })
   sectionCode?: string;
 
   @IsOptional()

@@ -35,6 +35,25 @@ export class EmployeesController {
     return this.employees.list(query);
   }
 
+  @Roles(UserRole.SUPER_ADMIN, UserRole.ADMIN)
+  @Get("export")
+  async exportExcel(@Res() res: Response) {
+    try {
+      const buf = await this.imports.exportAll();
+      res.setHeader(
+        "Content-Type",
+        "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+      );
+      res.setHeader(
+        "Content-Disposition",
+        'attachment; filename="employee-export.xlsx"',
+      );
+      res.send(buf);
+    } catch (err) {
+      res.status(500).json({ message: "导出失败" });
+    }
+  }
+
   @Get(":id")
   findOne(@Param("id") id: string) {
     return this.employees.findOne(id);

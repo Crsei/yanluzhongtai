@@ -8,8 +8,10 @@ import {
   Param,
   Post,
   Query,
+  Res,
 } from "@nestjs/common";
 import { UserRole } from "@prisma/client";
+import type { Response } from "express";
 import { CurrentUser } from "../auth/decorators/current-user.decorator";
 import { Roles } from "../auth/decorators/roles.decorator";
 import type { AuthUser } from "../auth/auth.types";
@@ -33,6 +35,21 @@ export class PayrollController {
   @Get()
   list(@Query() query: QueryPayrollDto) {
     return this.payroll.list(query);
+  }
+
+  @Get("export")
+  async exportExcel(@Query() query: QueryPayrollDto, @Res() res: Response) {
+    const buf = await this.payroll.exportAll(query);
+    const today = new Date().toISOString().slice(0, 10);
+    res.setHeader(
+      "Content-Type",
+      "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+    );
+    res.setHeader(
+      "Content-Disposition",
+      `attachment; filename="payroll-export-${today}.xlsx"`,
+    );
+    res.send(buf);
   }
 
   @Get("row/:jobNo/:period")

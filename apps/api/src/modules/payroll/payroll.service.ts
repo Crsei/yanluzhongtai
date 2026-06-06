@@ -12,6 +12,10 @@ import {
   normalizePayrollTeachingType,
   type PayrollTeachingType,
 } from "../../common/payroll/teaching-type";
+import {
+  buildExportWorkbook,
+  type ExportColumn,
+} from "../../common/export/export-utils";
 import { PrismaService } from "../../prisma/prisma.service";
 import { QueryPayrollDto } from "./dto/query-payroll.dto";
 import type {
@@ -73,6 +77,23 @@ function settlementTypeWhere(
 @Injectable()
 export class PayrollService {
   constructor(private readonly prisma: PrismaService) {}
+
+  private readonly exportColumns: ExportColumn[] = [
+    { header: "记录类型", key: "kind" },
+    { header: "工号", key: "employeeJobNo" },
+    { header: "老师姓名", key: "employeeName" },
+    { header: "所属年月", key: "period" },
+    { header: "授课方式", key: "teachingType" },
+    { header: "单位课时费", key: "hourlyRate" },
+    { header: "已授课时", key: "deliveredHours" },
+    { header: "总课时费", key: "totalCourseFee" },
+    { header: "其他劳务", key: "extraLabor" },
+    { header: "其他扣除", key: "extraDeduction" },
+    { header: "应结算薪资", key: "subtotalPayable" },
+    { header: "已结算薪资", key: "subtotalPaid" },
+    { header: "结算记录ID", key: "settlementIds" },
+    { header: "手动记录创建时间", key: "createdAt" },
+  ];
 
   async list(query: QueryPayrollDto): Promise<PayrollListResponse> {
     const periods = periodRangeToList(query.from, query.to);
@@ -197,6 +218,27 @@ export class PayrollService {
       });
 
     return { items, total: items.length };
+  }
+
+  async exportAll(query: QueryPayrollDto): Promise<Buffer> {
+    const { items } = await this.list(query);
+    const rows = items.map((row) => ({
+      kind: row.kind === "auto" ? "自动汇总" : "手动记录",
+      employeeJobNo: row.employeeJobNo,
+      employeeName: row.employeeName,
+      period: row.period,
+      teachingType: row.teachingType ?? "",
+      hourlyRate: row.hourlyRate ?? "",
+      deliveredHours: row.deliveredHours,
+      totalCourseFee: row.totalCourseFee ?? "",
+      extraLabor: row.extraLabor,
+      extraDeduction: row.extraDeduction,
+      subtotalPayable: row.subtotalPayable ?? "",
+      subtotalPaid: row.subtotalPaid,
+      settlementIds: row.kind === "auto" ? row.settlementIds.join("; ") : "",
+      createdAt: row.kind === "manual" ? row.createdAt : "",
+    }));
+    return buildExportWorkbook(this.exportColumns, rows);
   }
 
   async getRowState(

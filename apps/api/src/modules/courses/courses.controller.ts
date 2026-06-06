@@ -67,6 +67,25 @@ export class CoursesController {
     return this.imports.commit(dto.fileKey, operator.id);
   }
 
+  @Roles(UserRole.SUPER_ADMIN, UserRole.ADMIN)
+  @Get("export")
+  async exportExcel(@Res() res: Response) {
+    try {
+      const buf = await this.imports.exportAll();
+      res.setHeader(
+        "Content-Type",
+        "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+      );
+      res.setHeader(
+        "Content-Disposition",
+        'attachment; filename="course-export.xlsx"',
+      );
+      res.send(buf);
+    } catch {
+      res.status(500).json({ message: "导出失败" });
+    }
+  }
+
   @Get(":id")
   findOne(@Param("id") id: string) {
     return this.courses.findOne(id);

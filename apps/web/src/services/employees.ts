@@ -33,7 +33,14 @@ export const employeesApi = {
   importCommit: (fileKey: string) =>
     api.post<ImportCommitResult>("/employees/import/commit", { fileKey }),
   downloadTemplate: () =>
+
     downloadAuthed("/employees/import/template", "员工导入模板.xlsx"),
+
+
+
+  exportExcel: () =>
+
+    downloadAuthed("/employees/export", "员工信息导出.xlsx"),
 
   findByJobNo: async (jobNo: string) => {
     const resp = await employeesApi.list({ jobNo, pageSize: 1 });

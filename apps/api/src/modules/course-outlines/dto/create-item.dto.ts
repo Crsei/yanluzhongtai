@@ -1,25 +1,46 @@
-import { Type } from "class-transformer";
-import {
-  IsIn,
-  IsOptional,
-  IsString,
-  IsUrl,
-  Matches,
-  MaxLength,
-  ValidateIf,
-  ValidateNested,
-} from "class-validator";
-import {
-  TEACHING_TYPE,
-  TeachingType,
-} from "../../../common/dictionaries";
-import { CreateSectionDto } from "./create-section.dto";
-
-export class CreateItemDto {
-  /** One of sectionCode / newSection must be provided. */
-  @ValidateIf((o: CreateItemDto) => !o.newSection)
-  @IsString()
-  @MaxLength(10)
+import { Type } from "class-transformer";
+
+import {
+
+  IsIn,
+
+  IsOptional,
+
+  IsString,
+
+  IsUrl,
+
+  Matches,
+
+  MaxLength,
+
+  ValidateIf,
+
+  ValidateNested,
+
+} from "class-validator";
+
+import {
+
+  TEACHING_TYPE,
+
+  TeachingType,
+
+} from "../../../common/dictionaries";
+
+import { CreateSectionDto } from "./create-section.dto";
+
+
+
+export class CreateItemDto {
+
+  /** One of sectionCode / newSection must be provided. */
+
+  @ValidateIf((o: CreateItemDto) => !o.newSection)
+
+  @IsString()
+  @MaxLength(10)
+  @Matches(/^[A-Z]{1,2}$/, { message: "板块缩写需为 1-2 位大写字母" })
   sectionCode?: string;
 
   @ValidateIf((o: CreateItemDto) => !o.sectionCode)

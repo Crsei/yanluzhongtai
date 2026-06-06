@@ -1,29 +1,57 @@
 import { Injectable } from "@nestjs/common";
+
 import { Prisma } from "@prisma/client";
+
 import * as ExcelJS from "exceljs";
+
 import {
+
   COURSE_SECTION_CODE_BY_LABEL,
+
   COURSE_SECTION_LABELS,
+
   TEACHING_TYPE,
+
   type TeachingType,
+
 } from "../../common/dictionaries";
+
 import {
+
   composeCourseSeqKind,
+
   deriveYy,
+
   formatCourseNo,
+
   formatNnn,
+
   normalizeKk,
+
   normalizeTt,
+
 } from "../../common/course-no/course-no";
+
 import { computeCreditHours } from "../../common/course-no/course-status";
+
 import { IdSequenceService } from "../../common/id-sequence/id-sequence.service";
+
 import { AuditLogsService } from "../audit-logs/audit-logs.service";
+
 import { PrismaService } from "../../prisma/prisma.service";
+
 import { StorageService } from "../storage/storage.service";
+
+import { buildExportWorkbook, decimalToNumber, type ExportColumn } from "../../common/export/export-utils";
+
 import type {
+
   CourseImportCommitResult,
+
   CourseImportReport,
+
   CourseImportRowError,
+
 } from "./courses.types";
 
 const COLUMNS = [
@@ -141,10 +169,118 @@ export class CoursesImportService {
       note: "",
     });
     sheet.getRow(1).font = { bold: true };
+
     sheet.views = [{ state: "frozen", ySplit: 1 }];
+
     const buf = await workbook.xlsx.writeBuffer();
+
     return Buffer.from(buf);
+
   }
+
+
+
+  // -------------------------------------------------------------- export ----
+
+
+
+  private static readonly EXPORT_COLUMNS: ExportColumn[] = [
+
+    { header: "课程编号", key: "courseNo" },
+
+    { header: "课程名称", key: "name" },
+
+    { header: "板块代码", key: "sectionCode" },
+
+    { header: "板块名称", key: "sectionName" },
+
+    { header: "二级课程类别", key: "secondaryCategoryName" },
+
+    { header: "序列号", key: "categorySequenceNo" },
+
+    { header: "建议授课方式", key: "suggestedTeachingType" },
+
+    { header: "计划授课时间", key: "plannedAt" },
+
+    { header: "实际授课老师工号", key: "actualTeacherJobNo" },
+
+    { header: "实际授课方式", key: "actualTeachingType" },
+
+    { header: "时长(分钟)", key: "durationMinutes" },
+
+    { header: "课时数", key: "creditHours" },
+
+    { header: "回放链接", key: "replayUrl" },
+
+    { header: "视频链接", key: "videoUrl" },
+
+    { header: "资源链接", key: "resourceUrl" },
+
+    { header: "备注", key: "note" },
+
+  ];
+
+
+
+  /** Export all Course records as an Excel workbook buffer. */
+
+  async exportAll(): Promise<Buffer> {
+
+    const courses = await this.prisma.course.findMany({
+
+      orderBy: { courseNo: "asc" },
+
+    });
+
+
+
+    const rows = courses.map((course) => ({
+
+      courseNo: course.courseNo,
+
+      name: course.name ?? "",
+
+      sectionCode: course.sectionCode ?? "",
+
+      sectionName: course.sectionName ?? "",
+
+      secondaryCategoryName: course.secondaryCategoryName ?? "",
+
+      categorySequenceNo: course.categorySequenceNo ?? "",
+
+      suggestedTeachingType: course.suggestedTeachingType ?? "",
+
+      plannedAt: course.plannedAt
+
+        ? course.plannedAt.toISOString().replace("T", " ").slice(0, 16)
+
+        : "",
+
+      actualTeacherJobNo: course.actualTeacherJobNo ?? "",
+
+      actualTeachingType: course.actualTeachingType ?? "",
+
+      durationMinutes: course.durationMinutes ?? "",
+
+      creditHours: decimalToNumber(course.creditHours) ?? "",
+
+      replayUrl: course.replayUrl ?? "",
+
+      videoUrl: course.videoUrl ?? "",
+
+      resourceUrl: course.resourceUrl ?? "",
+
+      note: course.note ?? "",
+
+    }));
+
+
+
+    return buildExportWorkbook(CoursesImportService.EXPORT_COLUMNS, rows);
+
+  }
+
+
 
   async dryRun(fileKey: string): Promise<CourseImportReport> {
     const buffer = await this.storage.readObject(fileKey);
@@ -381,9 +517,17 @@ export class CoursesImportService {
       if (
         raw.sectionName &&
         tt &&
-        COURSE_SECTION_LABELS[tt as keyof typeof COURSE_SECTION_LABELS] !== raw.sectionName &&
+        section &&
+        section.name !== raw.sectionName &&
         COURSE_SECTION_IMPORT_ALIASES[raw.sectionName] !== tt
       ) {
+        rowErrors.push({
+          row: rowNumber,
+          field: COLUMN_HEADERS.sectionName,
+          message: `板块 ${tt} 的名称应为 "${section.name}"`,
+        });
+      }
+      if (false) {
         rowErrors.push({
           row: rowNumber,
           field: COLUMN_HEADERS.sectionName,

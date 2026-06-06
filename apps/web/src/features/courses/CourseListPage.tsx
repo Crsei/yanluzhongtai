@@ -1,34 +1,71 @@
 import {
+
   DeleteOutlined,
+
   EditOutlined,
+
+  ExportOutlined,
+
   EyeOutlined,
+
   ImportOutlined,
+
   PlusOutlined,
+
   SearchOutlined,
+
 } from "@ant-design/icons";
+
 import {
+
   Button,
+
   Input,
+
   Space,
+
   Table,
+
   Tag,
+
   Typography,
+
+  message,
+
 } from "antd";
+
 import { useEffect, useMemo, useState } from "react";
+
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
+
 import {
+
   COURSE_STATUS_COLORS,
+
   COURSE_STATUS_LABELS,
+
   type CourseStatus,
+
   type TeachingType,
+
 } from "../../constants/dictionaries";
+
 import { useAuthStore } from "../../stores/authStore";
+
+import { coursesApi } from "../../services/courses";
+
 import { CourseFormModal } from "./CourseFormModal";
+
 import { CourseImportDrawer } from "./CourseImportDrawer";
+
 import { confirmDeleteCourses } from "./CourseDeleteConfirm";
+
 import { useCourse } from "./hooks/useCourse";
+
 import { useCourseMutations } from "./hooks/useCourseMutations";
+
 import { useCourses } from "./hooks/useCourses";
+
 import type { CourseListItem, CourseQueryParams } from "./types";
 
 function readParams(sp: URLSearchParams): CourseQueryParams {
@@ -103,14 +140,46 @@ export function CourseListPage() {
   };
 
   const onDelete = () => {
+
     confirmDeleteCourses(
+
       selectedRows.map((r) => ({ id: r.id, courseNo: r.courseNo, name: r.name ?? "" })),
+
       async () => {
+
         await removeMany.mutateAsync(selectedIds);
+
         setSelectedIds([]);
+
       },
+
     );
+
   };
+
+
+
+  const handleExportExcel = async () => {
+
+    try {
+
+      await coursesApi.exportExcel();
+
+      message.success("导出成功");
+
+    } catch (err) {
+
+      message.error(
+
+        err instanceof Error ? err.message : "导出失败",
+
+      );
+
+    }
+
+  };
+
+
 
   const columns = [
     { title: "课程编号", dataIndex: "courseNo", width: 140 },
@@ -219,10 +288,27 @@ export function CourseListPage() {
                 删除课程
               </Button>
               <Button
+
                 icon={<ImportOutlined />}
+
                 onClick={() => setImportOpen(true)}
+
               >
+
                 从 Excel 导入
+
+              </Button>
+
+              <Button
+
+                icon={<ExportOutlined />}
+
+                onClick={handleExportExcel}
+
+              >
+
+                导出Excel
+
               </Button>
             </>
           ) : null}

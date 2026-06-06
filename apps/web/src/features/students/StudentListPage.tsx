@@ -1,5 +1,6 @@
 // apps/web/src/features/students/StudentListPage.tsx
-import { Button, Input, Space, Table, Tag, Typography } from "antd";
+import { ExportOutlined } from "@ant-design/icons";
+import { Button, Input, Space, Table, Tag, Typography, message } from "antd";
 import { useMemo, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import {
@@ -81,16 +82,49 @@ export function StudentListPage() {
   };
 
   const handleDelete = () => {
+
     const row = data?.items.find((i) => i.id === selectedKeys[0]);
+
     if (!row) return;
+
     openStudentDeleteConfirm({
+
       studentName: row.name ?? "",
+
       studentNo: row.studentNo,
+
       onConfirm: async () => {
+
         await removeMutation.mutateAsync(row.id);
+
         setSelectedKeys([]);
+
       },
+
     });
+
+  };
+
+
+
+  const handleExportExcel = async () => {
+
+    try {
+
+      await studentsApi.exportExcel();
+
+      message.success("导出成功");
+
+    } catch (err) {
+
+      message.error(
+
+        err instanceof Error ? err.message : "导出失败",
+
+      );
+
+    }
+
   };
 
   return (
@@ -112,6 +146,9 @@ export function StudentListPage() {
               删除学生
             </Button>
             <Button onClick={() => setImportOpen(true)}>从 Excel 导入</Button>
+            <Button icon={<ExportOutlined />} onClick={handleExportExcel}>
+              导出Excel
+            </Button>
           </>
         )}
         <div style={{ flex: 1 }} />

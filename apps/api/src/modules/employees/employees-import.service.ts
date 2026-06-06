@@ -1,18 +1,35 @@
 import { Injectable, Logger } from "@nestjs/common";
+
 import { EmploymentStatus, Prisma } from "@prisma/client";
+
 import * as ExcelJS from "exceljs";
+
 import {
+
   EMPLOYEE_SERVING_FOR,
+
   EMPLOYEE_SOURCE,
+
   EMPLOYMENT_STATUS,
+
   EMPLOYMENT_STATUS_LABELS,
+
   EmployeeServingFor,
+
   EmployeeSource,
+
   GENDER,
+
 } from "../../common/dictionaries";
+
+import { buildExportWorkbook, type ExportColumn } from "../../common/export/export-utils";
+
 import { IdSequenceService } from "../../common/id-sequence/id-sequence.service";
+
 import { PrismaService } from "../../prisma/prisma.service";
+
 import { StorageService } from "../storage/storage.service";
+
 import { AuditLogsService } from "../audit-logs/audit-logs.service";
 import {
   ImportCommitResult,
@@ -191,6 +208,90 @@ export class EmployeesImportService {
     });
 
     return { created: data.length, errors: [] };
+
+  }
+
+
+
+  private static readonly EXPORT_COLUMNS: ExportColumn[] = [
+
+    { header: "员工姓名", key: "name" },
+
+    { header: "性别", key: "gender" },
+
+    { header: "在职状态", key: "employmentStatus" },
+
+    { header: "具体工作职能", key: "jobTitle" },
+
+    { header: "入职日期", key: "hireDate" },
+
+    { header: "电话号码", key: "phone" },
+
+    { header: "银行卡号", key: "bankCardNo" },
+
+    { header: "开户行", key: "bankName" },
+
+    { header: "员工来源", key: "source" },
+
+    { header: "正服务于", key: "servingFor" },
+
+    { header: "文字版简历", key: "resumeText" },
+
+    { header: "附件（下载链接）", key: "attachmentKeys" },
+
+  ];
+
+
+
+  /** Export all Employee records as an Excel workbook buffer. */
+  async exportAll(): Promise<Buffer> {
+    const employees = await this.prisma.employee.findMany({
+      orderBy: { jobNo: "asc" },
+    });
+
+    // Process each employee row: join arrays, sign attachment URLs
+    const rows = await Promise.all(
+      employees.map(async (emp) => {
+        // Sign all attachment keys concurrently within this employee.
+        // Wrap each key in try/catch so a single failed signing doesn't break the export.
+        const signedUrls =
+          emp.attachmentKeys.length > 0
+            ? (
+                await Promise.all(
+                  emp.attachmentKeys.map(async (key) => {
+                    try {
+                      return await this.storage.signDownload(key, 3600);
+                    } catch (err) {
+                      this.logger.warn(
+                        `Failed to sign attachment key "${key}" for employee ${emp.jobNo}`,
+                      );
+                      return "";
+                    }
+                  }),
+                )
+              ).filter(Boolean)
+            : [];
+
+        return {
+          name: emp.name ?? "",
+          gender: emp.gender ?? "",
+          employmentStatus: emp.employmentStatus
+            ? EMPLOYMENT_STATUS_LABELS[emp.employmentStatus]
+            : "",
+          jobTitle: emp.jobTitle ?? "",
+          hireDate: emp.hireDate ? emp.hireDate.toISOString().slice(0, 10) : "",
+          phone: emp.phone ?? "",
+          bankCardNo: emp.bankCardNo ?? "",
+          bankName: emp.bankName ?? "",
+          source: emp.source ?? "",
+          servingFor: emp.servingFor.length > 0 ? emp.servingFor.join("；") : "",
+          resumeText: emp.resumeText ?? "",
+          attachmentKeys: signedUrls.join("；"),
+        };
+      }),
+    );
+
+    return buildExportWorkbook(EmployeesImportService.EXPORT_COLUMNS, rows);
   }
 
   // ------------------------------- internals ------------------------------- //
@@ -254,21 +355,36 @@ export class EmployeesImportService {
     const validated: ValidatedRow[] = [];
     const errors: ImportRowError[] = [];
 
-    for (const { rowNumber, raw } of rows) {
-      const rowErrors: ImportRowError[] = [];
-
-      // Required field check
-      for (const key of REQUIRED_COLUMNS) {
-        if (!raw[key]) {
-          rowErrors.push({ row: rowNumber, field: COLUMN_HEADERS[key], message: "必填" });
-        }
-      }
-
-      if (rowErrors.length > 0) {
-        errors.push(...rowErrors);
-        continue;
-      }
-
+    for (const { rowNumber, raw } of rows) {
+
+      const rowErrors: ImportRowError[] = [];
+
+
+
+      // Required field check
+
+      for (const key of REQUIRED_COLUMNS) {
+
+        if (!raw[key]) {
+
+          rowErrors.push({ row: rowNumber, field: COLUMN_HEADERS[key], message: "必填" });
+
+        }
+
+      }
+
+
+
+      if (rowErrors.length > 0) {
+
+        errors.push(...rowErrors);
+
+        continue;
+
+      }
+
+
+
       if (raw.gender && !(GENDER as readonly string[]).includes(raw.gender)) {
         rowErrors.push({ row: rowNumber, field: "性别", message: `非法值，仅支持 ${GENDER.join("/")}` });
       }
