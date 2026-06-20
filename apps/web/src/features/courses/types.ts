@@ -14,6 +14,7 @@ export type CourseListItem = {
   actualTeacher: {
     jobNo: string;
     name: string;
+    billingType: string;
     employmentStatus: string;
   } | null;
   enrolledStudentCount: number;
@@ -31,6 +32,7 @@ export type CoursePickedStudent = {
   studentNo: string;
   name: string | null;
   servicePlatform: string | null;
+  grade: string | null;
 };
 
 export type CourseDetail = Omit<CourseListItem, "enrolledStudentCount"> & {

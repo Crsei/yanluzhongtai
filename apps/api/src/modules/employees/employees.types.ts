@@ -4,6 +4,7 @@ export type EmployeeListItem = Pick<
   Employee,
   | "id"
   | "jobNo"
+  | "billingType"
   | "name"
   | "gender"
   | "employmentStatus"

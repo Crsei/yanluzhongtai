@@ -1,4 +1,4 @@
-import { api } from "./http";
+import { api, downloadAuthed } from "./http";
 import type {
   AuditLogListResponse,
   AuditLogQueryParams,
@@ -23,4 +23,6 @@ function toQuery(params: AuditLogQueryParams): string {
 export const auditLogsApi = {
   list: (params: AuditLogQueryParams = {}) =>
     api.get<AuditLogListResponse>(`/audit-logs${toQuery(params)}`),
+  exportExcel: (params: AuditLogQueryParams = {}) =>
+    downloadAuthed(`/audit-logs/export${toQuery(params)}`, "中台日志导出.xlsx"),
 };

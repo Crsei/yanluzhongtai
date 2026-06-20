@@ -3,6 +3,7 @@ import { Select, type SelectProps } from "antd";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { employeesApi } from "../services/employees";
 import type { EmployeeListItem } from "../features/employees/types";
+import { EMPLOYEE_BILLING_TAG_COLORS } from "../constants/dictionaries";
 
 export interface EmployeePickerProps {
   value?: string | null;
@@ -17,7 +18,41 @@ export interface EmployeePickerProps {
 function formatOption(e: EmployeeListItem) {
   const suffix = e.employmentStatus === "RESIGNED" ? " (已离职)" : "";
   const name = e.name ? `- ${e.name}` : "";
-  return { value: e.jobNo, label: `${e.jobNo} ${name}${suffix}`.trim() };
+  const billingType = e.billingType && e.billingType !== "常规" ? e.billingType : null;
+  return {
+    value: e.jobNo,
+    label: (
+      <span>
+        {`${e.jobNo} ${name}${suffix}`.trim()}
+        {billingType ? (
+          <span
+            style={{
+              display: "inline-block",
+              marginLeft: 8,
+              padding: "0 6px",
+              borderRadius: 4,
+              fontSize: 12,
+              lineHeight: "18px",
+              background: tagBgColor(billingType),
+            }}
+          >
+            {billingType}
+          </span>
+        ) : null}
+      </span>
+    ),
+  };
+}
+
+function tagBgColor(value: string): string {
+  const color = EMPLOYEE_BILLING_TAG_COLORS[value] ?? "blue";
+  const map: Record<string, string> = {
+    gold: "#fff7e6",
+    green: "#f6ffed",
+    magenta: "#fff0f6",
+    blue: "#e6f4ff",
+  };
+  return map[color] ?? "#e6f4ff";
 }
 
 export function EmployeePicker({

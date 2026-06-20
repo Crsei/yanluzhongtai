@@ -1,4 +1,4 @@
-import { FileSearchOutlined, MailOutlined } from "@ant-design/icons";
+import { FileSearchOutlined } from "@ant-design/icons";
 import { Button, Divider, Space, Typography } from "antd";
 import { useNavigate } from "react-router-dom";
 import { ABOUT_CONFIG } from "../../constants/about";
@@ -35,7 +35,6 @@ export function AboutPage() {
           <span>{ABOUT_CONFIG.companyName}</span>
         </div>
         <div>
-          <MailOutlined />{" "}
           <span className="about-info-label">问题反馈：</span>
           <a href={`mailto:${ABOUT_CONFIG.feedbackEmail}`}>
             {ABOUT_CONFIG.feedbackEmail}

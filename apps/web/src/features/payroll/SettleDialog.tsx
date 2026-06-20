@@ -24,6 +24,8 @@ type Props = {
 type FormValues = {
   hourlyRate?: number;
   paidAmount?: number;
+  extraLabor?: number;
+  extraDeduction?: number;
 };
 
 export function SettleDialog({
@@ -44,16 +46,38 @@ export function SettleDialog({
   });
 
   const state = stateQ.data;
+  const totalPackage = state?.employeeBillingType === "总包";
   const rateLocked = state?.hourlyRate != null;
+  const watchedRate = Form.useWatch("hourlyRate", form);
+  const watchedExtraLabor = Form.useWatch("extraLabor", form) ?? 0;
+  const watchedExtraDeduction = Form.useWatch("extraDeduction", form) ?? 0;
+  const effectiveRate = rateLocked
+    ? state?.hourlyRate
+    : watchedRate ?? state?.hourlyRate ?? 120;
   const maxAmount =
-    state?.payable != null
-      ? Math.max(0, Number((state.payable - state.alreadyPaid).toFixed(2)))
+    state && effectiveRate != null
+      ? Math.max(
+          0,
+          Number(
+            (
+              effectiveRate * state.deliveredHours +
+              watchedExtraLabor -
+              watchedExtraDeduction -
+              state.alreadyPaid
+            ).toFixed(2),
+          ),
+        )
       : undefined;
 
   // Keep form in sync with the row state the dialog just loaded. Otherwise
   // a locked rate never gets written to the form value on first open.
   useEffect(() => {
     if (!open) return;
+    form.setFieldsValue({
+      hourlyRate: state?.hourlyRate ?? 120,
+      extraLabor: 0,
+      extraDeduction: 0,
+    });
     if (rateLocked && state?.hourlyRate != null) {
       form.setFieldsValue({ hourlyRate: state.hourlyRate });
     }
@@ -71,8 +95,8 @@ export function SettleDialog({
       teachingType,
       hourlyRate: String(rate),
       paidAmount: String(values.paidAmount),
-      extraLabor: "0",
-      extraDeduction: "0",
+      extraLabor: String(values.extraLabor ?? 0),
+      extraDeduction: String(values.extraDeduction ?? 0),
     });
     form.resetFields();
     onClose();
@@ -99,6 +123,9 @@ export function SettleDialog({
         <>
           <Descriptions column={1} size="small" style={{ marginBottom: 16 }}>
             <Descriptions.Item label="老师">{teacherName}</Descriptions.Item>
+            <Descriptions.Item label="计费方式">
+              {state.employeeBillingType}
+            </Descriptions.Item>
             <Descriptions.Item label="所属年月">{period}</Descriptions.Item>
             <Descriptions.Item label="授课方式">{teachingType}</Descriptions.Item>
             <Descriptions.Item label="已授课时">
@@ -114,7 +141,14 @@ export function SettleDialog({
             </Descriptions.Item>
           </Descriptions>
 
-          {rateLocked ? (
+          {totalPackage ? (
+            <Alert
+              style={{ marginBottom: 12 }}
+              type="info"
+              showIcon
+              message="该老师计费方式为总包,课时费固定为 0 且不可修改"
+            />
+          ) : rateLocked ? (
             <Alert
               style={{ marginBottom: 12 }}
               type="info"
@@ -135,6 +169,7 @@ export function SettleDialog({
               <Form.Item
                 name="hourlyRate"
                 label="单位课时费"
+                initialValue={120}
                 rules={[
                   { required: true, message: "请输入单位课时费" },
                   {
@@ -154,6 +189,48 @@ export function SettleDialog({
                 />
               </Form.Item>
             ) : null}
+
+            <Form.Item
+              name="extraLabor"
+              label="其他劳务"
+              initialValue={0}
+              rules={[
+                {
+                  validator: (_, value) =>
+                    value == null || value >= 0
+                      ? Promise.resolve()
+                      : Promise.reject(new Error("其他劳务不得小于 0")),
+                },
+              ]}
+            >
+              <InputNumber
+                addonAfter="元"
+                precision={2}
+                min={0}
+                style={{ width: "100%" }}
+              />
+            </Form.Item>
+
+            <Form.Item
+              name="extraDeduction"
+              label="其他扣除"
+              initialValue={0}
+              rules={[
+                {
+                  validator: (_, value) =>
+                    value == null || value >= 0
+                      ? Promise.resolve()
+                      : Promise.reject(new Error("其他扣除不得小于 0")),
+                },
+              ]}
+            >
+              <InputNumber
+                addonAfter="元"
+                precision={2}
+                min={0}
+                style={{ width: "100%" }}
+              />
+            </Form.Item>
 
             <Form.Item
               name="paidAmount"

@@ -4,6 +4,7 @@ export type PayrollAutoRow = {
   kind: "auto";
   employeeJobNo: string;
   employeeName: string;
+  employeeBillingType: string;
   period: string;
   teachingType: PayrollTeachingType;
   hourlyRate: number | null;
@@ -21,6 +22,7 @@ export type PayrollManualRow = {
   id: string;
   employeeJobNo: string;
   employeeName: string;
+  employeeBillingType: string;
   period: string;
   teachingType: null;
   hourlyRate: null;
@@ -29,7 +31,7 @@ export type PayrollManualRow = {
   extraLabor: number;
   extraDeduction: number;
   subtotalPayable: number;
-  subtotalPaid: 0;
+  subtotalPaid: number;
   createdAt: string;
 };
 
@@ -43,6 +45,7 @@ export type PayrollListResponse = {
 export type PayrollRowState = {
   employeeJobNo: string;
   employeeName: string;
+  employeeBillingType: string;
   period: string;
   teachingType: PayrollTeachingType;
   hourlyRate: number | null;
@@ -77,6 +80,10 @@ export type SettlePayrollBody = {
   paidAmount: string;
   extraLabor: string;
   extraDeduction: string;
+};
+
+export type SettleManualRecordBody = {
+  paidAmount: string;
 };
 
 export type CreateManualRecordBody = {

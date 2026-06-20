@@ -28,6 +28,8 @@ export const employeesApi = {
   update: (id: string, body: UpdateEmployeeBody) =>
     api.put<EmployeeDetail>(`/employees/${id}`, body),
   remove: (id: string) => api.delete<void>(`/employees/${id}`),
+  removeMany: (ids: string[]) =>
+    api.delete<{ deleted: number }>("/employees", { body: { ids } }),
   importDryRun: (fileKey: string) =>
     api.post<ImportReport>("/employees/import/dry-run", { fileKey }),
   importCommit: (fileKey: string) =>

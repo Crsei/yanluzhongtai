@@ -1,6 +1,7 @@
 // apps/api/src/modules/students/students.service.ts
 import { ConflictException, Injectable, NotFoundException } from "@nestjs/common";
 import { Prisma, type Student } from "@prisma/client";
+import { computeCreditHours } from "../../common/course-no/course-status";
 import { IdSequenceService } from "../../common/id-sequence/id-sequence.service";
 import {
   SERVICE_STATUS_SORT,
@@ -24,6 +25,37 @@ import {
 } from "./utils/grade";
 
 const DEFAULT_PAGE_SIZE = 50;
+const PUBLIC_CREDIT_SECTION_CODES = new Set(["GP", "WZ", "JS"]);
+
+function decimalToNumber(value: Prisma.Decimal | number | string | null | undefined): number {
+  if (value == null) return 0;
+  const n = Number(value);
+  return Number.isFinite(n) ? n : 0;
+}
+
+function round2(value: number): number {
+  return Math.round(value * 100) / 100;
+}
+
+function compareStudentListItems(a: StudentListItem, b: StudentListItem): number {
+  const statusRankA =
+    a.serviceStatus && SERVICE_STATUS_SORT[a.serviceStatus as ServiceStatus] != null
+      ? SERVICE_STATUS_SORT[a.serviceStatus as ServiceStatus]
+      : 999;
+  const statusRankB =
+    b.serviceStatus && SERVICE_STATUS_SORT[b.serviceStatus as ServiceStatus] != null
+      ? SERVICE_STATUS_SORT[b.serviceStatus as ServiceStatus]
+      : 999;
+  if (statusRankA !== statusRankB) return statusRankA - statusRankB;
+
+  const yearA = a.enrollmentYear ?? -Infinity;
+  const yearB = b.enrollmentYear ?? -Infinity;
+  if (yearA !== yearB) return yearB - yearA;
+
+  return (a.name ?? "").localeCompare(b.name ?? "", "zh-Hans-CN", {
+    sensitivity: "base",
+  });
+}
 
 @Injectable()
 export class StudentsService {
@@ -69,15 +101,6 @@ export class StudentsService {
       ? Prisma.sql`WHERE grade_text = ${query.grade}`
       : Prisma.empty;
 
-    const statusOrder = Prisma.sql`CASE "serviceStatus"::text
-      ${Prisma.join(
-        (Object.entries(SERVICE_STATUS_SORT) as [ServiceStatus, number][]).map(
-          ([k, v]) => Prisma.sql`WHEN ${k} THEN ${v}`,
-        ),
-        " ",
-      )}
-      ELSE 999 END`;
-
     const itemsQuery = Prisma.sql`
       WITH s AS (
         SELECT *, ${Prisma.raw(GRADE_TEXT_CASE_SQL)} AS grade_text,
@@ -87,14 +110,14 @@ export class StudentsService {
       )
       SELECT "id", "studentNo", "name", "gender", "school", "major",
              "enrollmentYear", "graduationYear",
+             "totalPublicCredits", "totalPrivateCredits",
              "remainingPublicCredits", "remainingPrivateCredits",
+             "serviceChecklistUrl", "serviceChecklistKeys",
              "serviceStatus", "servicePlatform",
              "counselorJobNo", "plannerJobNo",
              grade_text AS grade
       FROM s
       ${gradeWhere}
-      ORDER BY ${statusOrder} ASC, grade_rank ASC, "name" ASC
-      LIMIT ${pageSize} OFFSET ${skip}
     `;
 
     const countQuery = Prisma.sql`
@@ -107,15 +130,14 @@ export class StudentsService {
     `;
 
     const [rawItems, countRows] = await this.prisma.$transaction([
-      this.prisma.$queryRaw<StudentListItem[]>(itemsQuery),
+      this.prisma.$queryRaw<
+        Array<StudentListItem & Pick<Student, "totalPublicCredits" | "totalPrivateCredits">>
+      >(itemsQuery),
       this.prisma.$queryRaw<{ count: number }[]>(countQuery),
     ]);
 
-    const items: StudentListItem[] = rawItems.map((r) => ({
-      ...r,
-      remainingPublicCredits: r.remainingPublicCredits ?? null,
-      remainingPrivateCredits: r.remainingPrivateCredits ?? null,
-    }));
+    const allItems = await this.withComputedRemainingCredits(rawItems);
+    const items = allItems.sort(compareStudentListItems).slice(skip, skip + pageSize);
 
     return {
       items,
@@ -128,8 +150,9 @@ export class StudentsService {
   async findOne(id: string): Promise<StudentDetail> {
     const s = await this.prisma.student.findUnique({ where: { id } });
     if (!s) throw new NotFoundException("学生不存在");
+    const [computed] = await this.withComputedRemainingCredits([s]);
     return {
-      ...s,
+      ...computed,
       grade: calculateGrade(s.enrollmentYear, s.graduationYear),
       relatedCourseCategories: [],
     };
@@ -139,15 +162,20 @@ export class StudentsService {
     const sequenceYear = dto.enrollmentYear ?? new Date().getFullYear();
     const seq = await this.idSequence.allocate("student", sequenceYear);
     const studentNo = formatStudentNo(sequenceYear, seq);
+    const payload = { ...dto };
+    delete (payload as Record<string, unknown>).remainingPublicCredits;
+    delete (payload as Record<string, unknown>).remainingPrivateCredits;
     const created = await this.prisma.student.create({
       data: {
-        ...dto,
+        ...payload,
         studentNo,
         name: dto.name ?? null,
         gender: dto.gender ?? null,
         servicePlatform: dto.servicePlatform ?? null,
         source: dto.source ?? null,
         serviceStatus: dto.serviceStatus ?? null,
+        remainingPublicCredits: dto.totalPublicCredits ?? null,
+        remainingPrivateCredits: dto.totalPrivateCredits ?? null,
         serviceChecklistKeys: dto.serviceChecklistKeys ?? [],
         policyKeys: dto.policyKeys ?? [],
         scheduleKeys: dto.scheduleKeys ?? [],
@@ -181,6 +209,8 @@ export class StudentsService {
     delete (payload as Record<string, unknown>).id;
     delete (payload as Record<string, unknown>).studentNo;
     delete (payload as Record<string, unknown>).enrollmentYear;
+    delete (payload as Record<string, unknown>).remainingPublicCredits;
+    delete (payload as Record<string, unknown>).remainingPrivateCredits;
     delete (payload as Record<string, unknown>).createdAt;
     delete (payload as Record<string, unknown>).updatedAt;
 
@@ -220,6 +250,98 @@ export class StudentsService {
       targetId: id,
       before: before as unknown as Record<string, unknown>,
       after: null,
+    });
+  }
+
+  async removeMany(ids: string[], operatorId: string): Promise<{ deleted: number }> {
+    if (ids.length === 0) return { deleted: 0 };
+    const rows = await this.prisma.student.findMany({
+      where: { id: { in: ids } },
+    });
+    if (rows.length !== ids.length) {
+      throw new NotFoundException("部分学生不存在");
+    }
+
+    const enrolled = await this.prisma.enrollment.count({
+      where: { studentId: { in: ids } },
+    });
+    if (enrolled > 0) {
+      throw new ConflictException(
+        "所选学生中存在选课记录，不可批量删除。请先调整服务状态并保留档案。",
+      );
+    }
+
+    await this.prisma.student.deleteMany({ where: { id: { in: ids } } });
+    for (const row of rows) {
+      await this.auditLogs.record({
+        operatorId,
+        action: "student.delete",
+        targetType: "student",
+        targetId: row.id,
+        before: row as unknown as Record<string, unknown>,
+        after: null,
+      });
+    }
+    return { deleted: rows.length };
+  }
+
+  private async withComputedRemainingCredits<
+    T extends {
+      id: string;
+      totalPublicCredits?: Prisma.Decimal | number | string | null;
+      totalPrivateCredits?: Prisma.Decimal | number | string | null;
+      remainingPublicCredits?: Prisma.Decimal | number | string | null;
+      remainingPrivateCredits?: Prisma.Decimal | number | string | null;
+    },
+  >(students: T[]): Promise<T[]> {
+    if (students.length === 0) return students;
+    const enrollments = await this.prisma.enrollment.findMany({
+      where: { studentId: { in: students.map((s) => s.id) } },
+      include: {
+        course: {
+          select: {
+            sectionCode: true,
+            actualTeachingType: true,
+            creditHours: true,
+            durationMinutes: true,
+          },
+        },
+      },
+    });
+
+    const usedByStudent = new Map<string, { publicCredits: number; privateCredits: number }>();
+    for (const enrollment of enrollments) {
+      const course = enrollment.course;
+      const creditHours = decimalToNumber(course.creditHours) || computeCreditHours(course.durationMinutes) || 0;
+      const current = usedByStudent.get(enrollment.studentId) ?? {
+        publicCredits: 0,
+        privateCredits: 0,
+      };
+      if (course.sectionCode && PUBLIC_CREDIT_SECTION_CODES.has(course.sectionCode)) {
+        current.publicCredits += creditHours;
+      }
+      if (course.actualTeachingType === "1v1") {
+        current.privateCredits += creditHours;
+      }
+      usedByStudent.set(enrollment.studentId, current);
+    }
+
+    return students.map((student) => {
+      const used = usedByStudent.get(student.id) ?? {
+        publicCredits: 0,
+        privateCredits: 0,
+      };
+      const remainingPublicCredits = round2(
+        decimalToNumber(student.totalPublicCredits) - used.publicCredits,
+      );
+      const remainingPrivateCredits = round2(
+        decimalToNumber(student.totalPrivateCredits) - used.privateCredits,
+      );
+      return {
+        ...student,
+        remainingPublicCredits: new Prisma.Decimal(remainingPublicCredits),
+        remainingPrivateCredits: new Prisma.Decimal(remainingPrivateCredits),
+      };
     });
   }
 }

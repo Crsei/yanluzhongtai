@@ -97,6 +97,17 @@ export class CourseOutlinesController {
   }
 
   @Roles(UserRole.SUPER_ADMIN, UserRole.ADMIN)
+  @Delete("versions/:id/sections/:code")
+  @HttpCode(HttpStatus.NO_CONTENT)
+  async deleteSection(
+    @Param("id") versionId: string,
+    @Param("code") sectionCode: string,
+    @CurrentUser() operator: AuthUser,
+  ) {
+    await this.items.deleteSection(versionId, sectionCode, operator.id);
+  }
+
+  @Roles(UserRole.SUPER_ADMIN, UserRole.ADMIN)
   @Get("template")
   async downloadTemplate(@Res() res: Response) {
     try {

@@ -50,6 +50,18 @@ export const EMPLOYMENT_STATUS_TAG_COLOR: Record<EmploymentStatus, string> = {
   RESIGNED: "default",
 };
 
+export const EMPLOYEE_BILLING_TYPES = ["常规", "1v1", "通识", "总包"] as const;
+export const EMPLOYEE_BILLING_TYPE_OPTIONS = EMPLOYEE_BILLING_TYPES.map((value) => ({
+  value,
+  label: value,
+}));
+
+export const EMPLOYEE_BILLING_TAG_COLORS: Record<string, string> = {
+  "1v1": "gold",
+  通识: "green",
+  总包: "magenta",
+};
+
 // ---------------------------------------------------------------------------
 // Phase 2: Student dictionaries (mirror of apps/api/src/common/dictionaries.ts)
 // ---------------------------------------------------------------------------

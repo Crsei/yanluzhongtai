@@ -53,6 +53,14 @@ function roundCredit(mins: number | null): string {
   return (Math.round((mins / 45) * 100) / 100).toFixed(2);
 }
 
+function linkAddon(url?: string | null) {
+  return url ? (
+    <a href={url} target="_blank" rel="noreferrer">
+      打开
+    </a>
+  ) : null;
+}
+
 export function CourseFormModal({ open, mode, course, onClose }: Props) {
   const { versionsQ, activeVersionId, detailQ } = useActiveOutline();
   const { create, update } = useCourseMutations();
@@ -92,6 +100,9 @@ export function CourseFormModal({ open, mode, course, onClose }: Props) {
     | number
     | null
     | undefined;
+  const replayUrl = Form.useWatch("replayUrl", form) as string | null | undefined;
+  const videoUrl = Form.useWatch("videoUrl", form) as string | null | undefined;
+  const resourceUrl = Form.useWatch("resourceUrl", form) as string | null | undefined;
   const statusLabel = computeStatusLabel(
     plannedAt ?? null,
     durationMinutes ?? null,
@@ -329,7 +340,7 @@ export function CourseFormModal({ open, mode, course, onClose }: Props) {
                 <Input
                   readOnly
                   value={students
-                    .map((s) => `${s.name ?? "未命名"}(${s.studentNo})`)
+                    .map((s) => `${s.name ?? "未命名"} ${s.studentNo}·${s.grade ?? "-"}`)
                     .join(", ")}
                   placeholder="尚未选择学生"
                 />
@@ -340,17 +351,32 @@ export function CourseFormModal({ open, mode, course, onClose }: Props) {
             </Form.Item>
 
             <Form.Item label="回放链接" name="replayUrl">
-              <Input placeholder="https://" />
+              <Input
+                placeholder="https://"
+                readOnly={readOnly}
+                disabled={false}
+                addonAfter={linkAddon(replayUrl)}
+              />
             </Form.Item>
             <Form.Item label="录播链接" name="videoUrl">
-              <Input placeholder="https://" />
+              <Input
+                placeholder="https://"
+                readOnly={readOnly}
+                disabled={false}
+                addonAfter={linkAddon(videoUrl)}
+              />
             </Form.Item>
             <Form.Item
               label="资料链接"
               name="resourceUrl"
               style={{ gridColumn: "span 2" }}
             >
-              <Input placeholder="https://" />
+              <Input
+                placeholder="https://"
+                readOnly={readOnly}
+                disabled={false}
+                addonAfter={linkAddon(resourceUrl)}
+              />
             </Form.Item>
             <Form.Item
               label="备注"

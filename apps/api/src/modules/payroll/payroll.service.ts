@@ -47,6 +47,10 @@ function round2(value: number): number {
   return Math.round(value * 100) / 100;
 }
 
+const DEFAULT_HOURLY_RATE = 120;
+const DEFAULT_BILLING_TYPE = "常规";
+const TOTAL_PACKAGE_BILLING_TYPE = "总包";
+
 function aggregateKey(
   jobNo: string,
   period: string,
@@ -74,6 +78,10 @@ function settlementTypeWhere(
     : { OR: [{ teachingType }, { teachingType: null }] };
 }
 
+function isTotalPackage(billingType: string | null | undefined): boolean {
+  return billingType === TOTAL_PACKAGE_BILLING_TYPE;
+}
+
 @Injectable()
 export class PayrollService {
   constructor(private readonly prisma: PrismaService) {}
@@ -82,6 +90,7 @@ export class PayrollService {
     { header: "记录类型", key: "kind" },
     { header: "工号", key: "employeeJobNo" },
     { header: "老师姓名", key: "employeeName" },
+    { header: "计费方式", key: "employeeBillingType" },
     { header: "所属年月", key: "period" },
     { header: "授课方式", key: "teachingType" },
     { header: "单位课时费", key: "hourlyRate" },
@@ -112,10 +121,10 @@ export class PayrollService {
     const employees = allJobNos.size
       ? await this.prisma.employee.findMany({
           where: { jobNo: { in: [...allJobNos] } },
-          select: { jobNo: true, name: true },
+          select: { jobNo: true, name: true, billingType: true },
         })
       : [];
-    const empMap = new Map(employees.map((e) => [e.jobNo, e.name]));
+    const empMap = new Map(employees.map((e) => [e.jobNo, e]));
 
     // Auto rows: one per (teacher, period, teachingType) we actually saw
     // course hours for, plus any split that has historical settlements even
@@ -133,14 +142,18 @@ export class PayrollService {
           ? [s.jobNo, s.period, s.teachingType]
           : ["", "", "公共" as PayrollTeachingType];
       if (!jobNo) continue;
+      const employee = empMap.get(jobNo);
+      const employeeBillingType = employee?.billingType ?? DEFAULT_BILLING_TYPE;
+      const totalPackage = isTotalPackage(employeeBillingType);
       const deliveredHours = round2(hours?.hours ?? 0);
-      const rate = s?.rate ?? null;
-      const totalFee = rate != null ? round2(rate * deliveredHours) : null;
+      const rate = totalPackage ? 0 : s?.rate ?? DEFAULT_HOURLY_RATE;
+      const totalFee = totalPackage ? 0 : round2(rate * deliveredHours);
       autoRows.push({
         kind: "auto",
         employeeJobNo: jobNo,
+        employeeBillingType,
         employeeName:
-          empMap.get(jobNo) ?? `(工号 ${jobNo} 已不存在)`,
+          employee?.name ?? `(工号 ${jobNo} 已不存在)`,
         period,
         teachingType,
         hourlyRate: rate,
@@ -157,12 +170,15 @@ export class PayrollService {
     const manualRows: PayrollManualRow[] = manuals.map((m) => {
       const extraLabor = Number(m.extraLabor);
       const extraDeduction = Number(m.extraDeduction);
+      const subtotalPayable = round2(extraLabor - extraDeduction);
       return {
         kind: "manual",
         id: m.id,
         employeeJobNo: m.employeeJobNo,
+        employeeBillingType:
+          empMap.get(m.employeeJobNo)?.billingType ?? DEFAULT_BILLING_TYPE,
         employeeName:
-          empMap.get(m.employeeJobNo) ??
+          empMap.get(m.employeeJobNo)?.name ??
           `(工号 ${m.employeeJobNo} 已不存在)`,
         period: m.settlementPeriod,
         teachingType: null,
@@ -171,8 +187,8 @@ export class PayrollService {
         totalCourseFee: 0,
         extraLabor: round2(extraLabor),
         extraDeduction: round2(extraDeduction),
-        subtotalPayable: round2(extraLabor - extraDeduction),
-        subtotalPaid: 0,
+        subtotalPayable,
+        subtotalPaid: round2(Number(m.subtotalPaid)),
         createdAt: m.createdAt.toISOString(),
       };
     });
@@ -189,7 +205,6 @@ export class PayrollService {
 
     const filterUnpaid = (row: PayrollRow) => {
       if (!query.unpaidOnly) return true;
-      if (row.kind === "manual") return true;
       if (row.subtotalPayable == null) return true;
       return row.subtotalPaid < row.subtotalPayable - 1e-6;
     };
@@ -226,6 +241,7 @@ export class PayrollService {
       kind: row.kind === "auto" ? "自动汇总" : "手动记录",
       employeeJobNo: row.employeeJobNo,
       employeeName: row.employeeName,
+      employeeBillingType: row.employeeBillingType,
       period: row.period,
       teachingType: row.teachingType ?? "",
       hourlyRate: row.hourlyRate ?? "",
@@ -248,7 +264,7 @@ export class PayrollService {
   ): Promise<PayrollRowState> {
     const emp = await this.prisma.employee.findUnique({
       where: { jobNo: teacherJobNo },
-      select: { jobNo: true, name: true },
+      select: { jobNo: true, name: true, billingType: true },
     });
     if (!emp) {
       throw new NotFoundException("员工不存在");
@@ -281,10 +297,12 @@ export class PayrollService {
         0,
       ),
     );
-    const rate = settlements.length
-      ? Number(settlements[0].hourlyRate)
-      : null;
-    const payable = rate != null ? round2(rate * deliveredHours) : null;
+    const rate = isTotalPackage(emp.billingType)
+      ? 0
+      : settlements.length
+        ? Number(settlements[0].hourlyRate)
+        : DEFAULT_HOURLY_RATE;
+    const payable = round2(rate * deliveredHours);
     const alreadyPaid = round2(
       settlements.reduce((s, h) => s + Number(h.subtotalPaid), 0),
     );
@@ -292,6 +310,7 @@ export class PayrollService {
     return {
       employeeJobNo: teacherJobNo,
       employeeName: emp.name ?? "",
+      employeeBillingType: emp.billingType ?? DEFAULT_BILLING_TYPE,
       period,
       teachingType,
       hourlyRate: rate,

@@ -87,6 +87,7 @@ export function StudentPickerModal({ open, value, onClose, onConfirm }: Props) {
                       studentNo: s.studentNo,
                       name: s.name,
                       servicePlatform: s.servicePlatform,
+                      grade: s.grade,
                     },
                     e.target.checked,
                   )
@@ -94,7 +95,7 @@ export function StudentPickerModal({ open, value, onClose, onConfirm }: Props) {
               />
               <Typography.Text strong>{s.name}</Typography.Text>
               <Typography.Text type="secondary">
-                {s.studentNo} · {s.servicePlatform}
+                {s.studentNo} · {s.grade ?? "-"}
               </Typography.Text>
             </div>
           ))

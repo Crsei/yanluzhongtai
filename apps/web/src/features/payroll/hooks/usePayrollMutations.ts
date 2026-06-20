@@ -3,6 +3,7 @@ import { message } from "antd";
 import { payrollApi } from "../../../services/payroll";
 import type {
   CreateManualRecordBody,
+  SettleManualRecordBody,
   SettlePayrollBody,
 } from "../types";
 
@@ -29,6 +30,16 @@ export function usePayrollMutations() {
     onError: (err: Error) => message.error(err.message || "添加失败"),
   });
 
+  const settleManual = useMutation({
+    mutationFn: ({ id, body }: { id: string; body: SettleManualRecordBody }) =>
+      payrollApi.settleManual(id, body),
+    onSuccess: () => {
+      invalidate();
+      message.success("结算已记录");
+    },
+    onError: (err: Error) => message.error(err.message || "结算失败"),
+  });
+
   const deleteManual = useMutation({
     mutationFn: (id: string) => payrollApi.deleteManual(id),
     onSuccess: () => {
@@ -38,5 +49,5 @@ export function usePayrollMutations() {
     onError: (err: Error) => message.error(err.message || "删除失败"),
   });
 
-  return { settle, addManual, deleteManual };
+  return { settle, settleManual, addManual, deleteManual };
 }

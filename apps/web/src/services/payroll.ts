@@ -6,6 +6,7 @@ import type {
   PayrollQueryParams,
   PayrollRowState,
   PayrollTeachingType,
+  SettleManualRecordBody,
   SettlePayrollBody,
 } from "../features/payroll/types";
 
@@ -47,6 +48,8 @@ export const payrollApi = {
     ),
   settle: (body: SettlePayrollBody) =>
     api.post<unknown>(`/payroll/settlements`, body),
+  settleManual: (id: string, body: SettleManualRecordBody) =>
+    api.post<unknown>(`/payroll/manual-records/${encodeURIComponent(id)}/settle`, body),
   addManual: (body: CreateManualRecordBody) =>
     api.post<unknown>(`/payroll/manual-records`, body),
   deleteManual: (id: string) =>

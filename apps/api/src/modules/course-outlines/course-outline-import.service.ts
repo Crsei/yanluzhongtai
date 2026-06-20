@@ -26,6 +26,7 @@ const COLUMNS = [
 ] as const;
 
 type Col = (typeof COLUMNS)[number];
+const TEMPLATE_COLUMNS = COLUMNS.filter((key) => key !== "sectionResourceUrl");
 
 const COLUMN_HEADERS: Record<Col, string> = {
   sectionCode: "板块代码",
@@ -83,7 +84,7 @@ export class CourseOutlineImportService {
   async generateTemplate(): Promise<Buffer> {
     const workbook = new ExcelJS.Workbook();
     const sheet = workbook.addWorksheet("课程大纲导入");
-    sheet.columns = COLUMNS.map((key) => ({
+    sheet.columns = TEMPLATE_COLUMNS.map((key) => ({
       header: COLUMN_HEADERS[key],
       key,
       width: 20,
@@ -92,7 +93,6 @@ export class CourseOutlineImportService {
     sheet.addRow({
       sectionCode: "GP",
       sectionName: "GPA提升",
-      sectionResourceUrl: "https://example.com/resource/gp",
       sectionDisplayOrder: 1,
       sequenceNo: "01",
       secondaryCategoryName: "微积分一对一",

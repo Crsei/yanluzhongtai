@@ -23,6 +23,10 @@ export const courseOutlinesApi = {
     api.put<CourseOutlineItem>(`/course-outlines/items/${itemId}`, body),
   deleteItems: (ids: string[]) =>
     api.delete<{ deleted: number }>("/course-outlines/items", { body: { ids } }),
+  deleteSection: (versionId: string, sectionCode: string) =>
+    api.delete<void>(
+      `/course-outlines/versions/${encodeURIComponent(versionId)}/sections/${encodeURIComponent(sectionCode)}`,
+    ),
   importDryRun: (versionId: string, fileKey: string) =>
     api.post<OutlineImportReport>(
       `/course-outlines/versions/${versionId}/import/dry-run`,

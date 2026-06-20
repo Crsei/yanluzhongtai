@@ -8,6 +8,7 @@ import type {
 export type EmployeeListItem = {
   id: string;
   jobNo: string;
+  billingType: string;
   name: string | null;
   gender: Gender | string | null;
   employmentStatus: EmploymentStatus | null;
@@ -46,6 +47,7 @@ export type EmployeeQueryParams = {
 };
 
 export type CreateEmployeeBody = {
+  billingType?: string | null;
   name?: string | null;
   gender?: Gender | null;
   employmentStatus?: EmploymentStatus | null;

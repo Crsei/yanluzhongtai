@@ -14,6 +14,8 @@ export type StudentListItem = {
   plannerJobNo: string | null;
   remainingPublicCredits: string | null;
   remainingPrivateCredits: string | null;
+  serviceChecklistUrl: string | null;
+  serviceChecklistKeys: string[];
   serviceStatus:
     | "NOT_STARTED"
     | "IN_SERVICE"
@@ -112,6 +114,8 @@ export const studentsApi = {
   update: (id: string, body: UpdateStudentBody) =>
     api.put<StudentDetail>(`/students/${id}`, body),
   remove: (id: string) => api.delete<void>(`/students/${id}`),
+  removeMany: (ids: string[]) =>
+    api.delete<{ deleted: number }>("/students", { body: { ids } }),
   importDryRun: (fileKey: string) =>
     api.post<ImportReport>("/students/import/dry-run", { fileKey }),
   importCommit: (fileKey: string) =>

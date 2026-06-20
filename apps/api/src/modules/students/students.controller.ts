@@ -18,6 +18,7 @@ import { CurrentUser } from "../auth/decorators/current-user.decorator";
 import { Roles } from "../auth/decorators/roles.decorator";
 import type { AuthUser } from "../auth/auth.types";
 import { CreateStudentDto } from "./dto/create-student.dto";
+import { DeleteStudentsDto } from "./dto/delete-students.dto";
 import { ImportFileKeyDto } from "./dto/import.dto";
 import { QueryStudentsDto } from "./dto/query-students.dto";
 import { UpdateStudentDto } from "./dto/update-student.dto";
@@ -98,6 +99,13 @@ export class StudentsController {
     @CurrentUser() operator: AuthUser,
   ) {
     return this.students.update(id, dto, operator.id);
+  }
+
+  @Roles(UserRole.SUPER_ADMIN, UserRole.ADMIN)
+  @Delete()
+  @HttpCode(HttpStatus.OK)
+  removeMany(@Body() dto: DeleteStudentsDto, @CurrentUser() operator: AuthUser) {
+    return this.students.removeMany(dto.ids, operator.id);
   }
 
   @Roles(UserRole.SUPER_ADMIN, UserRole.ADMIN)

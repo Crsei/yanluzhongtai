@@ -1,5 +1,6 @@
 // apps/web/src/features/students/StudentFormModal.tsx
 import {
+  Button,
   Col,
   Form,
   Input,
@@ -75,12 +76,12 @@ export function StudentFormModal({ open, mode, initial, onClose, onModeChange }:
   const footer = useMemo(() => {
     if (mode === "view") {
       return [
-        <a key="cancel" onClick={onClose} style={{ marginRight: 12 }}>
+        <Button key="cancel" onClick={onClose}>
           取消
-        </a>,
-        <a key="edit" onClick={() => onModeChange("edit")}>
+        </Button>,
+        <Button key="edit" type="primary" onClick={() => onModeChange("edit")}>
           编辑
-        </a>,
+        </Button>,
       ];
     }
     return undefined; // default [Cancel, OK]
@@ -236,13 +237,13 @@ export function StudentFormModal({ open, mode, initial, onClose, onModeChange }:
         <SectionTitle>课时</SectionTitle>
         <Row gutter={16}>
           <Col span={12}>
-            <Form.Item label="公共课总课时" name="totalPublicCredits">
+            <Form.Item label="GPA+外语+竞赛总课时" name="totalPublicCredits">
               <InputNumber min={0} step={0.5} style={{ width: "100%" }} />
             </Form.Item>
           </Col>
           <Col span={12}>
-            <Form.Item label="公共课剩余" name="remainingPublicCredits">
-              <InputNumber min={0} step={0.5} style={{ width: "100%" }} />
+            <Form.Item label="GPA+外语+竞赛剩余课时" name="remainingPublicCredits">
+              <InputNumber min={0} step={0.5} style={{ width: "100%" }} disabled />
             </Form.Item>
           </Col>
           <Col span={12}>
@@ -252,7 +253,7 @@ export function StudentFormModal({ open, mode, initial, onClose, onModeChange }:
           </Col>
           <Col span={12}>
             <Form.Item label="1v1 剩余" name="remainingPrivateCredits">
-              <InputNumber min={0} step={0.5} style={{ width: "100%" }} />
+              <InputNumber min={0} step={0.5} style={{ width: "100%" }} disabled />
             </Form.Item>
           </Col>
         </Row>

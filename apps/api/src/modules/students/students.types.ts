@@ -13,6 +13,8 @@ export type StudentListItem = Pick<
   | "graduationYear"
   | "remainingPublicCredits"
   | "remainingPrivateCredits"
+  | "serviceChecklistUrl"
+  | "serviceChecklistKeys"
   | "serviceStatus"
   | "servicePlatform"
   | "counselorJobNo"

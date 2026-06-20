@@ -50,6 +50,14 @@ export function useStudentMutations() {
       }
     },
   });
+  const removeManyMutation = useMutation({
+    mutationFn: (ids: string[]) => studentsApi.removeMany(ids),
+    onSuccess: () => {
+      invalidateList();
+      message.success("学生已删除");
+    },
+    onError: (err: Error) => message.error(err.message || "删除失败"),
+  });
 
-  return { createMutation, updateMutation, removeMutation };
+  return { createMutation, updateMutation, removeMutation, removeManyMutation };
 }

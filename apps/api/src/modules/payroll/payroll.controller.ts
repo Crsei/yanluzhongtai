@@ -19,6 +19,7 @@ import { normalizePayrollTeachingType } from "../../common/payroll/teaching-type
 import { CreateManualRecordDto } from "./dto/create-manual-record.dto";
 import { QueryPayrollDto } from "./dto/query-payroll.dto";
 import { SettlePayrollDto } from "./dto/settle-payroll.dto";
+import { SettleManualRecordDto } from "./dto/settle-manual-record.dto";
 import { PayrollManualRecordsService } from "./payroll-manual-records.service";
 import { PayrollService } from "./payroll.service";
 import { PayrollSettlementsService } from "./payroll-settlements.service";
@@ -101,5 +102,14 @@ export class PayrollController {
     @CurrentUser() operator: AuthUser,
   ) {
     await this.manuals.remove(id, operator);
+  }
+
+  @Post("manual-records/:id/settle")
+  settleManualRecord(
+    @Param("id") id: string,
+    @Body() dto: SettleManualRecordDto,
+    @CurrentUser() operator: AuthUser,
+  ) {
+    return this.manuals.settle(id, dto, operator);
   }
 }

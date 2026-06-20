@@ -40,6 +40,8 @@ import { Link, useNavigate, useSearchParams } from "react-router-dom";
 
 import {
 
+  EMPLOYEE_BILLING_TAG_COLORS,
+
   COURSE_STATUS_COLORS,
 
   COURSE_STATUS_LABELS,
@@ -220,6 +222,14 @@ export function CourseListPage() {
         r.actualTeacher ? (
           <span>
             {r.actualTeacher.name}
+            {r.actualTeacher.billingType !== "常规" ? (
+              <Tag
+                color={EMPLOYEE_BILLING_TAG_COLORS[r.actualTeacher.billingType] ?? "blue"}
+                style={{ marginLeft: 8 }}
+              >
+                {r.actualTeacher.billingType}
+              </Tag>
+            ) : null}
             {r.actualTeacher.employmentStatus === "RESIGNED" ? (
               <Tag color="red" style={{ marginLeft: 8 }}>
                 已离职

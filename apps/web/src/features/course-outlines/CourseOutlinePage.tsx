@@ -19,6 +19,7 @@ import {
   message,
 } from "antd";
 import { useEffect, useMemo, useState } from "react";
+import { useQueryClient } from "@tanstack/react-query";
 import { useSearchParams } from "react-router-dom";
 import { useAuthStore } from "../../stores/authStore";
 import { courseOutlinesApi } from "../../services/course-outlines";
@@ -37,6 +38,7 @@ import type { CourseOutlineItem } from "./types";
 export function CourseOutlinePage() {
   const [params, setParams] = useSearchParams();
   const versionsQ = useOutlineVersions();
+  const queryClient = useQueryClient();
   const role = useAuthStore((s) => s.user?.role);
   const canManage = role === "SUPER_ADMIN" || role === "ADMIN";
 
@@ -108,6 +110,17 @@ export function CourseOutlinePage() {
         setSelectedIds([]);
       },
     );
+  };
+
+  const deleteEmptySection = async (sectionCode: string) => {
+    if (!activeVersionId) return;
+    try {
+      await courseOutlinesApi.deleteSection(activeVersionId, sectionCode);
+      message.success("板块已删除");
+      queryClient.invalidateQueries({ queryKey: ["course-outline", activeVersionId] });
+    } catch (err) {
+      message.error(err instanceof Error ? err.message : "删除板块失败");
+    }
   };
 
   const onCreateVersion = () => {
@@ -313,6 +326,19 @@ export function CourseOutlinePage() {
                   </Tooltip>
                 ) : null}
               </Space>
+            }
+            extra={
+              canManage && (itemsBySectionCode.get(section.code)?.length ?? 0) === 0 ? (
+                <Button
+                  size="small"
+                  danger
+                  type="link"
+                  icon={<DeleteOutlined />}
+                  onClick={() => deleteEmptySection(section.code)}
+                >
+                  删除板块
+                </Button>
+              ) : null
             }
             className="course-outline-section-card"
           >

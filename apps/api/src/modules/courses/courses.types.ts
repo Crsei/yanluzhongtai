@@ -11,7 +11,7 @@ export type CourseListItem = {
   plannedAt: Date | null;
   status: CourseStatusCode;
   actualTeachingType: string | null;
-  actualTeacher: { jobNo: string; name: string | null; employmentStatus: string | null } | null;
+  actualTeacher: { jobNo: string; name: string | null; billingType: string; employmentStatus: string | null } | null;
   enrolledStudentCount: number;
 };
 
@@ -20,6 +20,7 @@ export type CourseDetailStudent = {
   studentNo: string;
   name: string | null;
   servicePlatform: string | null;
+  grade: string | null;
 };
 
 export type CourseDetail = {
@@ -37,7 +38,7 @@ export type CourseDetail = {
   plannedAt: Date | null;
   courseYear: number | null;
   actualTeacherJobNo: string | null;
-  actualTeacher: { jobNo: string; name: string | null; employmentStatus: string | null } | null;
+  actualTeacher: { jobNo: string; name: string | null; billingType: string; employmentStatus: string | null } | null;
   actualTeachingType: string | null;
   durationMinutes: number | null;
   creditHours: string | null;

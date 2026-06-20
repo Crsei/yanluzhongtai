@@ -39,10 +39,12 @@ export function LoginPage() {
   return (
     <div className="login-page">
       <Card className="login-card" bordered={false}>
-        <div className="login-logo">研录</div>
-        <Typography.Title level={1} className="login-title">
-          欢迎登录研录教学管理中台
-        </Typography.Title>
+        <div className="login-brand">
+          <img className="login-logo" src="/assets/logo.png" alt="研录" />
+          <Typography.Title level={1} className="login-title">
+            欢迎登录研录教学管理中台
+          </Typography.Title>
+        </div>
         <Form<LoginFormValues>
           layout="vertical"
           initialValues={{ rememberMe: true }}

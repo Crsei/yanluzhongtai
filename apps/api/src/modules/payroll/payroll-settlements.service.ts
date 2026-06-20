@@ -14,6 +14,7 @@ import { SettlePayrollDto } from "./dto/settle-payroll.dto";
 /** Float tolerance so settlements that are numerically "right at the cap"
  * don't get falsely rejected by a binary-FP rounding error. */
 const FLOAT_EPS = 1e-6;
+const TOTAL_PACKAGE_BILLING_TYPE = "总包";
 
 @Injectable()
 export class PayrollSettlementsService {
@@ -26,6 +27,12 @@ export class PayrollSettlementsService {
     dto: SettlePayrollDto,
     operator: AuthUser,
   ): Promise<PayrollSettlement> {
+    const employee = await this.prisma.employee.findUnique({
+      where: { jobNo: dto.employeeJobNo },
+      select: { billingType: true },
+    });
+    const totalPackage = employee?.billingType === TOTAL_PACKAGE_BILLING_TYPE;
+
     // 1. Re-aggregate deliveredHours now (TOCTOU safe: we read from the
     //    authoritative Course table rather than trusting a client-supplied value).
     const bounds = periodBounds(dto.settlementPeriod);
@@ -53,11 +60,12 @@ export class PayrollSettlementsService {
       select: { hourlyRate: true, subtotalPaid: true },
     });
 
-    const newRate = Number(dto.hourlyRate);
-    if (!Number.isFinite(newRate) || newRate <= 0) {
+    const requestedRate = Number(dto.hourlyRate);
+    const newRate = totalPackage ? 0 : requestedRate;
+    if (!Number.isFinite(newRate) || (!totalPackage && newRate <= 0)) {
       throw new BadRequestException("单位课时费必须大于 0");
     }
-    if (history.length > 0) {
+    if (!totalPackage && history.length > 0) {
       const existingRate = Number(history[0].hourlyRate);
       if (Math.abs(newRate - existingRate) > FLOAT_EPS) {
         throw new BadRequestException(

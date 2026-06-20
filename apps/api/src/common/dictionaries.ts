@@ -22,6 +22,9 @@ export const EMPLOYMENT_STATUS_SORT: Record<EmploymentStatus, number> = {
   RESIGNED: 1,
 };
 
+export const EMPLOYEE_BILLING_TYPES = ["常规", "1v1", "通识", "总包"] as const;
+export type EmployeeBillingType = (typeof EMPLOYEE_BILLING_TYPES)[number] | string;
+
 export const GENDER = ["男", "女"] as const;
 export type Gender = (typeof GENDER)[number];
 

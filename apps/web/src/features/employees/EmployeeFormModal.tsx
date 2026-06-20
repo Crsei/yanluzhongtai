@@ -14,6 +14,7 @@ import {
 import dayjs from "dayjs";
 import { useEffect, useMemo, useState } from "react";
 import {
+  EMPLOYEE_BILLING_TYPES,
   EMPLOYEE_SERVING_FOR_OPTIONS,
   EMPLOYEE_SOURCE_OPTIONS,
   EMPLOYMENT_STATUS_OPTIONS,
@@ -39,7 +40,19 @@ type Props = {
 
 type FormValues = Omit<CreateEmployeeBody, "hireDate"> & {
   hireDate?: dayjs.Dayjs | null;
+  billingChoice?: string;
+  billingTypeCustom?: string;
 };
+
+const CUSTOM_BILLING_CHOICE = "__CUSTOM__";
+
+function splitBillingType(value?: string | null) {
+  const billingType = value?.trim() || "常规";
+  if ((EMPLOYEE_BILLING_TYPES as readonly string[]).includes(billingType)) {
+    return { billingChoice: billingType, billingTypeCustom: undefined };
+  }
+  return { billingChoice: CUSTOM_BILLING_CHOICE, billingTypeCustom: billingType };
+}
 
 function toFormValues(emp?: EmployeeDetail | null): FormValues {
   if (!emp) {
@@ -49,9 +62,11 @@ function toFormValues(emp?: EmployeeDetail | null): FormValues {
       hireDate: null,
       servingFor: [],
       attachmentKeys: [],
+      ...splitBillingType(),
     } as unknown as FormValues;
   }
   return {
+    ...splitBillingType(emp.billingType),
     name: emp.name,
     gender: (emp.gender as "男" | "女" | null) ?? undefined,
     employmentStatus: emp.employmentStatus ?? undefined,
@@ -73,6 +88,7 @@ export function EmployeeFormModal({ open, mode, employee, onClose, onModeChange 
   const [submitting, setSubmitting] = useState(false);
 
   const readOnly = mode === "view";
+  const billingChoice = Form.useWatch("billingChoice", form);
   const title = useMemo(() => {
     if (mode === "create") return "添加员工";
     if (mode === "view") return "查看员工";
@@ -91,10 +107,17 @@ export function EmployeeFormModal({ open, mode, employee, onClose, onModeChange 
     try {
       const values = await form.validateFields();
       setSubmitting(true);
+      const billingType =
+        values.billingChoice === CUSTOM_BILLING_CHOICE
+          ? values.billingTypeCustom?.trim()
+          : values.billingChoice;
       const payload: CreateEmployeeBody | UpdateEmployeeBody = {
         ...values,
+        billingType,
         hireDate: values.hireDate ? values.hireDate.toISOString() : undefined,
       };
+      delete (payload as Record<string, unknown>).billingChoice;
+      delete (payload as Record<string, unknown>).billingTypeCustom;
       if (mode === "create") {
         await createMutation.mutateAsync(payload as CreateEmployeeBody);
       } else if (mode === "edit" && employee) {
@@ -162,6 +185,36 @@ export function EmployeeFormModal({ open, mode, employee, onClose, onModeChange 
               <Input placeholder="例：张三" />
             </Form.Item>
           </Col>
+          <Col span={12}>
+            <Form.Item
+              label="计费方式"
+              name="billingChoice"
+              initialValue="常规"
+              rules={[{ required: true, message: "请选择计费方式" }]}
+            >
+              <Select
+                options={[
+                  ...EMPLOYEE_BILLING_TYPES.map((value) => ({ value, label: value })),
+                  { value: CUSTOM_BILLING_CHOICE, label: "自定义" },
+                ]}
+              />
+            </Form.Item>
+          </Col>
+          {billingChoice === CUSTOM_BILLING_CHOICE ? (
+            <Col span={12}>
+              <Form.Item
+                label="自定义计费方式"
+                name="billingTypeCustom"
+                rules={[
+                  { required: true, message: "请输入自定义计费方式" },
+                  { whitespace: true, message: "自定义计费方式不能为空" },
+                  { max: 50 },
+                ]}
+              >
+                <Input placeholder="例如：A类" maxLength={50} />
+              </Form.Item>
+            </Col>
+          ) : null}
           <Col span={12}>
             <Form.Item
               label="性别"

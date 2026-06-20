@@ -182,6 +182,51 @@ export class CourseOutlineItemsService {
     return { deleted: items.length };
   }
 
+  async deleteSection(
+    versionId: string,
+    sectionCode: string,
+    operatorId: string,
+  ): Promise<void> {
+    const section = await this.prisma.courseSection.findUnique({
+      where: {
+        outlineVersionId_code: {
+          outlineVersionId: versionId,
+          code: sectionCode,
+        },
+      },
+    });
+    if (!section) throw new NotFoundException("板块不存在");
+
+    const [itemCount, courseCount] = await this.prisma.$transaction([
+      this.prisma.courseOutlineItem.count({
+        where: { outlineVersionId: versionId, sectionCode },
+      }),
+      this.prisma.course.count({
+        where: { outlineVersionId: versionId, sectionCode },
+      }),
+    ]);
+    if (itemCount + courseCount > 0) {
+      throw new ConflictException("该板块已有课程类别或课程记录，不能删除");
+    }
+
+    await this.prisma.courseSection.delete({
+      where: {
+        outlineVersionId_code: {
+          outlineVersionId: versionId,
+          code: sectionCode,
+        },
+      },
+    });
+
+    await this.auditLogs.record({
+      operatorId,
+      action: "delete",
+      targetType: "course_outline_version",
+      targetId: section.id,
+      before: section as unknown as Record<string, unknown>,
+    });
+  }
+
   private async enrichOne(item: CourseOutlineItem): Promise<CourseOutlineItemDetail> {
     const plannedTeacher = item.plannedTeacherJobNo
       ? await this.prisma.employee.findUnique({

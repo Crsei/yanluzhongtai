@@ -17,6 +17,7 @@ import { Roles } from "../auth/decorators/roles.decorator";
 import type { AuthUser } from "../auth/auth.types";
 import { UserRole } from "@prisma/client";
 import { CreateEmployeeDto } from "./dto/create-employee.dto";
+import { DeleteEmployeesDto } from "./dto/delete-employees.dto";
 import { QueryEmployeesDto } from "./dto/query-employees.dto";
 import { UpdateEmployeeDto } from "./dto/update-employee.dto";
 import { EmployeesService } from "./employees.service";
@@ -73,6 +74,13 @@ export class EmployeesController {
     @CurrentUser() operator: AuthUser,
   ) {
     return this.employees.update(id, dto, operator.id);
+  }
+
+  @Roles(UserRole.SUPER_ADMIN, UserRole.ADMIN)
+  @Delete()
+  @HttpCode(HttpStatus.OK)
+  removeMany(@Body() dto: DeleteEmployeesDto, @CurrentUser() operator: AuthUser) {
+    return this.employees.removeMany(dto.ids, operator.id);
   }
 
   @Roles(UserRole.SUPER_ADMIN, UserRole.ADMIN)

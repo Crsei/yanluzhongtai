@@ -21,6 +21,9 @@ import {
 
 export class CreateEmployeeDto {
   @IsOptional() @IsString() @MaxLength(50)
+  billingType?: string | null;
+
+  @IsOptional() @IsString() @MaxLength(50)
   name?: string | null;
 
   @IsOptional() @IsIn(GENDER as unknown as string[])

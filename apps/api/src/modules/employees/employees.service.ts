@@ -24,6 +24,7 @@ const DEFAULT_PAGE_SIZE = 50;
 const LIST_SELECT = {
   id: true,
   jobNo: true,
+  billingType: true,
   name: true,
   gender: true,
   employmentStatus: true,
@@ -33,6 +34,28 @@ const LIST_SELECT = {
   servingFor: true,
   hireDate: true,
 } as const;
+
+const EMPLOYMENT_STATUS_RANK: Record<string, number> = {
+  FULL_TIME: 0,
+  PART_TIME: 1,
+  RESIGNED: 2,
+};
+
+function normalizeBillingType(value: string | null | undefined): string {
+  const trimmed = value?.trim();
+  return trimmed || "常规";
+}
+
+function compareEmployeeListItems(a: EmployeeListItem, b: EmployeeListItem): number {
+  const statusRank =
+    (a.employmentStatus ? EMPLOYMENT_STATUS_RANK[a.employmentStatus] : undefined) ?? 3;
+  const nextStatusRank =
+    (b.employmentStatus ? EMPLOYMENT_STATUS_RANK[b.employmentStatus] : undefined) ?? 3;
+  if (statusRank !== nextStatusRank) return statusRank - nextStatusRank;
+  return (a.name ?? "").localeCompare(b.name ?? "", "zh-Hans-CN", {
+    sensitivity: "base",
+  });
+}
 
 @Injectable()
 export class EmployeesService {
@@ -71,87 +94,16 @@ export class EmployeesService {
       ];
     }
 
-    const [items, total] = await this.prisma.$transaction([
-      this.prisma.$queryRaw<EmployeeListItem[]>(this.buildSortedListQuery(where, skip, pageSize)),
+    const [allItems, total] = await this.prisma.$transaction([
+      this.prisma.employee.findMany({ where, select: LIST_SELECT }),
       this.prisma.employee.count({ where }),
     ]);
 
+    const items = allItems
+      .sort(compareEmployeeListItems)
+      .slice(skip, skip + pageSize);
+
     return { items, total, page, pageSize };
-  }
-
-  /**
-   * spec §4.3 排序：'已离职' 排在最后，其它按姓名升序。
-   * 用 raw SQL 因为 Prisma 不支持 CASE WHEN ORDER BY。
-   *
-   * INVARIANT: `where.OR` (if present) must contain only `name | jobNo | phone`
-   * `contains` clauses, exactly as built by `list()` above. Other shapes will
-   * silently degrade to `TRUE`, dropping the filter. Keep this and `list()` in lockstep.
-   */
-  private buildSortedListQuery(
-    where: Prisma.EmployeeWhereInput,
-    skip: number,
-    take: number,
-  ): Prisma.Sql {
-    const conditions: Prisma.Sql[] = [];
-    if (where.employmentStatus) {
-      const es = where.employmentStatus;
-      if (typeof es === "string") {
-        conditions.push(Prisma.sql`"employmentStatus"::text = ${es}`);
-      } else if (typeof es === "object" && "in" in es && Array.isArray(es.in)) {
-        conditions.push(
-          Prisma.sql`"employmentStatus"::text IN (${Prisma.join(es.in as string[])})`,
-        );
-      }
-    }
-    if (where.jobNo) {
-      const jn = where.jobNo;
-      if (typeof jn === "string") {
-        conditions.push(Prisma.sql`"jobNo" = ${jn}`);
-      } else if (typeof jn === "object" && "in" in jn && Array.isArray(jn.in)) {
-        conditions.push(
-          Prisma.sql`"jobNo" IN (${Prisma.join(jn.in as string[])})`,
-        );
-      }
-    }
-    if (where.OR) {
-      const ors = (where.OR as Prisma.EmployeeWhereInput[])
-        .map((clause) => {
-          if (clause.name && typeof clause.name === "object" && "contains" in clause.name) {
-            const k = clause.name.contains as string;
-            return Prisma.sql`"name" ILIKE ${"%" + k + "%"}`;
-          }
-          if (clause.jobNo && typeof clause.jobNo === "object" && "contains" in clause.jobNo) {
-            const k = clause.jobNo.contains as string;
-            return Prisma.sql`"jobNo" ILIKE ${"%" + k + "%"}`;
-          }
-          if (clause.phone && typeof clause.phone === "object" && "contains" in clause.phone) {
-            const k = clause.phone.contains as string;
-            return Prisma.sql`"phone" ILIKE ${"%" + k + "%"}`;
-          }
-          return Prisma.sql`TRUE`;
-        });
-      conditions.push(Prisma.sql`(${Prisma.join(ors, " OR ")})`);
-    }
-    const whereSql =
-      conditions.length === 0
-        ? Prisma.sql`TRUE`
-        : Prisma.join(conditions, " AND ");
-
-    const columns = Prisma.join(
-      (Object.keys(LIST_SELECT) as Array<keyof typeof LIST_SELECT>).map(
-        (name) => Prisma.raw(`"${name}"`),
-      ),
-      ", ",
-    );
-    return Prisma.sql`
-      SELECT ${columns}
-      FROM "Employee"
-      WHERE ${whereSql}
-      ORDER BY
-        CASE WHEN "employmentStatus" = 'RESIGNED' THEN 1 ELSE 0 END ASC,
-        "name" ASC
-      LIMIT ${take} OFFSET ${skip}
-    `;
   }
 
   async findOne(id: string): Promise<EmployeeDetail> {
@@ -169,6 +121,7 @@ export class EmployeesService {
     const created = await this.prisma.employee.create({
       data: {
         jobNo,
+        billingType: normalizeBillingType(dto.billingType),
         name: dto.name ?? null,
         gender: dto.gender ?? null,
         employmentStatus: (dto.employmentStatus as EmploymentStatus | undefined) ?? null,
@@ -204,6 +157,9 @@ export class EmployeesService {
     if (!before) throw new NotFoundException("员工不存在");
 
     const data: Prisma.EmployeeUpdateInput = {};
+    if (dto.billingType !== undefined) {
+      data.billingType = normalizeBillingType(dto.billingType);
+    }
     if (dto.name !== undefined) data.name = dto.name;
     if (dto.gender !== undefined) data.gender = dto.gender;
     if (dto.employmentStatus !== undefined) {
@@ -269,6 +225,47 @@ export class EmployeesService {
       targetId: id,
       before: this.snapshot(before),
     });
+  }
+
+  async removeMany(ids: string[], operatorId: string): Promise<{ deleted: number }> {
+    if (ids.length === 0) return { deleted: 0 };
+    const rows = await this.prisma.employee.findMany({
+      where: { id: { in: ids } },
+    });
+    if (rows.length !== ids.length) {
+      throw new NotFoundException("部分员工不存在");
+    }
+
+    const jobNos = rows.map((row) => row.jobNo);
+    const [payrollCount, manualRecordCount, courseCount, counselorCount, plannerCount] =
+      await this.prisma.$transaction([
+        this.prisma.payrollSettlement.count({ where: { employeeJobNo: { in: jobNos } } }),
+        this.prisma.payrollManualRecord.count({ where: { employeeJobNo: { in: jobNos } } }),
+        this.prisma.course.count({ where: { actualTeacherJobNo: { in: jobNos } } }),
+        this.prisma.student.count({ where: { counselorJobNo: { in: jobNos } } }),
+        this.prisma.student.count({ where: { plannerJobNo: { in: jobNos } } }),
+      ]);
+
+    if (
+      payrollCount + manualRecordCount + courseCount + counselorCount + plannerCount >
+      0
+    ) {
+      throw new ConflictException(
+        "所选员工中存在关联学生/薪酬/课程的记录，不可批量删除",
+      );
+    }
+
+    await this.prisma.employee.deleteMany({ where: { id: { in: ids } } });
+    for (const row of rows) {
+      await this.auditLogs.record({
+        operatorId,
+        action: "delete",
+        targetType: "employee",
+        targetId: row.id,
+        before: this.snapshot(row),
+      });
+    }
+    return { deleted: rows.length };
   }
 
   /** Strip volatile / internal columns before audit-log diff. */

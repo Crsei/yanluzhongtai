@@ -84,11 +84,17 @@ function NavigationContent() {
   const location = useLocation();
   const navigate = useNavigate();
   const user = useAuthStore((state) => state.user);
+  const selectedPath =
+    navigationItems.find(
+      (item) =>
+        location.pathname === item.path ||
+        location.pathname.startsWith(`${item.path}/`),
+    )?.path ?? location.pathname;
 
   return (
     <>
       <div className="brand-block">
-        <div className="brand-logo">研录</div>
+        <img className="brand-logo" src="/assets/logo.png" alt="研录" />
         <Typography.Title level={3} className="brand-title">
           研录中台
         </Typography.Title>
@@ -96,7 +102,7 @@ function NavigationContent() {
       <Menu
         theme="dark"
         mode="inline"
-        selectedKeys={[location.pathname]}
+        selectedKeys={[selectedPath]}
         items={navigationItems.map((item) => ({
           key: item.path,
           icon: item.icon,

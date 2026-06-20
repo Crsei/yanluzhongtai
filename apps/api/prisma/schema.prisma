@@ -54,6 +54,7 @@ model User {
 model Employee {
   id               String           @id @default(cuid())
   jobNo            String           @unique
+  billingType      String           @default("常规")
   name             String?
   gender           String?
   employmentStatus EmploymentStatus?
@@ -215,6 +216,7 @@ model PayrollManualRecord {
   settlementPeriod  String
   extraLabor        Decimal  @db.Decimal(10, 2)
   extraDeduction    Decimal  @db.Decimal(10, 2)
+  subtotalPaid      Decimal  @default(0) @db.Decimal(10, 2)
   operatorPhone     String
   createdAt         DateTime @default(now())
 

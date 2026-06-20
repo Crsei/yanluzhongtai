@@ -50,25 +50,26 @@ body {
 .brand-block {
   padding: 28px 24px 20px;
   border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  text-align: center;
 }
 
 .brand-logo,
 .login-logo {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
+  display: block;
   width: 64px;
   height: 64px;
-  border-radius: 16px;
-  background: linear-gradient(135deg, #6f2dbd, #4f46e5);
-  color: #fff;
-  font-size: 24px;
-  font-weight: 700;
+  border-radius: 14px;
+  object-fit: cover;
+}
+
+.brand-logo {
+  margin: 0 auto;
 }
 
 .brand-title {
   margin: 18px 0 0 !important;
   color: #fff !important;
+  text-align: center;
 }
 
 .user-panel {
@@ -115,7 +116,10 @@ body {
   bottom: 24px;
   z-index: 1000;
   width: 52px;
+  min-width: 52px;
   height: 52px;
+  padding: 0;
+  border-radius: 50%;
   box-shadow: 0 12px 30px rgba(29, 140, 255, 0.3);
 }
 
@@ -134,10 +138,19 @@ body {
   box-shadow: 0 20px 60px rgba(15, 23, 42, 0.1);
 }
 
+.login-brand {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+  margin-bottom: 24px;
+}
+
 .login-title {
-  margin: 24px 0 !important;
-  font-size: clamp(28px, 4vw, 44px) !important;
+  margin: 0 !important;
+  font-size: 28px !important;
   line-height: 1.2 !important;
+  white-space: nowrap;
 }
 
 .login-meta-row {
@@ -628,6 +641,22 @@ body {
   box-shadow: 0 12px 28px rgba(15, 23, 42, 0.08);
   overflow: hidden;
   margin-bottom: 20px;
+}
+
+@media (max-width: 560px) {
+  .login-brand {
+    gap: 12px;
+  }
+
+  .login-logo {
+    width: 48px;
+    height: 48px;
+    border-radius: 10px;
+  }
+
+  .login-title {
+    font-size: 20px !important;
+  }
 }
 
 .about-logo-image {

@@ -7,7 +7,8 @@ import { AuthUser, JwtPayload } from "./auth.types";
 import { DEFAULT_REFRESH_COOKIE_NAME } from "./strategies/refresh.strategy";
 
 export const ACCESS_TOKEN_TTL_SECONDS = 15 * 60;
-export const REMEMBER_REFRESH_TOKEN_TTL_SECONDS = 30 * 24 * 60 * 60;
+export const MAX_LOGIN_IDLE_SECONDS = 48 * 60 * 60;
+export const REMEMBER_REFRESH_TOKEN_TTL_SECONDS = MAX_LOGIN_IDLE_SECONDS;
 export const SESSION_REFRESH_TOKEN_TTL_SECONDS = 8 * 60 * 60;
 
 export type LoginResult = {
@@ -68,6 +69,16 @@ export class AuthService {
   }
 
   async issueAccessToken(user: AuthUser): Promise<RefreshResult> {
+    const current = await this.usersService.findById(user.id);
+    if (!current || current.deactivatedAt) {
+      throw new UnauthorizedException("账号不存在或已注销");
+    }
+    if (
+      current.lastLoginAt &&
+      Date.now() - current.lastLoginAt.getTime() > MAX_LOGIN_IDLE_SECONDS * 1000
+    ) {
+      throw new UnauthorizedException("登录状态已超过 48 小时，请重新登录");
+    }
     // Refresh also counts as recent activity for the "最近访问时间" column.
     await this.usersService.updateLastLogin(user.id);
     return {

@@ -13,7 +13,7 @@ import type { StudentDetail, StudentListItem } from "../../services/students";
 import { studentsApi } from "../../services/students";
 import { ActiveFilterTags } from "./ActiveFilterTags";
 import { AdvancedSearchDrawer } from "./AdvancedSearchDrawer";
-import { openStudentDeleteConfirm } from "./StudentDeleteConfirm";
+import { openStudentDeleteConfirm, openStudentsDeleteConfirm } from "./StudentDeleteConfirm";
 import { StudentFormModal, type StudentFormMode } from "./StudentFormModal";
 import { StudentImportDrawer } from "./StudentImportDrawer";
 import { useStudents } from "./hooks/useStudents";
@@ -42,7 +42,7 @@ export function StudentListPage() {
   );
 
   const { data, isLoading } = useStudents(queryParams);
-  const { removeMutation } = useStudentMutations();
+  const { removeMutation, removeManyMutation } = useStudentMutations();
   const userRole = useAuthStore((state) => state.user?.role);
   const canManage = userRole === "SUPER_ADMIN" || userRole === "ADMIN";
 
@@ -83,9 +83,26 @@ export function StudentListPage() {
 
   const handleDelete = () => {
 
-    const row = data?.items.find((i) => i.id === selectedKeys[0]);
+    const rows = (data?.items ?? []).filter((i) => selectedKeys.includes(i.id));
 
-    if (!row) return;
+    if (rows.length === 0) return;
+
+    if (rows.length > 1) {
+      openStudentsDeleteConfirm({
+        students: rows.map((row) => ({
+          id: row.id,
+          studentName: row.name ?? "",
+          studentNo: row.studentNo,
+        })),
+        onConfirm: async () => {
+          await removeManyMutation.mutateAsync(rows.map((row) => row.id));
+          setSelectedKeys([]);
+        },
+      });
+      return;
+    }
+
+    const row = rows[0];
 
     openStudentDeleteConfirm({
 
@@ -194,16 +211,25 @@ export function StudentListPage() {
             render: (v) => v ?? "-",
           },
           {
-            title: "公共课剩余",
+            title: "三项剩余课时",
             dataIndex: "remainingPublicCredits",
-            width: 110,
+            width: 120,
             render: (v) => (v == null ? "-" : v),
           },
           {
-            title: "1v1 剩余",
-            dataIndex: "remainingPrivateCredits",
-            width: 100,
-            render: (v) => (v == null ? "-" : v),
+            title: "服务清单",
+            key: "serviceChecklist",
+            width: 120,
+            render: (_: unknown, row: StudentListItem) =>
+              row.serviceChecklistUrl ? (
+                <a href={row.serviceChecklistUrl} target="_blank" rel="noreferrer">
+                  预览
+                </a>
+              ) : row.serviceChecklistKeys?.length ? (
+                "已上传"
+              ) : (
+                "-"
+              ),
           },
           {
             title: "服务状态",

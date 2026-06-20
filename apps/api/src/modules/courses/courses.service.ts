@@ -22,6 +22,7 @@ import { PrismaService } from "../../prisma/prisma.service";
 import { CreateCourseDto } from "./dto/create-course.dto";
 import { QueryCoursesDto } from "./dto/query-courses.dto";
 import { UpdateCourseDto } from "./dto/update-course.dto";
+import { calculateGrade } from "../students/utils/grade";
 import type {
   CourseDetail,
   CourseListItem,
@@ -118,7 +119,7 @@ export class CoursesService {
     const teachers = teacherJobNos.length
       ? await this.prisma.employee.findMany({
           where: { jobNo: { in: teacherJobNos } },
-          select: { jobNo: true, name: true, employmentStatus: true },
+          select: { jobNo: true, name: true, billingType: true, employmentStatus: true },
         })
       : [];
     const teacherMap = new Map(teachers.map((t) => [t.jobNo, t]));
@@ -151,7 +152,14 @@ export class CoursesService {
         enrollments: {
           include: {
             student: {
-              select: { id: true, studentNo: true, name: true, servicePlatform: true },
+              select: {
+                id: true,
+                studentNo: true,
+                name: true,
+                servicePlatform: true,
+                enrollmentYear: true,
+                graduationYear: true,
+              },
             },
           },
         },
@@ -162,7 +170,7 @@ export class CoursesService {
     const teacher = course.actualTeacherJobNo
       ? await this.prisma.employee.findUnique({
           where: { jobNo: course.actualTeacherJobNo },
-          select: { jobNo: true, name: true, employmentStatus: true },
+          select: { jobNo: true, name: true, billingType: true, employmentStatus: true },
         })
       : null;
 
@@ -196,6 +204,7 @@ export class CoursesService {
         studentNo: e.student.studentNo,
         name: e.student.name,
         servicePlatform: e.student.servicePlatform,
+        grade: calculateGrade(e.student.enrollmentYear, e.student.graduationYear),
       })),
       createdAt: course.createdAt,
       updatedAt: course.updatedAt,

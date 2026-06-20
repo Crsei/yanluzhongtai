@@ -26,10 +26,11 @@ import dayjs from "dayjs";
 import { useMemo, useState } from "react";
 import { useAuthStore } from "../../stores/authStore";
 import {
+  EMPLOYEE_BILLING_TAG_COLORS,
   EMPLOYMENT_STATUS_LABELS,
   EMPLOYMENT_STATUS_TAG_COLOR,
 } from "../../constants/dictionaries";
-import { confirmDeleteEmployee } from "./EmployeeDeleteConfirm";
+import { confirmDeleteEmployee, confirmDeleteEmployees } from "./EmployeeDeleteConfirm";
 import { EmployeeFormModal, type EmployeeFormMode } from "./EmployeeFormModal";
 import { EmployeeImportDrawer } from "./EmployeeImportDrawer";
 import { useEmployees } from "./hooks/useEmployees";
@@ -61,7 +62,7 @@ export function EmployeeListPage() {
 
   const selectedCount = selectedRowKeys.length;
   const canViewOrEdit = selectedCount === 1;
-  const canDelete = selectedCount === 1;
+  const canDelete = selectedCount >= 1;
 
   const openModalForRow = async (mode: EmployeeFormMode) => {
     if (selectedRowKeys.length !== 1) return;
@@ -84,10 +85,22 @@ export function EmployeeListPage() {
   };
 
   const handleDelete = () => {
-    const target = (data?.items ?? []).find((row) => row.id === selectedRowKeys[0]);
-    if (!target) return;
-    confirmDeleteEmployee(
-      { id: target.id, name: target.name ?? "", jobNo: target.jobNo },
+    const targets = (data?.items ?? []).filter((row) => selectedRowKeys.includes(row.id));
+    if (targets.length === 0) return;
+    if (targets.length === 1) {
+      const target = targets[0];
+      confirmDeleteEmployee(
+        { id: target.id, name: target.name ?? "", jobNo: target.jobNo },
+        mutations,
+      );
+      return;
+    }
+    confirmDeleteEmployees(
+      targets.map((target) => ({
+        id: target.id,
+        name: target.name ?? "",
+        jobNo: target.jobNo,
+      })),
       mutations,
     );
   };
@@ -105,6 +118,20 @@ export function EmployeeListPage() {
 
   const columns = [
     { title: "工号", dataIndex: "jobNo", key: "jobNo", width: 100 },
+    {
+      title: "计费方式",
+      dataIndex: "billingType",
+      key: "billingType",
+      width: 110,
+      render: (value: string | null) => {
+        const label = value || "常规";
+        return (
+          <Tag color={EMPLOYEE_BILLING_TAG_COLORS[label] ?? "blue"}>
+            {label}
+          </Tag>
+        );
+      },
+    },
     { title: "姓名", dataIndex: "name", key: "name", width: 120 },
     { title: "性别", dataIndex: "gender", key: "gender", width: 80 },
     { title: "具体工作职责", dataIndex: "jobTitle", key: "jobTitle", width: 180 },
