@@ -147,39 +147,41 @@ export function StudentListPage() {
   return (
     <div>
       <Typography.Title level={3}>学生信息管理</Typography.Title>
-      <Space style={{ width: "100%", marginBottom: 12 }} wrap>
-        <Button disabled={!canView} onClick={() => openDetail("view", data?.items.find((i) => i.id === selectedKeys[0]))}>
-          查看
-        </Button>
-        {canManage && (
-          <>
-            <Button disabled={!canEdit} onClick={() => openDetail("edit", data?.items.find((i) => i.id === selectedKeys[0]))}>
-              编辑
-            </Button>
-            <Button type="primary" onClick={() => openDetail("create")}>
-              添加学生
-            </Button>
-            <Button danger disabled={!canDelete} onClick={handleDelete}>
-              删除学生
-            </Button>
-            <Button onClick={() => setImportOpen(true)}>从 Excel 导入</Button>
-            <Button icon={<ExportOutlined />} onClick={handleExportExcel}>
-              导出Excel
-            </Button>
-          </>
-        )}
-        <div style={{ flex: 1 }} />
-        <Input.Search
-          placeholder="搜索姓名 / 学号 / 电话"
-          allowClear
-          defaultValue={keyword}
-          onSearch={handleKeywordChange}
-          style={{ width: 280 }}
-        />
-        <Button onClick={() => setAdvOpen(true)}>高级搜索</Button>
-      </Space>
+      <div className="sticky-toolbar">
+        <Space style={{ width: "100%", marginBottom: 12 }} wrap>
+          <Button disabled={!canView} onClick={() => openDetail("view", data?.items.find((i) => i.id === selectedKeys[0]))}>
+            查看
+          </Button>
+          {canManage && (
+            <>
+              <Button disabled={!canEdit} onClick={() => openDetail("edit", data?.items.find((i) => i.id === selectedKeys[0]))}>
+                编辑
+              </Button>
+              <Button type="primary" onClick={() => openDetail("create")}>
+                添加学生
+              </Button>
+              <Button danger disabled={!canDelete} onClick={handleDelete}>
+                删除学生
+              </Button>
+              <Button onClick={() => setImportOpen(true)}>从 Excel 导入</Button>
+              <Button icon={<ExportOutlined />} onClick={handleExportExcel}>
+                导出Excel
+              </Button>
+            </>
+          )}
+          <div style={{ flex: 1 }} />
+          <Input.Search
+            placeholder="搜索姓名 / 学号 / 电话"
+            allowClear
+            defaultValue={keyword}
+            onSearch={handleKeywordChange}
+            style={{ width: 280 }}
+          />
+          <Button onClick={() => setAdvOpen(true)}>高级搜索</Button>
+        </Space>
 
-      <ActiveFilterTags />
+        <ActiveFilterTags />
+      </div>
 
       <Table<StudentListItem>
         rowKey="id"

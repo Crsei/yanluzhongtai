@@ -467,6 +467,17 @@ body {
   background: #fff;
   border-radius: 12px;
   box-shadow: 0 1px 3px rgba(15, 23, 42, 0.06);
+  position: sticky;
+  top: 0;
+  z-index: 10;
+}
+
+.sticky-toolbar {
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  background: #fff;
+  padding: 12px 0 0;
 }
 
 .payroll-money-red {
