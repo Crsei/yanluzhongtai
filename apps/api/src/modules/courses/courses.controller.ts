@@ -36,7 +36,7 @@ export class CoursesController {
     return this.courses.list(query);
   }
 
-  @Roles(UserRole.SUPER_ADMIN, UserRole.ADMIN)
+  @Roles(UserRole.SUPER_ADMIN, UserRole.ADMIN, UserRole.MEMBER)
   @Get("import/template")
   async downloadTemplate(@Res() res: Response) {
     try {
@@ -55,19 +55,19 @@ export class CoursesController {
     }
   }
 
-  @Roles(UserRole.SUPER_ADMIN, UserRole.ADMIN)
+  @Roles(UserRole.SUPER_ADMIN, UserRole.ADMIN, UserRole.MEMBER)
   @Post("import/dry-run")
   importDryRun(@Body() dto: CourseImportDto) {
     return this.imports.dryRun(dto.fileKey);
   }
 
-  @Roles(UserRole.SUPER_ADMIN, UserRole.ADMIN)
+  @Roles(UserRole.SUPER_ADMIN, UserRole.ADMIN, UserRole.MEMBER)
   @Post("import/commit")
   importCommit(@Body() dto: CourseImportDto, @CurrentUser() operator: AuthUser) {
     return this.imports.commit(dto.fileKey, operator.id);
   }
 
-  @Roles(UserRole.SUPER_ADMIN, UserRole.ADMIN)
+  @Roles(UserRole.SUPER_ADMIN, UserRole.ADMIN, UserRole.MEMBER)
   @Get("export")
   async exportExcel(@Res() res: Response) {
     try {
@@ -91,13 +91,13 @@ export class CoursesController {
     return this.courses.findOne(id);
   }
 
-  @Roles(UserRole.SUPER_ADMIN, UserRole.ADMIN)
+  @Roles(UserRole.SUPER_ADMIN, UserRole.ADMIN, UserRole.MEMBER)
   @Post()
   create(@Body() dto: CreateCourseDto, @CurrentUser() operator: AuthUser) {
     return this.courses.create(dto, operator.id);
   }
 
-  @Roles(UserRole.SUPER_ADMIN, UserRole.ADMIN)
+  @Roles(UserRole.SUPER_ADMIN, UserRole.ADMIN, UserRole.MEMBER)
   @Put(":id")
   update(
     @Param("id") id: string,

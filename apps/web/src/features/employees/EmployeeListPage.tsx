@@ -22,7 +22,6 @@ import {
   Typography,
   message,
 } from "antd";
-import dayjs from "dayjs";
 import { useMemo, useState } from "react";
 import { useAuthStore } from "../../stores/authStore";
 import {
@@ -58,7 +57,8 @@ export function EmployeeListPage() {
   const { data, isLoading, isFetching } = useEmployees(queryParams);
   const mutations = useEmployeeMutations();
   const userRole = useAuthStore((state) => state.user?.role);
-  const canManage = userRole === "SUPER_ADMIN" || userRole === "ADMIN";
+  const canWrite = Boolean(userRole);
+  const canDeleteRecords = userRole === "SUPER_ADMIN" || userRole === "ADMIN";
 
   const selectedCount = selectedRowKeys.length;
   const canViewOrEdit = selectedCount === 1;
@@ -156,13 +156,6 @@ export function EmployeeListPage() {
         </Tag>
       ),
     },
-    {
-      title: "入职日期",
-      dataIndex: "hireDate",
-      key: "hireDate",
-      width: 120,
-      render: (value: string | null) => (value ? dayjs(value).format("YYYY-MM-DD") : "—"),
-    },
   ];
 
   return (
@@ -171,21 +164,18 @@ export function EmployeeListPage() {
         员工信息管理
       </Typography.Title>
 
-      <div className="employees-toolbar">
+      <div className="sticky-toolbar employees-toolbar">
         <Space wrap>
           <Button icon={<EyeOutlined />} disabled={!canViewOrEdit} onClick={() => openModalForRow("view")}>
             查看
           </Button>
-          {canManage && (
+          {canWrite && (
             <>
               <Button icon={<EditOutlined />} disabled={!canViewOrEdit} onClick={() => openModalForRow("edit")}>
                 编辑
               </Button>
               <Button type="primary" icon={<PlusOutlined />} onClick={openCreate}>
                 添加员工
-              </Button>
-              <Button danger icon={<DeleteOutlined />} disabled={!canDelete} onClick={handleDelete}>
-                删除员工
               </Button>
               <Button icon={<ImportOutlined />} onClick={() => setImportOpen(true)}>
 
@@ -199,6 +189,11 @@ export function EmployeeListPage() {
 
               </Button>
             </>
+          )}
+          {canDeleteRecords && (
+            <Button danger icon={<DeleteOutlined />} disabled={!canDelete} onClick={handleDelete}>
+              删除员工
+            </Button>
           )}
         </Space>
         <div style={{ flex: 1 }} />

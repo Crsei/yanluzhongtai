@@ -5,16 +5,19 @@ import {
 import { PayrollSettlement, Prisma } from "@prisma/client";
 import { periodBounds } from "../../common/payroll/period";
 import { computeCreditHours } from "../../common/course-no/course-status";
-import type { PayrollTeachingType } from "../../common/payroll/teaching-type";
+import {
+  getPayrollRateRule,
+  roundPayrollAmount,
+  type PayrollTeachingType,
+} from "../../common/payroll/teaching-type";
 import { PrismaService } from "../../prisma/prisma.service";
 import { AuditLogsService } from "../audit-logs/audit-logs.service";
 import type { AuthUser } from "../auth/auth.types";
 import { SettlePayrollDto } from "./dto/settle-payroll.dto";
 
-/** Float tolerance so settlements that are numerically "right at the cap"
+/** Float tolerance so settlements that are numerically right at the cap
  * don't get falsely rejected by a binary-FP rounding error. */
 const FLOAT_EPS = 1e-6;
-const TOTAL_PACKAGE_BILLING_TYPE = "总包";
 
 @Injectable()
 export class PayrollSettlementsService {
@@ -31,7 +34,7 @@ export class PayrollSettlementsService {
       where: { jobNo: dto.employeeJobNo },
       select: { billingType: true },
     });
-    const totalPackage = employee?.billingType === TOTAL_PACKAGE_BILLING_TYPE;
+    const rateRule = getPayrollRateRule(employee?.billingType, dto.teachingType);
 
     // 1. Re-aggregate deliveredHours now (TOCTOU safe: we read from the
     //    authoritative Course table rather than trusting a client-supplied value).
@@ -50,28 +53,26 @@ export class PayrollSettlementsService {
       0,
     );
 
-    // 2. Enforce one rate per (teacher, period, teachingType).
+    // 2. Re-read historical settlements so remaining payable is capped
+    //    against the authoritative paid amount.
     const history = await this.prisma.payrollSettlement.findMany({
       where: {
         employeeJobNo: dto.employeeJobNo,
         settlementPeriod: dto.settlementPeriod,
         ...this.settlementTypeWhere(dto.teachingType),
       },
-      select: { hourlyRate: true, subtotalPaid: true },
+      select: { subtotalPaid: true },
     });
 
     const requestedRate = Number(dto.hourlyRate);
-    const newRate = totalPackage ? 0 : requestedRate;
-    if (!Number.isFinite(newRate) || (!totalPackage && newRate <= 0)) {
-      throw new BadRequestException("单位课时费必须大于 0");
+    const newRate = rateRule.editable ? requestedRate : rateRule.defaultRate;
+    if (!Number.isFinite(newRate) || newRate < 0) {
+      throw new BadRequestException("单位课时费必须大于等于 0");
     }
-    if (!totalPackage && history.length > 0) {
-      const existingRate = Number(history[0].hourlyRate);
-      if (Math.abs(newRate - existingRate) > FLOAT_EPS) {
-        throw new BadRequestException(
-          `该月 ${dto.teachingType} 单位课时费已为 ${existingRate} 元,不得更改`,
-        );
-      }
+    if (!rateRule.editable && Math.abs(requestedRate - rateRule.defaultRate) > FLOAT_EPS) {
+      throw new BadRequestException(
+        `当前计费方式下 ${dto.teachingType} 单位课时费固定为 ${rateRule.defaultRate} 元`,
+      );
     }
 
     const extraLabor = Number(dto.extraLabor);
@@ -84,11 +85,16 @@ export class PayrollSettlementsService {
     ) {
       throw new BadRequestException("金额字段必须是数字");
     }
+    if (extraLabor < 0 || extraDeduction < 0) {
+      throw new BadRequestException("其他劳务和其他扣除不得小于 0");
+    }
     if (paidAmount <= 0) {
       throw new BadRequestException("本次结算金额必须大于 0");
     }
 
-    const payable = newRate * deliveredHours + extraLabor - extraDeduction;
+    const payable = roundPayrollAmount(
+      newRate * deliveredHours + extraLabor - extraDeduction,
+    );
     const alreadyPaid = history.reduce(
       (s, h) => s + Number(h.subtotalPaid),
       0,
@@ -126,22 +132,22 @@ export class PayrollSettlementsService {
   }
 
   private courseTypeWhere(teachingType: PayrollTeachingType): Prisma.CourseWhereInput {
-    return teachingType === "1v1"
-      ? { actualTeachingType: "1v1" }
-      : {
-          OR: [
-            { actualTeachingType: null },
-            { actualTeachingType: { not: "1v1" } },
-          ],
-        };
+    if (teachingType === "其他") {
+      return { OR: [{ actualTeachingType: null }, { actualTeachingType: "其他" }] };
+    }
+    return { actualTeachingType: teachingType };
   }
 
   private settlementTypeWhere(
     teachingType: PayrollTeachingType,
   ): Prisma.PayrollSettlementWhereInput {
-    return teachingType === "1v1"
-      ? { teachingType }
-      : { OR: [{ teachingType }, { teachingType: null }] };
+    if (teachingType === "公共课直播") {
+      return { OR: [{ teachingType }, { teachingType: "公共" }] };
+    }
+    if (teachingType === "其他") {
+      return { OR: [{ teachingType }, { teachingType: null }] };
+    }
+    return { teachingType };
   }
 
   private snapshot(s: PayrollSettlement): Record<string, unknown> {

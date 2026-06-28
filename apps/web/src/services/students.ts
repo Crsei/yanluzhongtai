@@ -54,6 +54,18 @@ export type StudentDetail = StudentListItem & {
   createdAt: string;
   updatedAt: string;
   relatedCourseCategories: string[];
+  completedCourses: StudentCompletedCourse[];
+};
+
+export type StudentCompletedCourse = {
+  id: string;
+  name: string | null;
+  secondaryCategoryName: string | null;
+  plannedAt: string | null;
+  status: "NOT_SCHEDULED" | "SCHEDULED" | "IN_PROGRESS" | "COMPLETED";
+  actualTeachingType: string | null;
+  actualTeacher: { jobNo: string; name: string | null } | null;
+  creditHours: number | null;
 };
 
 export type StudentQueryParams = {

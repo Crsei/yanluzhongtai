@@ -117,7 +117,7 @@ export function CourseOutlinePage() {
     try {
       await courseOutlinesApi.deleteSection(activeVersionId, sectionCode);
       message.success("板块已删除");
-      queryClient.invalidateQueries({ queryKey: ["course-outline", activeVersionId] });
+      queryClient.invalidateQueries({ queryKey: ["outline", activeVersionId] });
     } catch (err) {
       message.error(err instanceof Error ? err.message : "删除板块失败");
     }
@@ -226,7 +226,7 @@ export function CourseOutlinePage() {
         研录课程大纲
       </Typography.Title>
 
-      <div className="course-outline-toolbar">
+      <div className="sticky-toolbar course-outline-toolbar">
         <Space wrap>
           <OutlineVersionDropdown
             versions={versions}
@@ -348,6 +348,7 @@ export function CourseOutlinePage() {
               pagination={false}
               dataSource={itemsBySectionCode.get(section.code) ?? []}
               columns={columns}
+              scroll={{ x: 980 }}
               rowSelection={{
                 selectedRowKeys: selectedIds,
                 onChange: (keys) => setSelectedIds(keys as string[]),

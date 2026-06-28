@@ -2,6 +2,7 @@
   font-family: "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
   color: #0f172a;
   background: #eef3f9;
+  --app-page-bg: #eef3f9;
 }
 
 * {
@@ -111,6 +112,9 @@ body {
 }
 
 .mobile-menu-trigger {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
   position: fixed;
   left: 20px;
   bottom: 24px;
@@ -118,6 +122,7 @@ body {
   width: 52px;
   min-width: 52px;
   height: 52px;
+  aspect-ratio: 1 / 1;
   padding: 0;
   border-radius: 50%;
   box-shadow: 0 12px 30px rgba(29, 140, 255, 0.3);
@@ -140,6 +145,7 @@ body {
 
 .login-brand {
   display: flex;
+  flex-direction: column;
   align-items: center;
   justify-content: center;
   gap: 16px;
@@ -150,7 +156,7 @@ body {
   margin: 0 !important;
   font-size: 28px !important;
   line-height: 1.2 !important;
-  white-space: nowrap;
+  text-align: center;
 }
 
 .login-meta-row {
@@ -167,6 +173,13 @@ body {
 
   .app-header {
     padding: 16px;
+  }
+
+  .sticky-toolbar {
+    margin-right: -16px;
+    margin-left: -16px;
+    padding-right: 16px;
+    padding-left: 16px;
   }
 }
 
@@ -475,9 +488,16 @@ body {
 .sticky-toolbar {
   position: sticky;
   top: 0;
-  z-index: 10;
-  background: #fff;
-  padding: 12px 0 0;
+  z-index: 20;
+  margin: 0 -24px 16px;
+  padding: 12px 24px;
+  background: var(--app-page-bg);
+  border-bottom: 1px solid rgba(148, 163, 184, 0.18);
+}
+
+.ant-modal .ant-modal-body,
+.ant-drawer .ant-drawer-body {
+  overflow-x: auto;
 }
 
 .payroll-money-red {

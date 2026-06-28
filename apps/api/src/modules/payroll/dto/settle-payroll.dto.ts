@@ -15,7 +15,7 @@ export class SettlePayrollDto {
 
   @IsString()
   @IsIn(PAYROLL_TEACHING_TYPES, {
-    message: "teachingType 必须是 1v1 或 公共",
+    message: "teachingType 必须是有效授课方式",
   })
   teachingType!: PayrollTeachingType;
 

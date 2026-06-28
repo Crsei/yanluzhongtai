@@ -8,15 +8,21 @@ import {
   Modal,
   Row,
   Select,
+  Table,
+  Tag,
 } from "antd";
+import type { TableColumnsType } from "antd";
 import { useEffect, useMemo } from "react";
 import { EmployeePicker } from "../../components/EmployeePicker";
 import {
+  COURSE_STATUS_COLORS,
+  COURSE_STATUS_LABELS,
+  type CourseStatus,
   SERVICE_PLATFORM_OPTIONS,
   SERVICE_STATUS_OPTIONS,
   STUDENT_SOURCE_OPTIONS,
 } from "../../constants/dictionaries";
-import type { StudentDetail } from "../../services/students";
+import type { StudentCompletedCourse, StudentDetail } from "../../services/students";
 import { DetailNotesEditor } from "./DetailNotesEditor";
 import { StudentAttachmentUpload } from "./StudentAttachmentUpload";
 import { useStudentMutations } from "./hooks/useStudentMutations";
@@ -43,6 +49,19 @@ function toFormValues(s: StudentDetail | null): FormValues {
   };
 }
 
+function formatDateTime(iso: string | null): string {
+  if (!iso) return "—";
+  return new Date(iso).toLocaleString("zh-CN", { hour12: false });
+}
+
+function linkExtra(url?: string | null) {
+  return url ? (
+    <a href={url} target="_blank" rel="noreferrer">
+      打开链接
+    </a>
+  ) : null;
+}
+
 export function StudentFormModal({ open, mode, initial, onClose, onModeChange }: Props) {
   const [form] = Form.useForm<FormValues>();
   const { createMutation, updateMutation } = useStudentMutations();
@@ -55,6 +74,14 @@ export function StudentFormModal({ open, mode, initial, onClose, onModeChange }:
   }, [open, initial, form]);
 
   const disabled = mode === "view";
+  const serviceChecklistUrl = Form.useWatch("serviceChecklistUrl", form) as
+    | string
+    | null
+    | undefined;
+  const overallPlanUrl = Form.useWatch("overallPlanUrl", form) as
+    | string
+    | null
+    | undefined;
 
   const handleOk = async () => {
     const values = await form.validateFields();
@@ -72,6 +99,49 @@ export function StudentFormModal({ open, mode, initial, onClose, onModeChange }:
 
   const title =
     mode === "create" ? "添加学生" : mode === "edit" ? "编辑学生" : "查看学生";
+
+  const completedCourseColumns: TableColumnsType<StudentCompletedCourse> = [
+    { title: "课程名称", dataIndex: "name", width: 180, render: (v: string | null) => v ?? "—" },
+    {
+      title: "所属二级课程类别",
+      dataIndex: "secondaryCategoryName",
+      width: 180,
+      render: (v: string | null) => v ?? "—",
+    },
+    {
+      title: "计划授课时间",
+      dataIndex: "plannedAt",
+      width: 180,
+      render: (v: string | null) => formatDateTime(v),
+    },
+    {
+      title: "课程状态",
+      dataIndex: "status",
+      width: 110,
+      render: (v: CourseStatus) => (
+        <Tag color={COURSE_STATUS_COLORS[v]}>{COURSE_STATUS_LABELS[v]}</Tag>
+      ),
+    },
+    {
+      title: "授课方式",
+      dataIndex: "actualTeachingType",
+      width: 130,
+      render: (v: string | null) => v ?? "—",
+    },
+    {
+      title: "实际授课老师",
+      dataIndex: "actualTeacher",
+      width: 150,
+      render: (v: StudentCompletedCourse["actualTeacher"]) =>
+        v ? `${v.name ?? "未命名"} (${v.jobNo})` : "—",
+    },
+    {
+      title: "授课课时",
+      dataIndex: "creditHours",
+      width: 110,
+      render: (v: number | null) => (v == null ? "—" : v.toFixed(2)),
+    },
+  ];
 
   const footer = useMemo(() => {
     if (mode === "view") {
@@ -259,13 +329,21 @@ export function StudentFormModal({ open, mode, initial, onClose, onModeChange }:
         </Row>
 
         <SectionTitle>服务字段</SectionTitle>
-        <Form.Item label="服务清单链接" name="serviceChecklistUrl">
+        <Form.Item
+          label="服务清单链接"
+          name="serviceChecklistUrl"
+          extra={linkExtra(serviceChecklistUrl)}
+        >
           <Input placeholder="可选" />
         </Form.Item>
         <Form.Item label="服务清单附件" name="serviceChecklistKeys">
           <StudentAttachmentUpload disabled={disabled} />
         </Form.Item>
-        <Form.Item label="总规划链接" name="overallPlanUrl">
+        <Form.Item
+          label="总规划链接"
+          name="overallPlanUrl"
+          extra={linkExtra(overallPlanUrl)}
+        >
           <Input />
         </Form.Item>
         <Form.Item label="总规划说明" name="overallPlanText">
@@ -293,10 +371,16 @@ export function StudentFormModal({ open, mode, initial, onClose, onModeChange }:
           <Input.TextArea rows={3} />
         </Form.Item>
 
-        <SectionTitle>已上课程的二级课程类别</SectionTitle>
-        <div className="related-course-categories-placeholder">
-          待课程模块上线后自动同步
-        </div>
+        <SectionTitle>已上课程</SectionTitle>
+        <Table<StudentCompletedCourse>
+          rowKey="id"
+          size="small"
+          dataSource={initial?.completedCourses ?? []}
+          columns={completedCourseColumns}
+          pagination={false}
+          scroll={{ x: 1040, y: 260 }}
+          locale={{ emptyText: "暂无已上课程" }}
+        />
       </Form>
     </Modal>
   );

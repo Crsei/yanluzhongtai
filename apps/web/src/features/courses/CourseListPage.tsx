@@ -101,7 +101,8 @@ function writeParams(
 
 export function CourseListPage() {
   const role = useAuthStore((s) => s.user?.role);
-  const canManage = role === "SUPER_ADMIN" || role === "ADMIN";
+  const canWrite = Boolean(role);
+  const canDeleteRecords = role === "SUPER_ADMIN" || role === "ADMIN";
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
 
@@ -264,7 +265,7 @@ export function CourseListPage() {
         </Button>
       </div>
 
-      <div className="course-list-toolbar">
+      <div className="sticky-toolbar course-list-toolbar">
         <Space wrap>
           <Button
             icon={<EyeOutlined />}
@@ -273,7 +274,7 @@ export function CourseListPage() {
           >
             查看课程信息
           </Button>
-          {canManage ? (
+          {canWrite ? (
             <>
               <Button
                 icon={<EditOutlined />}
@@ -290,15 +291,6 @@ export function CourseListPage() {
                 添加课程
               </Button>
               <Button
-                danger
-                icon={<DeleteOutlined />}
-                disabled={selectedIds.length === 0}
-                onClick={onDelete}
-              >
-                删除课程
-              </Button>
-              <Button
-
                 icon={<ImportOutlined />}
 
                 onClick={() => setImportOpen(true)}
@@ -321,6 +313,16 @@ export function CourseListPage() {
 
               </Button>
             </>
+          ) : null}
+          {canDeleteRecords ? (
+            <Button
+              danger
+              icon={<DeleteOutlined />}
+              disabled={selectedIds.length === 0}
+              onClick={onDelete}
+            >
+              删除课程
+            </Button>
           ) : null}
         </Space>
         <div style={{ flex: 1 }} />
@@ -357,12 +359,14 @@ export function CourseListPage() {
           onChange: (page, pageSize) =>
             writeParams({ ...params, page, pageSize }, setSearchParams),
         }}
+        scroll={{ x: 1200 }}
       />
 
       <CourseFormModal
         open={formMode !== null}
         mode={formMode ?? "view"}
         course={editQ.data ?? null}
+        onModeChange={setFormMode}
         onClose={() => {
           setFormMode(null);
           setEditId(null);

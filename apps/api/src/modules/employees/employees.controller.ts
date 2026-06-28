@@ -36,7 +36,7 @@ export class EmployeesController {
     return this.employees.list(query);
   }
 
-  @Roles(UserRole.SUPER_ADMIN, UserRole.ADMIN)
+  @Roles(UserRole.SUPER_ADMIN, UserRole.ADMIN, UserRole.MEMBER)
   @Get("export")
   async exportExcel(@Res() res: Response) {
     try {
@@ -60,13 +60,13 @@ export class EmployeesController {
     return this.employees.findOne(id);
   }
 
-  @Roles(UserRole.SUPER_ADMIN, UserRole.ADMIN)
+  @Roles(UserRole.SUPER_ADMIN, UserRole.ADMIN, UserRole.MEMBER)
   @Post()
   create(@Body() dto: CreateEmployeeDto, @CurrentUser() operator: AuthUser) {
     return this.employees.create(dto, operator.id);
   }
 
-  @Roles(UserRole.SUPER_ADMIN, UserRole.ADMIN)
+  @Roles(UserRole.SUPER_ADMIN, UserRole.ADMIN, UserRole.MEMBER)
   @Put(":id")
   update(
     @Param("id") id: string,
@@ -93,7 +93,7 @@ export class EmployeesController {
     await this.employees.remove(id, operator.id);
   }
 
-  @Roles(UserRole.SUPER_ADMIN, UserRole.ADMIN)
+  @Roles(UserRole.SUPER_ADMIN, UserRole.ADMIN, UserRole.MEMBER)
   @Get("import/template")
   async downloadTemplate(@Res() res: Response) {
     try {
@@ -112,13 +112,13 @@ export class EmployeesController {
     }
   }
 
-  @Roles(UserRole.SUPER_ADMIN, UserRole.ADMIN)
+  @Roles(UserRole.SUPER_ADMIN, UserRole.ADMIN, UserRole.MEMBER)
   @Post("import/dry-run")
   importDryRun(@Body() dto: ImportFileKeyDto) {
     return this.imports.dryRun(dto.fileKey);
   }
 
-  @Roles(UserRole.SUPER_ADMIN, UserRole.ADMIN)
+  @Roles(UserRole.SUPER_ADMIN, UserRole.ADMIN, UserRole.MEMBER)
   @Post("import/commit")
   importCommit(
     @Body() dto: ImportFileKeyDto,

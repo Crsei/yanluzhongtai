@@ -33,6 +33,7 @@ type Props = {
   open: boolean;
   mode: Mode;
   course: CourseDetail | null;
+  onModeChange: (next: Mode) => void;
   onClose: () => void;
 };
 
@@ -53,7 +54,7 @@ function roundCredit(mins: number | null): string {
   return (Math.round((mins / 45) * 100) / 100).toFixed(2);
 }
 
-function linkAddon(url?: string | null) {
+function linkExtra(url?: string | null) {
   return url ? (
     <a href={url} target="_blank" rel="noreferrer">
       打开
@@ -61,7 +62,7 @@ function linkAddon(url?: string | null) {
   ) : null;
 }
 
-export function CourseFormModal({ open, mode, course, onClose }: Props) {
+export function CourseFormModal({ open, mode, course, onModeChange, onClose }: Props) {
   const { versionsQ, activeVersionId, detailQ } = useActiveOutline();
   const { create, update } = useCourseMutations();
   const activeOutline = detailQ.data;
@@ -195,7 +196,12 @@ export function CourseFormModal({ open, mode, course, onClose }: Props) {
       destroyOnClose
       footer={
         readOnly ? (
-          <Button onClick={onClose}>关闭</Button>
+          <Space>
+            <Button onClick={onClose}>关闭</Button>
+            <Button type="primary" onClick={() => onModeChange("edit")}>
+              编辑
+            </Button>
+          </Space>
         ) : (
           <Space>
             <Button onClick={onClose}>取消</Button>
@@ -350,32 +356,32 @@ export function CourseFormModal({ open, mode, course, onClose }: Props) {
               </Space.Compact>
             </Form.Item>
 
-            <Form.Item label="回放链接" name="replayUrl">
+            <Form.Item
+              label="回放链接"
+              name="replayUrl"
+              extra={linkExtra(replayUrl)}
+            >
               <Input
                 placeholder="https://"
-                readOnly={readOnly}
-                disabled={false}
-                addonAfter={linkAddon(replayUrl)}
               />
             </Form.Item>
-            <Form.Item label="录播链接" name="videoUrl">
+            <Form.Item
+              label="录播链接"
+              name="videoUrl"
+              extra={linkExtra(videoUrl)}
+            >
               <Input
                 placeholder="https://"
-                readOnly={readOnly}
-                disabled={false}
-                addonAfter={linkAddon(videoUrl)}
               />
             </Form.Item>
             <Form.Item
               label="资料链接"
               name="resourceUrl"
               style={{ gridColumn: "span 2" }}
+              extra={linkExtra(resourceUrl)}
             >
               <Input
                 placeholder="https://"
-                readOnly={readOnly}
-                disabled={false}
-                addonAfter={linkAddon(resourceUrl)}
               />
             </Form.Item>
             <Form.Item

@@ -44,7 +44,8 @@ export function StudentListPage() {
   const { data, isLoading } = useStudents(queryParams);
   const { removeMutation, removeManyMutation } = useStudentMutations();
   const userRole = useAuthStore((state) => state.user?.role);
-  const canManage = userRole === "SUPER_ADMIN" || userRole === "ADMIN";
+  const canWrite = Boolean(userRole);
+  const canDeleteRecords = userRole === "SUPER_ADMIN" || userRole === "ADMIN";
 
   const [selectedKeys, setSelectedKeys] = useState<React.Key[]>([]);
   const [modalState, setModalState] = useState<{ open: boolean; mode: StudentFormMode; initial: StudentDetail | null }>(
@@ -65,7 +66,7 @@ export function StudentListPage() {
 
   const canView = selectedKeys.length === 1;
   const canEdit = selectedKeys.length === 1;
-  const canDelete = selectedKeys.length >= 1;
+  const canDeleteSelected = selectedKeys.length >= 1;
 
   const handleKeywordChange = (v: string) => {
     const next = new URLSearchParams(params);
@@ -152,7 +153,7 @@ export function StudentListPage() {
           <Button disabled={!canView} onClick={() => openDetail("view", data?.items.find((i) => i.id === selectedKeys[0]))}>
             查看
           </Button>
-          {canManage && (
+          {canWrite && (
             <>
               <Button disabled={!canEdit} onClick={() => openDetail("edit", data?.items.find((i) => i.id === selectedKeys[0]))}>
                 编辑
@@ -160,14 +161,16 @@ export function StudentListPage() {
               <Button type="primary" onClick={() => openDetail("create")}>
                 添加学生
               </Button>
-              <Button danger disabled={!canDelete} onClick={handleDelete}>
-                删除学生
-              </Button>
               <Button onClick={() => setImportOpen(true)}>从 Excel 导入</Button>
               <Button icon={<ExportOutlined />} onClick={handleExportExcel}>
                 导出Excel
               </Button>
             </>
+          )}
+          {canDeleteRecords && (
+            <Button danger disabled={!canDeleteSelected} onClick={handleDelete}>
+              删除学生
+            </Button>
           )}
           <div style={{ flex: 1 }} />
           <Input.Search
@@ -242,6 +245,7 @@ export function StudentListPage() {
             ),
           },
         ]}
+        scroll={{ x: 1100 }}
       />
 
       <StudentFormModal

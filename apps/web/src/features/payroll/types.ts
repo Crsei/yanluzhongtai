@@ -1,4 +1,10 @@
-export type PayrollTeachingType = "1v1" | "公共";
+export type PayrollTeachingType =
+  | "公共课直播"
+  | "1v1"
+  | "分发录播"
+  | "推送资源"
+  | "外包"
+  | "其他";
 
 export type PayrollAutoRow = {
   kind: "auto";
@@ -8,6 +14,7 @@ export type PayrollAutoRow = {
   period: string;
   teachingType: PayrollTeachingType;
   hourlyRate: number | null;
+  rateEditable: boolean;
   deliveredHours: number;
   totalCourseFee: number | null;
   extraLabor: number;
@@ -49,6 +56,8 @@ export type PayrollRowState = {
   period: string;
   teachingType: PayrollTeachingType;
   hourlyRate: number | null;
+  defaultHourlyRate: number;
+  rateEditable: boolean;
   deliveredHours: number;
   payable: number | null;
   alreadyPaid: number;

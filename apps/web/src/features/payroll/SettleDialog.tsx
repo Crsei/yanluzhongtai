@@ -28,6 +28,10 @@ type FormValues = {
   extraDeduction?: number;
 };
 
+function roundPayrollAmount(value: number): number {
+  return Math.round(value / 10) * 10;
+}
+
 export function SettleDialog({
   open,
   teacherJobNo,
@@ -47,46 +51,37 @@ export function SettleDialog({
 
   const state = stateQ.data;
   const totalPackage = state?.employeeBillingType === "总包";
-  const rateLocked = state?.hourlyRate != null;
+  const rateLocked = state ? !state.rateEditable : true;
   const watchedRate = Form.useWatch("hourlyRate", form);
   const watchedExtraLabor = Form.useWatch("extraLabor", form) ?? 0;
   const watchedExtraDeduction = Form.useWatch("extraDeduction", form) ?? 0;
-  const effectiveRate = rateLocked
-    ? state?.hourlyRate
-    : watchedRate ?? state?.hourlyRate ?? 120;
+  const effectiveRate =
+    watchedRate ?? state?.hourlyRate ?? state?.defaultHourlyRate ?? 120;
   const maxAmount =
     state && effectiveRate != null
       ? Math.max(
           0,
-          Number(
-            (
-              effectiveRate * state.deliveredHours +
+          roundPayrollAmount(
+            effectiveRate * state.deliveredHours +
               watchedExtraLabor -
-              watchedExtraDeduction -
-              state.alreadyPaid
-            ).toFixed(2),
-          ),
+              watchedExtraDeduction,
+          ) - state.alreadyPaid,
         )
       : undefined;
 
-  // Keep form in sync with the row state the dialog just loaded. Otherwise
-  // a locked rate never gets written to the form value on first open.
   useEffect(() => {
     if (!open) return;
     form.setFieldsValue({
-      hourlyRate: state?.hourlyRate ?? 120,
+      hourlyRate: state?.hourlyRate ?? state?.defaultHourlyRate ?? 120,
       extraLabor: 0,
       extraDeduction: 0,
     });
-    if (rateLocked && state?.hourlyRate != null) {
-      form.setFieldsValue({ hourlyRate: state.hourlyRate });
-    }
-  }, [open, rateLocked, state?.hourlyRate, form]);
+  }, [open, state?.defaultHourlyRate, state?.hourlyRate, form]);
 
   const onSubmit = async () => {
     const values = await form.validateFields();
     const rate = rateLocked
-      ? state!.hourlyRate!
+      ? state!.defaultHourlyRate
       : (values.hourlyRate as number);
 
     await settle.mutateAsync({
@@ -141,54 +136,56 @@ export function SettleDialog({
             </Descriptions.Item>
           </Descriptions>
 
-          {totalPackage ? (
+          {rateLocked ? (
             <Alert
               style={{ marginBottom: 12 }}
               type="info"
               showIcon
-              message="该老师计费方式为总包,课时费固定为 0 且不可修改"
+              message={
+                totalPackage
+                  ? "该老师计费方式为总包,课时费固定为 0 且不可修改"
+                  : `当前授课方式为${teachingType},单位课时费固定为 ${state.defaultHourlyRate} 元/课时`
+              }
             />
-          ) : rateLocked ? (
+          ) : state.hourlyRate !== state.defaultHourlyRate ? (
             <Alert
               style={{ marginBottom: 12 }}
               type="info"
               showIcon
-              message={`该月 ${teachingType} 单位课时费已确定为 ${state.hourlyRate} 元/课时,不得修改`}
+              message={`沿用最近一次 ${teachingType} 单位课时费 ${state.hourlyRate} 元/课时,可在本次结算中调整`}
             />
           ) : (
             <Alert
               style={{ marginBottom: 12 }}
               type="warning"
               showIcon
-              message="该月首次结算,请先输入单位课时费(确定后同月内不可再改)"
+              message={`默认单位课时费为 ${state.defaultHourlyRate} 元/课时,提交前可调整`}
             />
           )}
 
           <Form<FormValues> form={form} layout="vertical">
-            {!rateLocked ? (
-              <Form.Item
-                name="hourlyRate"
-                label="单位课时费"
-                initialValue={120}
-                rules={[
-                  { required: true, message: "请输入单位课时费" },
-                  {
-                    validator: (_, value) =>
-                      value == null || value > 0
-                        ? Promise.resolve()
-                        : Promise.reject(new Error("单位课时费必须大于 0")),
-                  },
-                ]}
-              >
-                <InputNumber
-                  addonAfter="元/课时"
-                  precision={2}
-                  min={0.01}
-                  style={{ width: "100%" }}
-                  autoFocus
-                />
-              </Form.Item>
-            ) : null}
+            <Form.Item
+              name="hourlyRate"
+              label="单位课时费"
+              rules={[
+                { required: true, message: "请输入单位课时费" },
+                {
+                  validator: (_, value) =>
+                    value == null || value >= 0
+                      ? Promise.resolve()
+                      : Promise.reject(new Error("单位课时费不得小于 0")),
+                },
+              ]}
+            >
+              <InputNumber
+                addonAfter="元/课时"
+                precision={2}
+                min={0}
+                disabled={rateLocked}
+                style={{ width: "100%" }}
+                autoFocus={!rateLocked}
+              />
+            </Form.Item>
 
             <Form.Item
               name="extraLabor"

@@ -15,6 +15,7 @@ export type PayrollAutoRow = {
   period: string;
   teachingType: PayrollTeachingType;
   hourlyRate: number | null;
+  rateEditable: boolean;
   deliveredHours: number;
   totalCourseFee: number | null;
   extraLabor: number;
@@ -56,6 +57,8 @@ export type PayrollRowState = {
   period: string;
   teachingType: PayrollTeachingType;
   hourlyRate: number | null;
+  defaultHourlyRate: number;
+  rateEditable: boolean;
   deliveredHours: number;
   payable: number | null;
   alreadyPaid: number;

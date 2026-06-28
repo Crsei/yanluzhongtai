@@ -37,7 +37,7 @@ export class StudentsController {
     return this.students.list(query);
   }
 
-  @Roles(UserRole.SUPER_ADMIN, UserRole.ADMIN)
+  @Roles(UserRole.SUPER_ADMIN, UserRole.ADMIN, UserRole.MEMBER)
 
   @Get("export")
 
@@ -85,13 +85,13 @@ export class StudentsController {
 
   }
 
-  @Roles(UserRole.SUPER_ADMIN, UserRole.ADMIN)
+  @Roles(UserRole.SUPER_ADMIN, UserRole.ADMIN, UserRole.MEMBER)
   @Post()
   create(@Body() dto: CreateStudentDto, @CurrentUser() operator: AuthUser) {
     return this.students.create(dto, operator.id);
   }
 
-  @Roles(UserRole.SUPER_ADMIN, UserRole.ADMIN)
+  @Roles(UserRole.SUPER_ADMIN, UserRole.ADMIN, UserRole.MEMBER)
   @Put(":id")
   update(
     @Param("id") id: string,
@@ -115,7 +115,7 @@ export class StudentsController {
     await this.students.remove(id, operator.id);
   }
 
-  @Roles(UserRole.SUPER_ADMIN, UserRole.ADMIN)
+  @Roles(UserRole.SUPER_ADMIN, UserRole.ADMIN, UserRole.MEMBER)
   @Get("import/template")
   async downloadTemplate(@Res() res: Response) {
     try {
@@ -134,13 +134,13 @@ export class StudentsController {
     }
   }
 
-  @Roles(UserRole.SUPER_ADMIN, UserRole.ADMIN)
+  @Roles(UserRole.SUPER_ADMIN, UserRole.ADMIN, UserRole.MEMBER)
   @Post("import/dry-run")
   importDryRun(@Body() dto: ImportFileKeyDto) {
     return this.imports.dryRun(dto.fileKey);
   }
 
-  @Roles(UserRole.SUPER_ADMIN, UserRole.ADMIN)
+  @Roles(UserRole.SUPER_ADMIN, UserRole.ADMIN, UserRole.MEMBER)
   @Post("import/commit")
   importCommit(
     @Body() dto: ImportFileKeyDto,

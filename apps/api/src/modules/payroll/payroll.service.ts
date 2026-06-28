@@ -9,7 +9,9 @@ import {
   periodRangeToList,
 } from "../../common/payroll/period";
 import {
+  getPayrollRateRule,
   normalizePayrollTeachingType,
+  roundPayrollAmount,
   type PayrollTeachingType,
 } from "../../common/payroll/teaching-type";
 import {
@@ -40,6 +42,8 @@ type SettlementAggregate = {
   teachingType: PayrollTeachingType;
   rate: number;
   sumPaid: number;
+  extraLabor: number;
+  extraDeduction: number;
   settlementIds: string[];
 };
 
@@ -47,9 +51,7 @@ function round2(value: number): number {
   return Math.round(value * 100) / 100;
 }
 
-const DEFAULT_HOURLY_RATE = 120;
 const DEFAULT_BILLING_TYPE = "常规";
-const TOTAL_PACKAGE_BILLING_TYPE = "总包";
 
 function aggregateKey(
   jobNo: string,
@@ -60,26 +62,22 @@ function aggregateKey(
 }
 
 function courseTypeWhere(teachingType: PayrollTeachingType): Prisma.CourseWhereInput {
-  return teachingType === "1v1"
-    ? { actualTeachingType: "1v1" }
-    : {
-        OR: [
-          { actualTeachingType: null },
-          { actualTeachingType: { not: "1v1" } },
-        ],
-      };
+  if (teachingType === "其他") {
+    return { OR: [{ actualTeachingType: null }, { actualTeachingType: "其他" }] };
+  }
+  return { actualTeachingType: teachingType };
 }
 
 function settlementTypeWhere(
   teachingType: PayrollTeachingType,
 ): Prisma.PayrollSettlementWhereInput {
-  return teachingType === "1v1"
-    ? { teachingType }
-    : { OR: [{ teachingType }, { teachingType: null }] };
-}
-
-function isTotalPackage(billingType: string | null | undefined): boolean {
-  return billingType === TOTAL_PACKAGE_BILLING_TYPE;
+  if (teachingType === "公共课直播") {
+    return { OR: [{ teachingType }, { teachingType: "公共" }] };
+  }
+  if (teachingType === "其他") {
+    return { OR: [{ teachingType }, { teachingType: null }] };
+  }
+  return { teachingType };
 }
 
 @Injectable()
@@ -140,14 +138,16 @@ export class PayrollService {
         ? [hours.jobNo, hours.period, hours.teachingType]
         : s
           ? [s.jobNo, s.period, s.teachingType]
-          : ["", "", "公共" as PayrollTeachingType];
+          : ["", "", "其他" as PayrollTeachingType];
       if (!jobNo) continue;
       const employee = empMap.get(jobNo);
       const employeeBillingType = employee?.billingType ?? DEFAULT_BILLING_TYPE;
-      const totalPackage = isTotalPackage(employeeBillingType);
+      const rateRule = getPayrollRateRule(employeeBillingType, teachingType);
       const deliveredHours = round2(hours?.hours ?? 0);
-      const rate = totalPackage ? 0 : s?.rate ?? DEFAULT_HOURLY_RATE;
-      const totalFee = totalPackage ? 0 : round2(rate * deliveredHours);
+      const rate = rateRule.editable ? s?.rate ?? rateRule.defaultRate : rateRule.defaultRate;
+      const totalFee = round2(rate * deliveredHours);
+      const extraLabor = round2(s?.extraLabor ?? 0);
+      const extraDeduction = round2(s?.extraDeduction ?? 0);
       autoRows.push({
         kind: "auto",
         employeeJobNo: jobNo,
@@ -157,11 +157,12 @@ export class PayrollService {
         period,
         teachingType,
         hourlyRate: rate,
+        rateEditable: rateRule.editable,
         deliveredHours,
         totalCourseFee: totalFee,
-        extraLabor: 0,
-        extraDeduction: 0,
-        subtotalPayable: totalFee,
+        extraLabor,
+        extraDeduction,
+        subtotalPayable: roundPayrollAmount(totalFee + extraLabor - extraDeduction),
         subtotalPaid: round2(s?.sumPaid ?? 0),
         settlementIds: s?.settlementIds ?? [],
       });
@@ -287,6 +288,7 @@ export class PayrollService {
           settlementPeriod: period,
           ...settlementTypeWhere(teachingType),
         },
+        orderBy: { settledAt: "desc" },
         select: { hourlyRate: true, subtotalPaid: true },
       }),
     ]);
@@ -297,12 +299,13 @@ export class PayrollService {
         0,
       ),
     );
-    const rate = isTotalPackage(emp.billingType)
-      ? 0
-      : settlements.length
+    const rateRule = getPayrollRateRule(emp.billingType, teachingType);
+    const rate = rateRule.editable
+      ? settlements.length
         ? Number(settlements[0].hourlyRate)
-        : DEFAULT_HOURLY_RATE;
-    const payable = round2(rate * deliveredHours);
+        : rateRule.defaultRate
+      : rateRule.defaultRate;
+    const payable = roundPayrollAmount(rate * deliveredHours);
     const alreadyPaid = round2(
       settlements.reduce((s, h) => s + Number(h.subtotalPaid), 0),
     );
@@ -314,6 +317,8 @@ export class PayrollService {
       period,
       teachingType,
       hourlyRate: rate,
+      defaultHourlyRate: rateRule.defaultRate,
+      rateEditable: rateRule.editable,
       deliveredHours,
       payable,
       alreadyPaid,
@@ -409,10 +414,14 @@ export class PayrollService {
         teachingType,
         rate: Number(s.hourlyRate),
         sumPaid: 0,
+        extraLabor: 0,
+        extraDeduction: 0,
         settlementIds: [] as string[],
       };
       cur.rate = Number(s.hourlyRate);
       cur.sumPaid += Number(s.subtotalPaid);
+      cur.extraLabor += Number(s.extraLabor);
+      cur.extraDeduction += Number(s.extraDeduction);
       cur.settlementIds.push(s.id);
       map.set(key, cur);
     }

@@ -1,5 +1,6 @@
-import { Button, Card, Space, Typography } from "antd";
+import { Button, Card, Space } from "antd";
 import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { useAuthStore } from "../../stores/authStore";
 import { ChangePhoneModal } from "./ChangePhoneModal";
 import { ChangeUsernameModal } from "./ChangeUsernameModal";
@@ -7,6 +8,7 @@ import { ChangePasswordModal } from "./ChangePasswordModal";
 import { DeactivateSelfModal } from "./DeactivateSelfModal";
 
 export function UserSettingsPage() {
+  const navigate = useNavigate();
   const user = useAuthStore((s) => s.user);
   const [changePhoneOpen, setChangePhoneOpen] = useState(false);
   const [changeUsernameOpen, setChangeUsernameOpen] = useState(false);
@@ -53,30 +55,10 @@ export function UserSettingsPage() {
       {showPermissionZone && (
         <Card title="权限区">
           <Space wrap>
-            <Button onClick={() => window.open("/users", "_blank", "noopener")}>
-              设置管理员
+            <Button onClick={() => navigate("/users")}>
+              全部用户管理
             </Button>
-            {isSuperAdmin && (
-              <>
-                <Button
-                  onClick={() => window.open("/users", "_blank", "noopener")}
-                >
-                  设置超级管理员
-                </Button>
-                <Button
-                  onClick={() => window.open("/users", "_blank", "noopener")}
-                >
-                  中台全部用户管理
-                </Button>
-              </>
-            )}
           </Space>
-          <Typography.Paragraph
-            type="secondary"
-            style={{ marginTop: 12, marginBottom: 0 }}
-          >
-            点击上方按钮将在新标签页打开"全部用户管理"页面。
-          </Typography.Paragraph>
         </Card>
       )}
 

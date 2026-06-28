@@ -1,7 +1,10 @@
 // apps/api/src/modules/students/students.service.ts
 import { ConflictException, Injectable, NotFoundException } from "@nestjs/common";
 import { Prisma, type Student } from "@prisma/client";
-import { computeCreditHours } from "../../common/course-no/course-status";
+import {
+  computeCourseStatus,
+  computeCreditHours,
+} from "../../common/course-no/course-status";
 import { IdSequenceService } from "../../common/id-sequence/id-sequence.service";
 import {
   SERVICE_STATUS_SORT,
@@ -50,7 +53,7 @@ function compareStudentListItems(a: StudentListItem, b: StudentListItem): number
 
   const yearA = a.enrollmentYear ?? -Infinity;
   const yearB = b.enrollmentYear ?? -Infinity;
-  if (yearA !== yearB) return yearB - yearA;
+  if (yearA !== yearB) return yearA - yearB; // enrollmentYear越小(年级越高)越靠前
 
   return (a.name ?? "").localeCompare(b.name ?? "", "zh-Hans-CN", {
     sensitivity: "base",
@@ -148,13 +151,85 @@ export class StudentsService {
   }
 
   async findOne(id: string): Promise<StudentDetail> {
-    const s = await this.prisma.student.findUnique({ where: { id } });
+    const s = await this.prisma.student.findUnique({
+      where: { id },
+      include: {
+        enrollments: {
+          include: {
+            course: {
+              select: {
+                id: true,
+                name: true,
+                secondaryCategoryName: true,
+                plannedAt: true,
+                actualTeachingType: true,
+                actualTeacherJobNo: true,
+                durationMinutes: true,
+                creditHours: true,
+              },
+            },
+          },
+        },
+      },
+    });
     if (!s) throw new NotFoundException("学生不存在");
-    const [computed] = await this.withComputedRemainingCredits([s]);
+    const { enrollments, ...student } = s;
+    const [computed] = await this.withComputedRemainingCredits([student]);
+
+    const teacherJobNos = [
+      ...new Set(
+        enrollments
+          .map((e) => e.course.actualTeacherJobNo)
+          .filter((v): v is string => Boolean(v)),
+      ),
+    ];
+    const teachers = teacherJobNos.length
+      ? await this.prisma.employee.findMany({
+          where: { jobNo: { in: teacherJobNos } },
+          select: { jobNo: true, name: true },
+        })
+      : [];
+    const teacherMap = new Map(teachers.map((t) => [t.jobNo, t]));
+    const now = new Date();
+    const completedCourses = enrollments
+      .map((enrollment) => {
+        const course = enrollment.course;
+        return {
+          id: course.id,
+          name: course.name,
+          secondaryCategoryName: course.secondaryCategoryName,
+          plannedAt: course.plannedAt,
+          status: computeCourseStatus(course.plannedAt, course.durationMinutes, now),
+          actualTeachingType: course.actualTeachingType,
+          actualTeacher: course.actualTeacherJobNo
+            ? teacherMap.get(course.actualTeacherJobNo) ?? {
+                jobNo: course.actualTeacherJobNo,
+                name: null,
+              }
+            : null,
+          creditHours:
+            course.creditHours == null
+              ? computeCreditHours(course.durationMinutes)
+              : Number(course.creditHours),
+        };
+      })
+      .sort((a, b) => {
+        const timeA = a.plannedAt?.getTime() ?? -Infinity;
+        const timeB = b.plannedAt?.getTime() ?? -Infinity;
+        return timeB - timeA;
+      });
+
     return {
       ...computed,
       grade: calculateGrade(s.enrollmentYear, s.graduationYear),
-      relatedCourseCategories: [],
+      relatedCourseCategories: [
+        ...new Set(
+          completedCourses
+            .map((course) => course.secondaryCategoryName)
+            .filter((v): v is string => Boolean(v)),
+        ),
+      ],
+      completedCourses,
     };
   }
 
