@@ -62,8 +62,6 @@ const COLUMNS = [
   "email",
   "totalPublicCredits",
   "totalPrivateCredits",
-  "remainingPublicCredits",
-  "remainingPrivateCredits",
   "note",
 ] as const;
 
@@ -91,14 +89,12 @@ const COLUMN_HEADERS: Record<Col, string> = {
   patentSoftwareDetail: "专利、软著服务详情",
   otherServiceDetail: "其他类型服务详情",
   giftedServiceDetail: "赠送服务详情",
-  policyText: "保研申请要求",
+  policyText: "加分政策说明",
   counselorJobNo: "学管老师工号",
   plannerJobNo: "规划师工号",
   email: "邮箱",
-  totalPublicCredits: "公共课总课时",
+  totalPublicCredits: "GPA+外语+竞赛总课时",
   totalPrivateCredits: "1v1总课时",
-  remainingPublicCredits: "公共课剩余",
-  remainingPrivateCredits: "1v1剩余",
   note: "备注",
 };
 
@@ -124,14 +120,12 @@ const COLUMN_HEADER_ALIASES: Record<Col, readonly string[]> = {
   patentSoftwareDetail: ["专利、软著服务详情"],
   otherServiceDetail: ["其他类型服务详情"],
   giftedServiceDetail: ["赠送服务详情"],
-  policyText: ["保研申请要求"],
+  policyText: ["加分政策说明", "保研申请要求"],
   counselorJobNo: ["学管老师工号"],
   plannerJobNo: ["规划师工号"],
   email: ["邮箱"],
-  totalPublicCredits: ["公共课总课时"],
+  totalPublicCredits: ["GPA+外语+竞赛总课时", "公共课总课时"],
   totalPrivateCredits: ["1v1总课时"],
-  remainingPublicCredits: ["公共课剩余"],
-  remainingPrivateCredits: ["1v1剩余"],
   note: ["备注"],
 };
 
@@ -154,12 +148,10 @@ type ParsedRow = {
   email?: string;
   totalPublicCredits?: string;
   totalPrivateCredits?: string;
-  remainingPublicCredits?: string;
-  remainingPrivateCredits?: string;
   serviceChecklistUrl?: string;
   overallPlanUrl?: string;
   policyText?: string;
-  detailNotes?: Record<string, string>;
+  detailNotes?: Array<{ title: string; content: string }>;
   note?: string;
 };
 
@@ -186,9 +178,9 @@ export class StudentsImportService {
     { header: "学管老师工号", key: "counselorJobNo" },
     { header: "规划师工号", key: "plannerJobNo" },
     { header: "邮箱", key: "email" },
-    { header: "公共课总课时", key: "totalPublicCredits" },
+    { header: "GPA+外语+竞赛总课时", key: "totalPublicCredits" },
     { header: "1v1总课时", key: "totalPrivateCredits" },
-    { header: "公共课剩余", key: "remainingPublicCredits" },
+    { header: "GPA+外语+竞赛剩余课时", key: "remainingPublicCredits" },
     { header: "1v1剩余", key: "remainingPrivateCredits" },
     { header: "服务清单（下载链接）", key: "serviceChecklistKeys" },
     { header: "课表（下载链接）", key: "scheduleKeys" },
@@ -356,8 +348,7 @@ export class StudentsImportService {
       });
       if (!hasAny) return;
 
-      const detailNotes = Object.fromEntries(
-        ([
+      const detailNotes = ([
           "planningRequirementDetail",
           "gpaEnglishDetail",
           "researchDetail",
@@ -368,9 +359,13 @@ export class StudentsImportService {
           "otherServiceDetail",
           "giftedServiceDetail",
         ] as const)
-          .map((key) => [COLUMN_HEADERS[key], this.blankToUndefined(raw[key])])
-          .filter((entry): entry is [string, string] => Boolean(entry[1])),
-      );
+          .map((key) => ({
+            title: COLUMN_HEADERS[key],
+            content: this.blankToUndefined(raw[key]),
+          }))
+          .filter((entry): entry is { title: string; content: string } =>
+            Boolean(entry.content),
+          );
 
       rows.push({
         row: rowNumber,
@@ -389,12 +384,10 @@ export class StudentsImportService {
         email: this.blankToUndefined(raw.email),
         totalPublicCredits: this.blankToUndefined(raw.totalPublicCredits),
         totalPrivateCredits: this.blankToUndefined(raw.totalPrivateCredits),
-        remainingPublicCredits: this.blankToUndefined(raw.remainingPublicCredits),
-        remainingPrivateCredits: this.blankToUndefined(raw.remainingPrivateCredits),
         serviceChecklistUrl: this.blankToUndefined(raw.serviceChecklistUrl),
         overallPlanUrl: this.blankToUndefined(raw.overallPlanUrl),
         policyText: this.blankToUndefined(raw.policyText),
-        detailNotes: Object.keys(detailNotes).length > 0 ? detailNotes : undefined,
+        detailNotes: detailNotes.length > 0 ? detailNotes : undefined,
         note: this.blankToUndefined(raw.note),
       });
     });
@@ -472,18 +465,8 @@ export class StudentsImportService {
     };
     const tpub = num(r.totalPublicCredits);
     const tprv = num(r.totalPrivateCredits);
-    const rpub = num(r.remainingPublicCredits);
-    const rprv = num(r.remainingPrivateCredits);
-    checkNonNeg("公共课总课时", tpub);
+    checkNonNeg("GPA+外语+竞赛总课时", tpub);
     checkNonNeg("1v1总课时", tprv);
-    checkNonNeg("公共课剩余", rpub);
-    checkNonNeg("1v1剩余", rprv);
-    if (tpub !== undefined && rpub !== undefined && rpub > tpub) {
-      push("公共课剩余", `剩余课时（${rpub}）大于总课时（${tpub}）`);
-    }
-    if (tprv !== undefined && rprv !== undefined && rprv > tprv) {
-      push("1v1剩余", `剩余课时（${rprv}）大于总课时（${tprv}）`);
-    }
 
     return errs;
   }
@@ -554,8 +537,8 @@ export class StudentsImportService {
         detailNotes: r.detailNotes === undefined ? Prisma.JsonNull : r.detailNotes,
         totalPublicCredits: r.totalPublicCredits ? new Prisma.Decimal(r.totalPublicCredits) : null,
         totalPrivateCredits: r.totalPrivateCredits ? new Prisma.Decimal(r.totalPrivateCredits) : null,
-        remainingPublicCredits: r.remainingPublicCredits ? new Prisma.Decimal(r.remainingPublicCredits) : null,
-        remainingPrivateCredits: r.remainingPrivateCredits ? new Prisma.Decimal(r.remainingPrivateCredits) : null,
+        remainingPublicCredits: r.totalPublicCredits ? new Prisma.Decimal(r.totalPublicCredits) : null,
+        remainingPrivateCredits: r.totalPrivateCredits ? new Prisma.Decimal(r.totalPrivateCredits) : null,
         note: r.note || null,
       };
     });
